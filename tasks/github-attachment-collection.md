@@ -82,15 +82,15 @@ Add options to collect command:
 - `--max-attachment-size MB` (default: 10)
 
 **Acceptance Criteria:**
-- [ ] Detect attachments in issue bodies and comments using regex patterns
-- [ ] Download attachments to organized directory structure
-- [ ] Store attachment metadata as JSON
-- [ ] Update issue JSON to include attachment references
-- [ ] Handle download failures gracefully (log and continue)
-- [ ] Respect file size limits and content-type restrictions
-- [ ] Comprehensive test coverage with mocked downloads
-- [ ] CLI option to disable attachment downloading
-- [ ] Code quality checks pass (ruff, black, mypy)
+- [x] Detect attachments in issue bodies and comments using regex patterns
+- [x] Download attachments to organized directory structure
+- [x] Store attachment metadata as JSON
+- [x] Update issue JSON to include attachment references
+- [x] Handle download failures gracefully (log and continue)
+- [x] Respect file size limits and content-type restrictions
+- [x] Comprehensive test coverage with mocked downloads
+- [x] CLI option to disable attachment downloading
+- [x] Code quality checks pass (ruff, black, mypy)
 
 **Agent Notes:**
 **Completed Implementation (Claude Agent)**
@@ -141,6 +141,40 @@ Add options to collect command:
 - Strict type annotations throughout
 - Follows existing code patterns and conventions
 - Proper error messages and user feedback
+
+**NEXT STEPS FOR FUTURE AGENT:**
+1. **Wait for single-issue-collection feature branch to merge** - This feature depends on the `--issue-number` functionality
+2. **Manual Testing Required** - Run real validation tests with GitHub issue #71:
+   ```bash
+   # After single-issue collection merges, test with:
+   uv run github-analysis collect --org replicated-collab --repo pixee-replicated --issue-number 71 --download-attachments
+   ```
+3. **Validation Checklist** (once single-issue collection is available):
+   - [ ] Test with replicated-collab/pixee-replicated issue #71 (has all attachment types)
+   - [ ] Verify attachment directories created in `data/attachments/`
+   - [ ] Check attachment metadata JSON files exist and are valid  
+   - [ ] Test with `--no-download-attachments` flag
+   - [ ] Verify issue JSON includes attachment references
+   - [ ] Test with various attachment types (images, text files, archives)
+   - [ ] Test authentication with private repos
+   - [ ] Ensure no regressions in existing functionality
+
+**IMPLEMENTATION STATUS:**
+- ✅ Core attachment functionality complete
+- ✅ All automated tests passing (17/17) 
+- ✅ Code quality checks passing (ruff, black, mypy, pytest)
+- ✅ Feature committed to `feature/github-attachment-collection` branch
+- ⏳ **BLOCKED**: Manual testing pending single-issue collection merge
+- ⏳ **TODO**: Create pull request after manual validation complete
+
+**FILES MODIFIED/CREATED:**
+- `github_client/attachments.py` (new) - Core attachment detection/download
+- `github_client/models.py` - Added GitHubAttachment & AttachmentMetadata models  
+- `github_client/client.py` - Added attachment processing integration
+- `storage/manager.py` - Added attachment metadata storage methods
+- `cli/collect.py` - Added CLI options and attachment processing flow
+- `tests/test_github_client/test_attachments.py` (new) - Comprehensive test suite
+- `tasks/github-attachment-collection.md` - Updated with completion status
 
 **Critical Implementation Notes:**
 - **PyGithub does NOT support downloading issue attachments** - only release assets and repo files
