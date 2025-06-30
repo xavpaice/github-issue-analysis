@@ -109,3 +109,7 @@ This project uses a worktree-based development model for agents:
 - Environment variables defined in `.env` (copy from `.env.example`)
 - Required: `GITHUB_TOKEN`, `OPENAI_API_KEY`
 - Optional: `ANTHROPIC_API_KEY`, `GITHUB_API_BASE_URL`, `LOG_LEVEL`
+
+## Git Practices
+
+- **NEVER credit yourself in git commit messages**
