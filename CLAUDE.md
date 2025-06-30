@@ -67,7 +67,11 @@ This project uses a worktree-based development model for agents:
 2. Create worktree: `git worktree add trees/task-name -b feature/task-name`
 3. Implement feature with full test coverage in the worktree
 4. Document progress in the task markdown file
-5. Create pull request when complete
+5. **BEFORE committing:** Verify all tests pass and linting passes
+6. Commit changes and push branch
+7. Create pull request with detailed description and test plan
+8. **IMMEDIATELY mark task status as "complete"** in `tasks/task-name.md`
+9. Commit and push the status update
 
 ### Key Technologies
 - **Python 3.12+** with strict typing

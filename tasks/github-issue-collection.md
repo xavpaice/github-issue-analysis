@@ -1,6 +1,6 @@
 # Task: Basic GitHub Issue Collection
 
-**Status:** ready
+**Status:** complete
 
 **Description:**
 Implement basic GitHub issue collection using the GitHub REST API. Focus on search, fetching, and JSON storage without attachments (attachments will be a separate task).
