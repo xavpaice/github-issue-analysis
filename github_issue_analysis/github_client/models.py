@@ -43,6 +43,7 @@ class GitHubIssue(BaseModel):
     comments: list[GitHubComment] = []
     created_at: datetime
     updated_at: datetime
+    repository_name: str | None = None  # Repository name for organization-wide searches
 
 
 class StoredIssue(BaseModel):

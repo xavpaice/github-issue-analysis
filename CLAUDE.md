@@ -109,3 +109,29 @@ This project uses a worktree-based development model for agents:
 - Environment variables defined in `.env` (copy from `.env.example`)
 - Required: `GITHUB_TOKEN`, `OPENAI_API_KEY`
 - Optional: `ANTHROPIC_API_KEY`, `GITHUB_API_BASE_URL`, `LOG_LEVEL`
+
+## Git Practices
+
+- **NEVER credit yourself in git commit messages**
+
+## GitHub CLI Usage
+
+**IMPORTANT Token Configuration:**
+- For **testing the program** (collecting issues): Use `GITHUB_TOKEN` (required for accessing test repositories)
+- For **GitHub CLI operations** (creating PRs, viewing repos): Use `GITHUB_PERSONAL_ACCESS_TOKEN`
+
+**GitHub CLI Commands:**
+```bash
+# Create pull requests (use GITHUB_PERSONAL_ACCESS_TOKEN)
+GITHUB_TOKEN=$GITHUB_PERSONAL_ACCESS_TOKEN gh pr create --title "Title" --body "Body"
+
+# View repository information (use GITHUB_PERSONAL_ACCESS_TOKEN) 
+GITHUB_TOKEN=$GITHUB_PERSONAL_ACCESS_TOKEN gh repo view
+
+# Testing the CLI tool (use GITHUB_TOKEN for test repo access)
+uv run github-analysis collect --org replicated-collab --repo pixee-replicated --issue-number 71
+```
+
+**Why Two Tokens:**
+- `GITHUB_TOKEN`: Has access to test repositories but limited GitHub API permissions
+- `GITHUB_PERSONAL_ACCESS_TOKEN`: Has full GitHub API permissions for repository operations

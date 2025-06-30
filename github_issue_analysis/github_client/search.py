@@ -52,6 +52,28 @@ class GitHubSearcher:
         """
         return self.client.get_issue(org, repo, issue_number)
 
+    def search_organization_issues(
+        self,
+        org: str,
+        labels: list[str] | None = None,
+        state: str = "open",
+        limit: int = 10,
+    ) -> list[GitHubIssue]:
+        """Search for issues across all repositories in an organization.
+
+        Args:
+            org: Organization name
+            labels: List of label names to filter by
+            state: Issue state (open, closed, all)
+            limit: Maximum number of issues to return
+
+        Returns:
+            List of GitHubIssue objects with full details including comments
+        """
+        return self.client.search_organization_issues(
+            org=org, labels=labels, state=state, limit=limit
+        )
+
 
 def build_github_query(
     org: str,
