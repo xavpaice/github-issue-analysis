@@ -96,7 +96,8 @@ class TestAttachmentDownloader:
 
         assert len(attachments) == 1
         assert (
-            attachments[0].original_url == "https://github.com/user-attachments/assets/6f92d22b-1555-4979-8f48-4e530b21382f"
+            attachments[0].original_url
+            == "https://github.com/user-attachments/assets/6f92d22b-1555-4979-8f48-4e530b21382f"
         )
         assert attachments[0].source == "issue_body"
 
