@@ -6,14 +6,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **Setup:**
 ```bash
-uv sync --dev                    # Install dependencies with dev tools
+uv sync --all-extras             # Install all dependencies including dev tools
 cp .env.example .env            # Set up environment (edit with API keys)
-```
-
-**If dev dependencies aren't installed properly:**
-```bash
-uv add --dev pytest pytest-asyncio pytest-mock ruff black mypy  # Explicitly install dev tools
-uv run pytest --version        # Verify pytest is available
 ```
 
 **Dependency Management:**
@@ -75,15 +69,18 @@ GitHub API → Issue Collection → JSON Storage (`data/issues/`) → AI Process
 ### Agent Development Workflow
 This project uses a worktree-based development model for agents:
 
-1. Read task specification from `tasks/task-name.md`
-2. Create worktree: `git worktree add trees/task-name -b feature/task-name`
-3. Implement feature with full test coverage in the worktree
-4. Document progress in the task markdown file
-5. **BEFORE committing:** Verify all tests pass and linting passes
-6. Commit changes and push branch
-7. Create pull request with detailed description and test plan
-8. **IMMEDIATELY mark task status as "complete"** in `tasks/task-name.md`
-9. Commit and push the status update
+**CRITICAL: Always create worktree BEFORE starting any work!**
+
+1. **FIRST:** Read task specification from `tasks/task-name.md` to understand requirements and determine appropriate branch naming
+2. **IMMEDIATELY:** Create worktree: `git worktree add trees/task-name -b feature/task-name`
+3. **CHANGE DIRECTORY:** `cd trees/task-name` - All work must be done in the worktree
+4. Implement feature with full test coverage in the worktree
+5. Document progress in the task markdown file
+6. **BEFORE committing:** Verify all tests pass and linting passes
+7. Commit changes and push branch
+8. Create pull request with detailed description and test plan
+9. **IMMEDIATELY mark task status as "complete"** in `tasks/task-name.md`
+10. Commit and push the status update
 
 ### Key Technologies
 - **Python 3.12+** with strict typing
