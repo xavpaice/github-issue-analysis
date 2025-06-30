@@ -8,7 +8,19 @@
       "uv run black*",
       "uv run mypy*",
       "uv run pytest*",
-      "find *"
+      "find *",
+      "git add *",
+      "git commit *",
+      "git push origin *",
+      "gh pr create *",
+      "gh pr view *",
+      "gh pr list *",
+      "gh pr status *",
+      "gh pr checks *",
+      "gh run list *",
+      "gh run view *",
+      "gh run watch *",
+      "gh api *"
     ]
   }
 }
