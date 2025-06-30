@@ -10,6 +10,12 @@ uv sync --dev                    # Install dependencies with dev tools
 cp .env.example .env            # Set up environment (edit with API keys)
 ```
 
+**If dev dependencies aren't installed properly:**
+```bash
+uv add --dev pytest pytest-asyncio pytest-mock ruff black mypy  # Explicitly install dev tools
+uv run pytest --version        # Verify pytest is available
+```
+
 **Dependency Management:**
 ```bash
 uv add package-name              # Add new dependency (updates pyproject.toml)
@@ -21,15 +27,24 @@ uv sync                          # Sync environment with pyproject.toml
 
 **Quality Checks:**
 ```bash
-uv run ruff check --fix && uv run black . && uv run mypy .  # Format, lint, type check
-uv run pytest                   # Run test suite
+uv run pytest                   # Run test suite (MUST PASS before commit)
+uv run ruff check --fix          # Format and lint (MUST PASS before commit)  
+uv run black .                   # Code formatting (auto-applies fixes)
+uv run mypy .                    # Type checking (ideal but not required for commit)
 ```
+
+**IMPORTANT Pre-Commit Requirements:**
+- All tests MUST pass: `uv run pytest tests/ -v`
+- Ruff linting MUST pass: `uv run ruff check`
+- Black formatting should be applied: `uv run black .`
+- MyPy type checking is recommended but not required for commit
 
 **CLI Usage:**
 ```bash
 uv run github-analysis collect --org myorg --repo myrepo     # Collect GitHub issues
-uv run github-analysis process --task product-labeling      # Process with AI
+uv run github-analysis status                               # Show storage statistics  
 uv run github-analysis version                              # Check version
+# uv run github-analysis process --task product-labeling    # Process with AI (future)
 ```
 
 ## Architecture

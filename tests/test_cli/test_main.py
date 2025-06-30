@@ -1,6 +1,7 @@
 """Test main CLI functionality."""
 
 from typer.testing import CliRunner
+
 from github_issue_analysis.cli.main import app
 
 runner = CliRunner()
