@@ -7,7 +7,7 @@ from typing import Any
 
 from rich.console import Console
 
-from ..github_client.models import GitHubIssue, StoredIssue
+from ..github_client.models import AttachmentMetadata, GitHubIssue, StoredIssue
 
 console = Console()
 
@@ -207,3 +207,46 @@ class StorageManager:
             "repositories": repo_counts,
             "storage_path": str(self.base_path.absolute()),
         }
+
+    def save_attachment_metadata(
+        self,
+        org: str,
+        repo: str,
+        issue_number: int,
+        attachment_metadata: AttachmentMetadata,
+    ) -> Path:
+        """Save attachment metadata to JSON file.
+
+        Args:
+            org: Organization name
+            repo: Repository name
+            issue_number: Issue number
+            attachment_metadata: AttachmentMetadata object to save
+
+        Returns:
+            Path to the saved metadata file
+        """
+        attachments_dir = Path("data/attachments")
+        attachments_dir.mkdir(parents=True, exist_ok=True)
+
+        issue_dir = attachments_dir / f"{org}_{repo}_issue_{issue_number}"
+        issue_dir.mkdir(parents=True, exist_ok=True)
+
+        metadata_file = issue_dir / "attachment_metadata.json"
+
+        try:
+            with open(metadata_file, "w", encoding="utf-8") as f:
+                json.dump(
+                    attachment_metadata.model_dump(),
+                    f,
+                    indent=2,
+                    ensure_ascii=False,
+                    default=str,  # Handle datetime objects
+                )
+
+            console.print(f"Saved attachment metadata to {metadata_file}")
+            return metadata_file
+
+        except Exception as e:
+            console.print(f"Error saving attachment metadata: {e}")
+            raise

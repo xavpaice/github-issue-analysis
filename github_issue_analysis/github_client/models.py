@@ -31,6 +31,18 @@ class GitHubComment(BaseModel):
     updated_at: datetime
 
 
+class GitHubAttachment(BaseModel):
+    """GitHub attachment model for issue and comment attachments."""
+
+    original_url: str
+    filename: str
+    local_path: str | None = None
+    content_type: str | None = None
+    size: int | None = None
+    downloaded: bool = False
+    source: str  # "issue_body" or "comment_{id}"
+
+
 class GitHubIssue(BaseModel):
     """GitHub issue model."""
 
@@ -44,6 +56,15 @@ class GitHubIssue(BaseModel):
     created_at: datetime
     updated_at: datetime
     repository_name: str | None = None  # Repository name for organization-wide searches
+    attachments: list[GitHubAttachment] = []  # Issue and comment attachments
+
+
+class AttachmentMetadata(BaseModel):
+    """Metadata for downloaded attachments."""
+
+    issue_reference: dict[str, Any]
+    downloaded_at: datetime
+    attachments: list[GitHubAttachment]
 
 
 class StoredIssue(BaseModel):

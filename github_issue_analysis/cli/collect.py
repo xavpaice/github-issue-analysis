@@ -4,6 +4,7 @@ import typer
 from rich.console import Console
 from rich.table import Table
 
+from ..github_client.attachments import AttachmentDownloader
 from ..github_client.client import GitHubClient
 from ..github_client.models import GitHubIssue
 from ..github_client.search import GitHubSearcher
@@ -36,6 +37,14 @@ def collect(
     ),
     token: str | None = typer.Option(
         None, "--token", help="GitHub API token (defaults to GITHUB_TOKEN env var)"
+    ),
+    download_attachments: bool = typer.Option(
+        True,
+        "--download-attachments/--no-download-attachments",
+        help="Download issue and comment attachments",
+    ),
+    max_attachment_size: int = typer.Option(
+        10, "--max-attachment-size", help="Maximum attachment size in MB"
     ),
 ) -> None:
     """Collect GitHub issues and save them locally.
@@ -119,6 +128,44 @@ def collect(
             return
 
         console.print(f"✅ Found {len(issues)} issues")
+
+        # Process attachments if enabled
+        if download_attachments:
+            console.print("🔗 Processing issue attachments...")
+            if not client.token:
+                console.print("❌ GitHub token required for attachment downloads")
+                raise typer.Exit(1)
+            downloader = AttachmentDownloader(
+                github_token=client.token, max_size_mb=max_attachment_size
+            )
+
+            # Process each issue for attachments
+            for i, issue in enumerate(issues):
+                console.print(f"Processing attachments for issue #{issue.number}...")
+
+                # Detect attachments
+                issues[i] = downloader.process_issue_attachments(issue)
+
+                # Download attachments if any were found
+                if issues[i].attachments:
+                    import asyncio
+                    from pathlib import Path
+
+                    base_dir = Path("data/attachments")
+                    # For org-wide searches, use the repository name from the issue
+                    repo_name = repo if repo is not None else issues[i].repository_name
+                    if repo_name is None:
+                        console.print(
+                            f"Warning: No repository name available for issue "
+                            f"#{issue.number}, skipping attachment download"
+                        )
+                        continue
+
+                    issues[i] = asyncio.run(
+                        downloader.download_issue_attachments(
+                            issues[i], base_dir, org, repo_name
+                        )
+                    )
 
         # Initialize storage manager
         storage = StorageManager()

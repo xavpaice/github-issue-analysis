@@ -12,6 +12,7 @@ from github.NamedUser import NamedUser
 from github.Repository import Repository
 from rich.console import Console
 
+from .attachments import AttachmentDownloader
 from .models import GitHubComment, GitHubIssue, GitHubLabel, GitHubUser
 
 console = Console()
@@ -251,3 +252,17 @@ class GitHubClient:
         except Exception as e:
             console.print(f"Error searching organization issues: {e}")
             raise
+
+    def process_issue_attachments(self, issue: GitHubIssue) -> GitHubIssue:
+        """Process and detect all attachments in an issue.
+
+        Args:
+            issue: GitHubIssue object to process
+
+        Returns:
+            Updated GitHubIssue object with detected attachments
+        """
+        if not self.token:
+            raise ValueError("GitHub token is required for attachment processing")
+        downloader = AttachmentDownloader(self.token)
+        return downloader.process_issue_attachments(issue)
