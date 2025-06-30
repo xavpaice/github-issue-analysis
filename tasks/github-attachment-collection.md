@@ -60,11 +60,21 @@ data/attachments/microsoft_vscode_issue_12345/
 ```
 
 **Download Strategy:**
-- Use httpx to download files with proper headers
+- Use httpx to download files with proper headers (include GitHub token for authentication)
 - Detect content-type from response headers
 - Handle redirects and authentication
 - Respect file size limits (default 10MB max)
 - Generate safe local filenames
+
+**Authentication Example:**
+```python
+headers = {
+    "Authorization": f"token {github_token}",
+    "User-Agent": "github-issue-analysis/0.1.0"
+}
+async with httpx.AsyncClient() as client:
+    response = await client.get(attachment_url, headers=headers)
+```
 
 **CLI Integration:**
 Add options to collect command:
@@ -85,11 +95,30 @@ Add options to collect command:
 **Agent Notes:**
 [Document your attachment detection strategy, download implementation, and error handling approach]
 
+**Critical Implementation Notes:**
+- **PyGithub does NOT support downloading issue attachments** - only release assets and repo files
+- **Issue attachments require manual HTTP requests** with GitHub token authentication
+- **All attachment URLs need GitHub token in Authorization header** for private repos
+- **Handle HTTP errors gracefully** (404, 403, rate limits) - log and continue
+
+**Test with Real Data:**
+```bash
+# Test with issue #71 which has multiple attachment types
+uv run github-analysis collect --org replicated-collab --repo pixee-replicated --issue-number 71 --download-attachments
+
+# Expected attachments in issue #71:
+# - Images: ![Image](https://github.com/user-attachments/assets/...)
+# - Files: [output.log](https://github.com/user-attachments/files/...)  
+# - Archives: [supportbundle-2025-06-18T14_56_49.tar.gz](...)
+# - Inline images: <img src="https://github.com/user-attachments/assets/..."/>
+```
+
 **Validation:**
-- Collect issues with known attachments: `uv run github-analysis collect --org microsoft --repo vscode --labels bug --limit 2`
+- Test with replicated-collab/pixee-replicated issue #71 (has all attachment types)
 - Verify attachment directories created in `data/attachments/`
 - Check attachment metadata JSON files exist and are valid
 - Test with --no-download-attachments flag
 - Verify issue JSON includes attachment references
-- Test with various attachment types (images, text files, etc.)
+- Test with various attachment types (images, text files, archives)
+- Test authentication with private repos
 - Ensure all tests pass: `uv run pytest tests/test_github_client/test_attachments.py -v`
