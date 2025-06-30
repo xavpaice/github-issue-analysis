@@ -25,6 +25,12 @@ uv run ruff check --fix && uv run black . && uv run mypy .  # Format, lint, type
 uv run pytest                   # Run test suite
 ```
 
+**CRITICAL REQUIREMENTS FOR AGENTS:**
+- **NEVER use `python` directly** - Always use `uv run python` or `uv run <command>`
+- **ALWAYS run type checking** - `mypy .` is mandatory for all code changes
+- **Use specific types, not `Any`** - Import proper types from typing module
+- **Run full quality checks** - All three commands (ruff, black, mypy) must pass
+
 **CLI Usage:**
 ```bash
 uv run github-analysis collect --org myorg --repo myrepo     # Collect GitHub issues
@@ -60,6 +66,19 @@ This project uses a worktree-based development model for agents:
 - **Typer + Rich** for CLI interface
 - **httpx** for HTTP requests
 - **pytest** for testing with asyncio support
+
+### Typing Guidelines
+- Use specific types from `typing` module: `List[str]`, `Dict[str, Any]`, `Optional[int]`
+- For complex types, define Pydantic models or TypedDict classes
+- Use `Union[X, Y]` or `X | Y` (Python 3.10+) instead of `Any`
+- Example good typing:
+  ```python
+  from typing import List, Dict, Optional
+  
+  def process_issues(issues: List[Dict[str, Any]]) -> Optional[str]:
+      """Process GitHub issues and return summary."""
+      ...
+  ```
 
 ### Configuration
 - Environment variables defined in `.env` (copy from `.env.example`)
