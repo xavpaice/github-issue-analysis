@@ -152,9 +152,15 @@ def collect(
                     from pathlib import Path
 
                     base_dir = Path("data/attachments")
+                    # For organization-wide searches, use the repository name from the issue
+                    repo_name = repo if repo is not None else issues[i].repository_name
+                    if repo_name is None:
+                        console.print(f"Warning: No repository name available for issue #{issue.number}, skipping attachment download")
+                        continue
+                    
                     issues[i] = asyncio.run(
                         downloader.download_issue_attachments(
-                            issues[i], base_dir, org, repo
+                            issues[i], base_dir, org, repo_name
                         )
                     )
 

@@ -17,7 +17,7 @@ GITHUB_FILE_PATTERN = r"https://github\.com/[\w-]+/[\w-]+/files/\d+/[\w.-]+\??[\
 GITHUB_IMAGE_PATTERN = (
     r"https://user-images\.githubusercontent\.com/\d+/[\w.-]+\??[\w=&]*"
 )
-GITHUB_ASSET_PATTERN = r"https://github\.com/[\w-]+/[\w-]+/assets/\d+"
+GITHUB_ASSET_PATTERN = r"https://github\.com/user-attachments/assets/[\w-]+"
 
 
 class AttachmentDownloader:

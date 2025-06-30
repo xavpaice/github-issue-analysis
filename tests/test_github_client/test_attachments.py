@@ -91,12 +91,12 @@ class TestAttachmentDownloader:
         self, downloader: AttachmentDownloader
     ) -> None:
         """Test detection of GitHub asset URLs."""
-        text = "Asset: https://github.com/org/repo/assets/987654"
+        text = "Asset: https://github.com/user-attachments/assets/6f92d22b-1555-4979-8f48-4e530b21382f"
         attachments = downloader.detect_attachments(text, "issue_body")
 
         assert len(attachments) == 1
         assert (
-            attachments[0].original_url == "https://github.com/org/repo/assets/987654"
+            attachments[0].original_url == "https://github.com/user-attachments/assets/6f92d22b-1555-4979-8f48-4e530b21382f"
         )
         assert attachments[0].source == "issue_body"
 
@@ -108,7 +108,7 @@ class TestAttachmentDownloader:
         Check these files:
         - Log: https://github.com/org/repo/files/123/app.log
         - Screenshot: https://user-images.githubusercontent.com/456/screen.png
-        - Asset: https://github.com/org/repo/assets/789
+        - Asset: https://github.com/user-attachments/assets/abc123-def456
         """
         attachments = downloader.detect_attachments(text, "issue_body")
 
@@ -116,7 +116,7 @@ class TestAttachmentDownloader:
         urls = [att.original_url for att in attachments]
         assert "https://github.com/org/repo/files/123/app.log" in urls
         assert "https://user-images.githubusercontent.com/456/screen.png" in urls
-        assert "https://github.com/org/repo/assets/789" in urls
+        assert "https://github.com/user-attachments/assets/abc123-def456" in urls
 
     def test_detect_attachments_empty_text(
         self, downloader: AttachmentDownloader
@@ -380,8 +380,8 @@ class TestAttachmentRegexPatterns:
         from github_issue_analysis.github_client.attachments import GITHUB_ASSET_PATTERN
 
         valid_urls = [
-            "https://github.com/microsoft/vscode/assets/12345",
-            "https://github.com/org-name/repo-name/assets/67890",
+            "https://github.com/user-attachments/assets/6f92d22b-1555-4979-8f48-4e530b21382f",
+            "https://github.com/user-attachments/assets/abc123-def456",
         ]
 
         for url in valid_urls:

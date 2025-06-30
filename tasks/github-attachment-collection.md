@@ -37,6 +37,7 @@ GITHUB_ASSET_PATTERN = r'https://github\.com/[\w-]+/[\w-]+/assets/\d+'
 **Pydantic Models to Add:**
 ```python
 class GitHubAttachment(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))  # Unique ID to prevent conflicts
     original_url: str
     filename: str
     local_path: Optional[str] = None
