@@ -160,6 +160,9 @@ class TestGitHubClient:
         mock_comment.created_at = datetime(2024, 1, 1)
         mock_comment.updated_at = datetime(2024, 1, 1)
 
+        mock_repository = Mock()
+        mock_repository.name = "testrepo"
+
         mock_issue = Mock()
         mock_issue.number = 42
         mock_issue.title = "Test Issue"
@@ -170,6 +173,7 @@ class TestGitHubClient:
         mock_issue.created_at = datetime(2024, 1, 1)
         mock_issue.updated_at = datetime(2024, 1, 1)
         mock_issue.get_comments.return_value = [mock_comment]
+        mock_issue.repository = mock_repository
 
         mock_repo = Mock()
         mock_repo.get_issue.return_value = mock_issue
@@ -197,6 +201,9 @@ class TestGitHubClient:
         mock_user.login = "issueuser"
         mock_user.id = 11111
 
+        mock_repository = Mock()
+        mock_repository.name = "testrepo"
+
         mock_issue = Mock()
         mock_issue.number = 42
         mock_issue.title = "Test Issue"
@@ -207,6 +214,7 @@ class TestGitHubClient:
         mock_issue.created_at = datetime(2024, 1, 1)
         mock_issue.updated_at = datetime(2024, 1, 1)
         mock_issue.get_comments.return_value = []
+        mock_issue.repository = mock_repository
 
         mock_github = Mock()
         mock_github.search_issues.return_value = [mock_issue]

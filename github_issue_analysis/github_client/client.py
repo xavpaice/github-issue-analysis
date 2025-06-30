@@ -81,6 +81,11 @@ class GitHubClient:
         """Convert PyGitHub issue to our model."""
         labels = [self._convert_label(label) for label in github_issue.labels]
 
+        # Extract repository name from the issue's repository
+        repository_name = None
+        if hasattr(github_issue, "repository") and github_issue.repository:
+            repository_name = github_issue.repository.name
+
         # Fetch comments for the issue
         comments = []
         try:
@@ -102,6 +107,7 @@ class GitHubClient:
             comments=comments,
             created_at=github_issue.created_at,
             updated_at=github_issue.updated_at,
+            repository_name=repository_name,
         )
 
     def get_repository(self, org: str, repo: str) -> Repository:
@@ -182,4 +188,66 @@ class GitHubClient:
             return self.search_issues(org, repo, labels, state, limit)
         except Exception as e:
             console.print(f"Error searching issues: {e}")
+            raise
+
+    def search_organization_issues(
+        self,
+        org: str,
+        labels: list[str] | None = None,
+        state: str = "open",
+        limit: int = 10,
+    ) -> list[GitHubIssue]:
+        """Search for issues across all repositories in an organization.
+
+        Args:
+            org: Organization name
+            labels: List of label names to filter by
+            state: Issue state (open, closed, all)
+            limit: Maximum number of issues to return
+
+        Returns:
+            List of GitHubIssue objects
+        """
+        self._check_rate_limit()
+
+        # Build search query for organization-wide search
+        query_parts = [f"org:{org}", "is:issue"]
+
+        if state != "all":
+            query_parts.append(f"state:{state}")
+
+        if labels:
+            for label in labels:
+                query_parts.append(f"label:{label}")
+
+        query = " ".join(query_parts)
+        console.print(f"Searching with query: {query}")
+
+        try:
+            # Use GitHub search API
+            issues = self.github.search_issues(query)
+
+            # Convert to our models, limiting results
+            result_issues = []
+            for i, github_issue in enumerate(issues):
+                if i >= limit:
+                    break
+
+                try:
+                    result_issues.append(self._convert_issue(github_issue))
+                    console.print(
+                        f"Processed issue #{github_issue.number}: {github_issue.title}"
+                    )
+                except Exception as e:
+                    console.print(f"Error processing issue #{github_issue.number}: {e}")
+                    continue
+
+            return result_issues
+
+        except RateLimitExceededException:
+            console.print("Rate limit exceeded, waiting...")
+            time.sleep(60)
+            return self.search_organization_issues(org, labels, state, limit)
+        except Exception as e:
+            console.print(f"Error searching organization issues: {e}")
             raise
