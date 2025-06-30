@@ -25,19 +25,25 @@ uv sync                          # Sync environment with pyproject.toml
 ```
 **IMPORTANT:** Always use `uv add/remove` instead of `pip install/uninstall` to maintain dependency tracking in pyproject.toml.
 
-**Quality Checks:**
+**Quality Checks (All Required Before Commit):**
 ```bash
-uv run pytest                   # Run test suite (MUST PASS before commit)
-uv run ruff check --fix          # Format and lint (MUST PASS before commit)  
-uv run black .                   # Code formatting (auto-applies fixes)
-uv run mypy .                    # Type checking (ideal but not required for commit)
+# Complete linting suite - all must pass:
+uv run ruff check --fix          # Code linting and formatting fixes
+uv run black .                   # Code formatting (auto-applies fixes)  
+uv run mypy .                    # Type checking (REQUIRED)
+uv run pytest                   # Run test suite (REQUIRED)
 ```
 
+**CRITICAL: "Linting" includes ALL of the above tools:**
+- **Ruff**: Code quality, imports, style violations
+- **Black**: Code formatting consistency  
+- **MyPy**: Type checking and type annotations
+- **Pytest**: All tests must pass
+
 **IMPORTANT Pre-Commit Requirements:**
-- All tests MUST pass: `uv run pytest tests/ -v`
-- Ruff linting MUST pass: `uv run ruff check`
-- Black formatting should be applied: `uv run black .`
-- MyPy type checking is recommended but not required for commit
+- ALL quality checks MUST pass before commit
+- Run the complete command: `uv run ruff check --fix && uv run black . && uv run mypy . && uv run pytest`
+- No exceptions - mypy is REQUIRED, not optional
 
 **CLI Usage:**
 ```bash

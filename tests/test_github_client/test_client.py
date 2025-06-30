@@ -15,26 +15,26 @@ class TestGitHubClient:
     """Test GitHubClient class."""
 
     @patch.dict(os.environ, {"GITHUB_TOKEN": "test_token"})
-    def test_init_with_env_token(self):
+    def test_init_with_env_token(self) -> None:
         """Test initialization with environment token."""
         with patch("github_issue_analysis.github_client.client.Github") as mock_github:
             GitHubClient()
             mock_github.assert_called_once_with("test_token")
 
-    def test_init_with_explicit_token(self):
+    def test_init_with_explicit_token(self) -> None:
         """Test initialization with explicit token."""
         with patch("github_issue_analysis.github_client.client.Github") as mock_github:
             GitHubClient(token="explicit_token")
             mock_github.assert_called_once_with("explicit_token")
 
     @patch.dict(os.environ, {}, clear=True)
-    def test_init_without_token(self):
+    def test_init_without_token(self) -> None:
         """Test initialization without token raises error."""
         with pytest.raises(ValueError, match="GitHub token is required"):
             GitHubClient()
 
     @patch("github_issue_analysis.github_client.client.Github")
-    def test_check_rate_limit(self, mock_github_class):
+    def test_check_rate_limit(self, mock_github_class: Mock) -> None:
         """Test rate limit checking."""
         # Mock rate limit response
         mock_rate_limit = Mock()
@@ -52,7 +52,7 @@ class TestGitHubClient:
         mock_github.get_rate_limit.assert_called()
 
     @patch("github_issue_analysis.github_client.client.Github")
-    def test_get_repository_success(self, mock_github_class):
+    def test_get_repository_success(self, mock_github_class: Mock) -> None:
         """Test successful repository retrieval."""
         mock_repo = Mock()
         mock_github = Mock()
@@ -66,7 +66,7 @@ class TestGitHubClient:
         mock_github.get_repo.assert_called_once_with("testorg/testrepo")
 
     @patch("github_issue_analysis.github_client.client.Github")
-    def test_get_repository_not_found(self, mock_github_class):
+    def test_get_repository_not_found(self, mock_github_class: Mock) -> None:
         """Test repository not found error."""
         mock_github = Mock()
         mock_github.get_repo.side_effect = UnknownObjectException(
@@ -80,7 +80,7 @@ class TestGitHubClient:
             client.get_repository("testorg", "testrepo")
 
     @patch("github_issue_analysis.github_client.client.Github")
-    def test_convert_user(self, mock_github_class):
+    def test_convert_user(self, mock_github_class: Mock) -> None:
         """Test user conversion."""
         mock_github_class.return_value = Mock()
         client = GitHubClient(token="test_token")
@@ -96,7 +96,7 @@ class TestGitHubClient:
         assert result.id == 12345
 
     @patch("github_issue_analysis.github_client.client.Github")
-    def test_convert_label(self, mock_github_class):
+    def test_convert_label(self, mock_github_class: Mock) -> None:
         """Test label conversion."""
         mock_github_class.return_value = Mock()
         client = GitHubClient(token="test_token")
@@ -114,7 +114,7 @@ class TestGitHubClient:
         assert result.description == "Bug reports"
 
     @patch("github_issue_analysis.github_client.client.Github")
-    def test_convert_comment(self, mock_github_class):
+    def test_convert_comment(self, mock_github_class: Mock) -> None:
         """Test comment conversion."""
         mock_github_class.return_value = Mock()
         client = GitHubClient(token="test_token")
@@ -141,7 +141,7 @@ class TestGitHubClient:
         assert result.updated_at == datetime(2024, 1, 2)
 
     @patch("github_issue_analysis.github_client.client.Github")
-    def test_get_issue(self, mock_github_class):
+    def test_get_issue(self, mock_github_class: Mock) -> None:
         """Test getting a single issue."""
         # Setup mocks
         mock_user = Mock()
@@ -190,7 +190,7 @@ class TestGitHubClient:
         assert len(result.comments) == 1
 
     @patch("github_issue_analysis.github_client.client.Github")
-    def test_search_issues(self, mock_github_class):
+    def test_search_issues(self, mock_github_class: Mock) -> None:
         """Test searching for issues."""
         # Setup mock issue
         mock_user = Mock()

@@ -191,7 +191,7 @@ class StorageManager:
         total_size = sum(f.stat().st_size for f in all_files)
 
         # Count issues by repository
-        repo_counts = {}
+        repo_counts: dict[str, int] = {}
         for f in all_files:
             parts = f.stem.split("_issue_")[0].split("_")
             if len(parts) >= 2:

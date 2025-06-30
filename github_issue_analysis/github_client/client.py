@@ -5,6 +5,11 @@ import time
 
 from github import Github
 from github.GithubException import RateLimitExceededException, UnknownObjectException
+from github.Issue import Issue
+from github.IssueComment import IssueComment
+from github.Label import Label
+from github.NamedUser import NamedUser
+from github.Repository import Repository
 from rich.console import Console
 
 from .models import GitHubComment, GitHubIssue, GitHubLabel, GitHubUser
@@ -50,11 +55,11 @@ class GitHubClient:
         except Exception as e:
             console.print(f"Warning: Could not check rate limit: {e}")
 
-    def _convert_user(self, github_user) -> GitHubUser:
+    def _convert_user(self, github_user: NamedUser) -> GitHubUser:
         """Convert PyGitHub user to our model."""
         return GitHubUser(login=github_user.login, id=github_user.id)
 
-    def _convert_label(self, github_label) -> GitHubLabel:
+    def _convert_label(self, github_label: Label) -> GitHubLabel:
         """Convert PyGitHub label to our model."""
         return GitHubLabel(
             name=github_label.name,
@@ -62,7 +67,7 @@ class GitHubClient:
             description=github_label.description,
         )
 
-    def _convert_comment(self, github_comment) -> GitHubComment:
+    def _convert_comment(self, github_comment: IssueComment) -> GitHubComment:
         """Convert PyGitHub comment to our model."""
         return GitHubComment(
             id=github_comment.id,
@@ -72,7 +77,7 @@ class GitHubClient:
             updated_at=github_comment.updated_at,
         )
 
-    def _convert_issue(self, github_issue) -> GitHubIssue:
+    def _convert_issue(self, github_issue: Issue) -> GitHubIssue:
         """Convert PyGitHub issue to our model."""
         labels = [self._convert_label(label) for label in github_issue.labels]
 
@@ -99,7 +104,7 @@ class GitHubClient:
             updated_at=github_issue.updated_at,
         )
 
-    def get_repository(self, org: str, repo: str):
+    def get_repository(self, org: str, repo: str) -> Repository:
         """Get repository object."""
         try:
             return self.github.get_repo(f"{org}/{repo}")

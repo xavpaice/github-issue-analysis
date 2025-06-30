@@ -2,9 +2,10 @@
 
 import json
 import tempfile
+from collections.abc import Generator
 from datetime import datetime
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 import pytest
 
@@ -20,13 +21,13 @@ class TestStorageManager:
     """Test StorageManager class."""
 
     @pytest.fixture
-    def temp_storage(self):
+    def temp_storage(self) -> Generator[StorageManager, None, None]:
         """Create temporary storage directory."""
         with tempfile.TemporaryDirectory() as temp_dir:
             yield StorageManager(base_path=temp_dir)
 
     @pytest.fixture
-    def sample_issue(self):
+    def sample_issue(self) -> GitHubIssue:
         """Create a sample GitHub issue."""
         user = GitHubUser(login="testuser", id=12345)
         return GitHubIssue(
@@ -41,7 +42,7 @@ class TestStorageManager:
             updated_at=datetime(2024, 1, 1, 12, 0, 0),
         )
 
-    def test_init_creates_directory(self):
+    def test_init_creates_directory(self) -> None:
         """Test that initialization creates the storage directory."""
         with tempfile.TemporaryDirectory() as temp_dir:
             storage_path = Path(temp_dir) / "test_storage"
@@ -50,20 +51,22 @@ class TestStorageManager:
             assert storage_path.exists()
             assert storage_path.is_dir()
 
-    def test_generate_filename(self, temp_storage):
+    def test_generate_filename(self, temp_storage: StorageManager) -> None:
         """Test filename generation."""
         filename = temp_storage._generate_filename("microsoft", "vscode", 123)
         expected = "microsoft_vscode_issue_123.json"
         assert filename == expected
 
-    def test_get_file_path(self, temp_storage):
+    def test_get_file_path(self, temp_storage: StorageManager) -> None:
         """Test file path generation."""
         file_path = temp_storage._get_file_path("microsoft", "vscode", 123)
         expected_name = "microsoft_vscode_issue_123.json"
         assert file_path.name == expected_name
         assert file_path.parent == temp_storage.base_path
 
-    def test_save_issue(self, temp_storage, sample_issue):
+    def test_save_issue(
+        self, temp_storage: StorageManager, sample_issue: GitHubIssue
+    ) -> None:
         """Test saving a single issue."""
         metadata = {"test": "value"}
 
@@ -86,7 +89,9 @@ class TestStorageManager:
         assert "collection_timestamp" in data["metadata"]
         assert data["metadata"]["api_version"] == "v4"
 
-    def test_save_issue_without_metadata(self, temp_storage, sample_issue):
+    def test_save_issue_without_metadata(
+        self, temp_storage: StorageManager, sample_issue: GitHubIssue
+    ) -> None:
         """Test saving issue without explicit metadata."""
         file_path = temp_storage.save_issue("testorg", "testrepo", sample_issue)
 
@@ -100,7 +105,9 @@ class TestStorageManager:
         assert data["metadata"]["api_version"] == "v4"
         assert data["metadata"]["tool_version"] == "0.1.0"
 
-    def test_save_multiple_issues(self, temp_storage, sample_issue):
+    def test_save_multiple_issues(
+        self, temp_storage: StorageManager, sample_issue: GitHubIssue
+    ) -> None:
         """Test saving multiple issues."""
         # Create a second issue
         user = GitHubUser(login="testuser2", id=54321)
@@ -131,7 +138,9 @@ class TestStorageManager:
             file_path = temp_storage.base_path / filename
             assert file_path.exists()
 
-    def test_load_issue(self, temp_storage, sample_issue):
+    def test_load_issue(
+        self, temp_storage: StorageManager, sample_issue: GitHubIssue
+    ) -> None:
         """Test loading an issue."""
         # First save an issue
         temp_storage.save_issue("testorg", "testrepo", sample_issue)
@@ -146,12 +155,12 @@ class TestStorageManager:
         assert loaded_issue.issue.number == 42
         assert loaded_issue.issue.title == "Test Issue"
 
-    def test_load_nonexistent_issue(self, temp_storage):
+    def test_load_nonexistent_issue(self, temp_storage: StorageManager) -> None:
         """Test loading an issue that doesn't exist."""
         loaded_issue = temp_storage.load_issue("testorg", "testrepo", 999)
         assert loaded_issue is None
 
-    def test_load_corrupted_issue(self, temp_storage):
+    def test_load_corrupted_issue(self, temp_storage: StorageManager) -> None:
         """Test loading a corrupted issue file."""
         # Create a corrupted file
         file_path = temp_storage._get_file_path("testorg", "testrepo", 42)
@@ -161,7 +170,9 @@ class TestStorageManager:
         loaded_issue = temp_storage.load_issue("testorg", "testrepo", 42)
         assert loaded_issue is None
 
-    def test_list_stored_issues(self, temp_storage, sample_issue):
+    def test_list_stored_issues(
+        self, temp_storage: StorageManager, sample_issue: GitHubIssue
+    ) -> None:
         """Test listing stored issues."""
         # Save some issues
         temp_storage.save_issue("org1", "repo1", sample_issue)
@@ -197,7 +208,9 @@ class TestStorageManager:
         assert len(org1_all) == 1
         assert "org1_repo1_issue_42.json" in org1_all
 
-    def test_get_storage_stats(self, temp_storage, sample_issue):
+    def test_get_storage_stats(
+        self, temp_storage: StorageManager, sample_issue: GitHubIssue
+    ) -> None:
         """Test getting storage statistics."""
         # Save some issues
         temp_storage.save_issue("org1", "repo1", sample_issue)
@@ -227,7 +240,7 @@ class TestStorageManager:
         assert stats["repositories"]["org1/repo2"] == 1
         assert stats["storage_path"] == str(temp_storage.base_path.absolute())
 
-    def test_get_storage_stats_empty(self, temp_storage):
+    def test_get_storage_stats_empty(self, temp_storage: StorageManager) -> None:
         """Test getting storage statistics when no issues exist."""
         stats = temp_storage.get_storage_stats()
 
@@ -237,12 +250,17 @@ class TestStorageManager:
         assert stats["repositories"] == {}
 
     @patch("github_issue_analysis.storage.manager.console")
-    def test_save_issue_file_error(self, mock_console, temp_storage, sample_issue):
+    def test_save_issue_file_error(
+        self,
+        mock_console: Mock,
+        temp_storage: StorageManager,
+        sample_issue: GitHubIssue,
+    ) -> None:
         """Test handling file save errors."""
         # Mock file operations to raise an exception
         original_open = open
 
-        def mock_open(*args, **kwargs):
+        def mock_open(*args, **kwargs):  # type: ignore[no-untyped-def]
             if "w" in str(args[1]):
                 raise OSError("Disk full")
             return original_open(*args, **kwargs)
@@ -251,7 +269,9 @@ class TestStorageManager:
             with pytest.raises(IOError):
                 temp_storage.save_issue("testorg", "testrepo", sample_issue)
 
-    def test_save_issues_partial_failure(self, temp_storage, sample_issue):
+    def test_save_issues_partial_failure(
+        self, temp_storage: StorageManager, sample_issue: GitHubIssue
+    ) -> None:
         """Test saving multiple issues with partial failures."""
         # Create a second issue
         user = GitHubUser(login="testuser2", id=54321)
@@ -272,7 +292,12 @@ class TestStorageManager:
         # Mock save_issue to fail for the second issue
         original_save = temp_storage.save_issue
 
-        def mock_save_issue(org, repo, issue, metadata=None):
+        def mock_save_issue(
+            org: str,
+            repo: str,
+            issue: GitHubIssue,
+            metadata: dict[str, str] | None = None,
+        ) -> Path:
             if issue.number == 43:
                 raise OSError("Disk full")
             return original_save(org, repo, issue, metadata)

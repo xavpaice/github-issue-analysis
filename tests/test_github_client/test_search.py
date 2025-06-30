@@ -13,13 +13,13 @@ from github_issue_analysis.github_client.search import (
 class TestGitHubSearcher:
     """Test GitHubSearcher class."""
 
-    def test_init(self):
+    def test_init(self) -> None:
         """Test searcher initialization."""
         mock_client = Mock(spec=GitHubClient)
         searcher = GitHubSearcher(mock_client)
         assert searcher.client == mock_client
 
-    def test_search_repository_issues(self):
+    def test_search_repository_issues(self) -> None:
         """Test searching repository issues."""
         mock_client = Mock(spec=GitHubClient)
         mock_issues = [Mock(spec=GitHubIssue)]
@@ -44,7 +44,7 @@ class TestGitHubSearcher:
             limit=5,
         )
 
-    def test_search_repository_issues_defaults(self):
+    def test_search_repository_issues_defaults(self) -> None:
         """Test searching with default parameters."""
         mock_client = Mock(spec=GitHubClient)
         mock_issues = [Mock(spec=GitHubIssue)]
@@ -59,7 +59,7 @@ class TestGitHubSearcher:
             org="testorg", repo="testrepo", labels=None, state="open", limit=10
         )
 
-    def test_get_single_issue(self):
+    def test_get_single_issue(self) -> None:
         """Test getting a single issue."""
         mock_client = Mock(spec=GitHubClient)
         mock_issue = Mock(spec=GitHubIssue)
@@ -76,13 +76,13 @@ class TestGitHubSearcher:
 class TestBuildGitHubQuery:
     """Test build_github_query function."""
 
-    def test_basic_query(self):
+    def test_basic_query(self) -> None:
         """Test building basic query."""
         query = build_github_query("microsoft", "vscode")
         expected = "repo:microsoft/vscode is:issue state:open"
         assert query == expected
 
-    def test_query_with_labels(self):
+    def test_query_with_labels(self) -> None:
         """Test query with labels."""
         query = build_github_query("microsoft", "vscode", labels=["bug", "enhancement"])
         expected = (
@@ -90,25 +90,25 @@ class TestBuildGitHubQuery:
         )
         assert query == expected
 
-    def test_query_with_state_all(self):
+    def test_query_with_state_all(self) -> None:
         """Test query with state 'all'."""
         query = build_github_query("microsoft", "vscode", state="all")
         expected = "repo:microsoft/vscode is:issue"
         assert query == expected
 
-    def test_query_with_closed_state(self):
+    def test_query_with_closed_state(self) -> None:
         """Test query with closed state."""
         query = build_github_query("microsoft", "vscode", state="closed")
         expected = "repo:microsoft/vscode is:issue state:closed"
         assert query == expected
 
-    def test_query_with_created_after(self):
+    def test_query_with_created_after(self) -> None:
         """Test query with created_after filter."""
         query = build_github_query("microsoft", "vscode", created_after="2024-01-01")
         expected = "repo:microsoft/vscode is:issue state:open created:>2024-01-01"
         assert query == expected
 
-    def test_complex_query(self):
+    def test_complex_query(self) -> None:
         """Test complex query with all parameters."""
         query = build_github_query(
             org="microsoft",
@@ -123,13 +123,13 @@ class TestBuildGitHubQuery:
         )
         assert query == expected
 
-    def test_query_with_empty_labels(self):
+    def test_query_with_empty_labels(self) -> None:
         """Test query with empty labels list."""
         query = build_github_query("microsoft", "vscode", labels=[])
         expected = "repo:microsoft/vscode is:issue state:open"
         assert query == expected
 
-    def test_query_with_single_label(self):
+    def test_query_with_single_label(self) -> None:
         """Test query with single label."""
         query = build_github_query("microsoft", "vscode", labels=["bug"])
         expected = "repo:microsoft/vscode is:issue state:open label:bug"

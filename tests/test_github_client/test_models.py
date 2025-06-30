@@ -18,48 +18,48 @@ from github_issue_analysis.github_client.models import (
 class TestGitHubUser:
     """Test GitHubUser model."""
 
-    def test_valid_user(self):
+    def test_valid_user(self) -> None:
         """Test creating a valid user."""
         user = GitHubUser(login="testuser", id=12345)
         assert user.login == "testuser"
         assert user.id == 12345
 
-    def test_missing_fields(self):
+    def test_missing_fields(self) -> None:
         """Test validation with missing fields."""
         with pytest.raises(ValidationError):
-            GitHubUser(login="testuser")  # missing id
+            GitHubUser(login="testuser")  # type: ignore[call-arg]
 
         with pytest.raises(ValidationError):
-            GitHubUser(id=12345)  # missing login
+            GitHubUser(id=12345)  # type: ignore[call-arg]
 
 
 class TestGitHubLabel:
     """Test GitHubLabel model."""
 
-    def test_valid_label(self):
+    def test_valid_label(self) -> None:
         """Test creating a valid label."""
         label = GitHubLabel(name="bug", color="ff0000", description="Bug reports")
         assert label.name == "bug"
         assert label.color == "ff0000"
         assert label.description == "Bug reports"
 
-    def test_label_without_description(self):
+    def test_label_without_description(self) -> None:
         """Test label without description."""
         label = GitHubLabel(name="enhancement", color="00ff00")
         assert label.name == "enhancement"
         assert label.color == "00ff00"
         assert label.description is None
 
-    def test_missing_required_fields(self):
+    def test_missing_required_fields(self) -> None:
         """Test validation with missing required fields."""
         with pytest.raises(ValidationError):
-            GitHubLabel(name="bug")  # missing color
+            GitHubLabel(name="bug")  # type: ignore[call-arg]
 
 
 class TestGitHubComment:
     """Test GitHubComment model."""
 
-    def test_valid_comment(self):
+    def test_valid_comment(self) -> None:
         """Test creating a valid comment."""
         user = GitHubUser(login="commenter", id=54321)
         created = updated = datetime.now()
@@ -107,7 +107,7 @@ class TestGitHubIssue:
             updated_at=datetime.now(),
         )
 
-    def test_valid_issue(self):
+    def test_valid_issue(self) -> None:
         """Test creating a valid issue."""
         issue = self.create_sample_issue()
 
@@ -120,7 +120,7 @@ class TestGitHubIssue:
         assert len(issue.comments) == 1
         assert issue.comments[0].body == "Test comment"
 
-    def test_issue_without_body(self):
+    def test_issue_without_body(self) -> None:
         """Test issue without body."""
         user = GitHubUser(login="issueuser", id=11111)
 
@@ -138,7 +138,7 @@ class TestGitHubIssue:
 
         assert issue.body is None
 
-    def test_issue_without_comments(self):
+    def test_issue_without_comments(self) -> None:
         """Test issue without comments."""
         user = GitHubUser(login="issueuser", id=11111)
 
@@ -159,7 +159,7 @@ class TestGitHubIssue:
 class TestStoredIssue:
     """Test StoredIssue model."""
 
-    def test_valid_stored_issue(self):
+    def test_valid_stored_issue(self) -> None:
         """Test creating a valid stored issue."""
         user = GitHubUser(login="issueuser", id=11111)
         issue = GitHubIssue(
@@ -188,7 +188,7 @@ class TestStoredIssue:
         assert stored_issue.issue == issue
         assert stored_issue.metadata == metadata
 
-    def test_stored_issue_serialization(self):
+    def test_stored_issue_serialization(self) -> None:
         """Test that stored issue can be serialized to dict."""
         user = GitHubUser(login="issueuser", id=11111)
         issue = GitHubIssue(
