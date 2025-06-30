@@ -165,8 +165,9 @@ Add options to collect command:
 - ✅ All automated tests passing (17/17) 
 - ✅ Code quality checks passing (ruff, black, mypy, pytest)
 - ✅ Feature committed to `feature/github-attachment-collection` branch
-- ⏳ **BLOCKED**: Manual testing pending single-issue collection merge
-- ⏳ **TODO**: Create pull request after manual validation complete
+- ✅ **COMPLETED**: Manual testing with single-issue collection functionality
+- ✅ **COMPLETED**: Pull request created - https://github.com/chris-sanders/github-issue-analysis/pull/3
+- ✅ **COMPLETED**: All linting issues fixed and pushed
 
 **FILES MODIFIED/CREATED:**
 - `github_client/attachments.py` (new) - Core attachment detection/download
