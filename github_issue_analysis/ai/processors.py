@@ -1,11 +1,11 @@
 """Product labeling processor using PydanticAI."""
 
-import os
 from typing import Any
 
 from pydantic_ai import Agent
 from pydantic_ai.messages import ImageUrl
 
+from .config import AIModelConfig, build_ai_config, build_provider_specific_settings
 from .models import ProductLabelingResponse
 from .prompts import build_product_labeling_prompt
 
@@ -13,25 +13,39 @@ from .prompts import build_product_labeling_prompt
 class ProductLabelingProcessor:
     """Product labeling processor with configurable AI models."""
 
-    def __init__(self, model_name: str | None = None):
+    def __init__(
+        self, config: AIModelConfig | None = None, model_name: str | None = None
+    ):
         """Initialize processor with configurable model.
 
         Args:
-            model_name: Model identifier (e.g., 'openai:gpt-4o-mini',
-                       'anthropic:claude-3-5-sonnet'). If None, uses AI_MODEL
-                       environment variable or default
+            config: Enhanced AI model configuration with thinking support.
+                   If None, will build from model_name or environment variables
+            model_name: Legacy model identifier (e.g., 'openai:gpt-4o-mini').
+                       Used for backward compatibility when config is None
         """
-        self.model_name = model_name or os.getenv("AI_MODEL", "openai:gpt-4o")
+        if config is not None:
+            self.config = config
+            self.model_name = config.model_name
+        else:
+            # Backward compatibility - build config from model_name
+            self.config = build_ai_config(model_name=model_name)
+            self.model_name = self.config.model_name
+
         self._agent: Agent | None = None
 
     @property
     def agent(self) -> Agent:
-        """Lazy-loaded agent for product labeling."""
+        """Lazy-loaded agent for product labeling with thinking support."""
         if self._agent is None:
+            # Build provider-specific settings for thinking models
+            model_settings = build_provider_specific_settings(self.config)
+
             self._agent = Agent(
                 model=self.model_name,
                 output_type=ProductLabelingResponse,  # type: ignore[arg-type]
                 system_prompt=self._build_system_prompt(),
+                model_settings=model_settings if model_settings else None,  # type: ignore[arg-type]
             )
         return self._agent
 

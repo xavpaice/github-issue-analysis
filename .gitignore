@@ -53,6 +53,7 @@ Thumbs.db
 
 # Project specific
 data/issues/
+data/attachments/
 data/results/
 trees/
 *.log
