@@ -22,10 +22,10 @@ uv sync                          # Sync environment with pyproject.toml
 **Quality Checks (All Required Before Commit):**
 ```bash
 # Complete linting suite - all must pass:
-uv run ruff check --fix          # Code linting and formatting fixes
-uv run black .                   # Code formatting (auto-applies fixes)  
-uv run mypy .                    # Type checking (REQUIRED)
-uv run pytest                   # Run test suite (REQUIRED)
+uv run ruff check --fix --unsafe-fixes  # Code linting and formatting fixes (with unsafe fixes)
+uv run black .                          # Code formatting (auto-applies fixes)  
+uv run mypy .                           # Type checking (REQUIRED)
+uv run pytest                          # Run test suite (REQUIRED)
 ```
 
 **CRITICAL: "Linting" includes ALL of the above tools:**
@@ -36,7 +36,8 @@ uv run pytest                   # Run test suite (REQUIRED)
 
 **IMPORTANT Pre-Commit Requirements:**
 - ALL quality checks MUST pass before commit
-- Run the complete command: `uv run ruff check --fix && uv run black . && uv run mypy . && uv run pytest`
+- Run the complete command: `uv run ruff check --fix --unsafe-fixes && uv run black . && uv run mypy . && uv run pytest`
+- Let automated tools fix linting errors - don't fix manually
 - No exceptions - mypy is REQUIRED, not optional
 
 **CRITICAL REQUIREMENTS FOR AGENTS:**

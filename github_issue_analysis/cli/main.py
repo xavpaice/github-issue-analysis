@@ -3,6 +3,7 @@
 import typer
 from rich.console import Console
 
+from . import process
 from .collect import collect, status
 
 app = typer.Typer(
@@ -10,10 +11,9 @@ app = typer.Typer(
 )
 console = Console()
 
-# from . import process
 app.command()(collect)
 app.command()(status)
-# app.add_typer(process.app, name="process")
+app.add_typer(process.app, name="process")
 
 
 @app.command()
