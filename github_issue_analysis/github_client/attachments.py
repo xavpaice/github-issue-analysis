@@ -33,8 +33,9 @@ class AttachmentDownloader:
         self.github_token = github_token
         self.max_size_bytes = max_size_mb * 1024 * 1024
         self.headers = {
-            "Authorization": f"token {github_token}",
+            "Authorization": f"Bearer {github_token}",
             "User-Agent": "github-issue-analysis/0.1.0",
+            "Accept": "application/vnd.github.full+json",
         }
 
     def detect_attachments(self, text: str, source: str) -> list[GitHubAttachment]:
@@ -134,6 +135,62 @@ class AttachmentDownloader:
             counter += 1
 
         return safe_filename
+
+    async def _get_working_asset_urls(
+        self, org: str, repo: str, issue_number: int, comment_id: str | None = None
+    ) -> dict[str, str]:
+        """Get working JWT URLs for GitHub assets by fetching HTML from API.
+
+        Args:
+            org: Organization name
+            repo: Repository name
+            issue_number: Issue number
+            comment_id: Comment ID if fetching comment, None for issue body
+
+        Returns:
+            Dict mapping asset IDs to working JWT URLs
+        """
+        try:
+            async with httpx.AsyncClient() as client:
+                if comment_id:
+                    # Fetch comment HTML
+                    url = f"https://api.github.com/repos/{org}/{repo}/issues/comments/{comment_id}"
+                else:
+                    # Fetch issue HTML
+                    url = f"https://api.github.com/repos/{org}/{repo}/issues/{issue_number}"
+
+                response = await client.get(url, headers=self.headers)
+                response.raise_for_status()
+                data = response.json()
+
+                html_content = data.get("body_html", "")
+                if not html_content:
+                    return {}
+
+                # Extract JWT URLs from HTML
+                asset_mapping = {}
+                # Look for private-user-images URLs with JWT tokens
+                jwt_pattern = r'https://private-user-images\.githubusercontent\.com/[^"]+\?jwt=[^"]+'
+                jwt_urls = re.findall(jwt_pattern, html_content)
+
+                for jwt_url in jwt_urls:
+                    # Extract asset ID from the URL pattern
+                    # URLs look like: .../456579721-{uuid}.png?jwt=...
+                    # We want the UUID part: 5559e3a4-ea5f-4cd7-a0a0-a302b0b62612
+                    uuid_pat = (
+                        r"[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}"
+                    )
+                    asset_pattern = rf"/\d+-({uuid_pat})\."
+                    asset_match = re.search(asset_pattern, jwt_url)
+                    if asset_match:
+                        asset_id = asset_match.group(1)
+                        asset_mapping[asset_id] = jwt_url
+
+                return asset_mapping
+
+        except Exception as e:
+            console.print(f"⚠️  Failed to fetch working asset URLs: {e}")
+            return {}
 
     async def download_attachment(
         self, attachment: GitHubAttachment, download_dir: Path
@@ -294,6 +351,40 @@ class AttachmentDownloader:
             f"📥 Downloading {len(issue.attachments)} attachments for "
             f"issue #{issue.number}"
         )
+
+        # Get working JWT URLs for GitHub user-attachments assets
+        # First collect all unique comment IDs that have attachments
+        comment_ids_with_attachments = set()
+        has_issue_body_attachments = False
+
+        for attachment in issue.attachments:
+            if attachment.source == "issue_body":
+                has_issue_body_attachments = True
+            elif attachment.source.startswith("comment_"):
+                comment_id = attachment.source.replace("comment_", "")
+                comment_ids_with_attachments.add(comment_id)
+
+        # Fetch JWT URLs for issue and all comments with attachments
+        jwt_url_mappings = {}
+
+        if has_issue_body_attachments:
+            issue_jwt_urls = await self._get_working_asset_urls(org, repo, issue.number)
+            jwt_url_mappings.update(issue_jwt_urls)
+
+        for comment_id in comment_ids_with_attachments:
+            comment_jwt_urls = await self._get_working_asset_urls(
+                org, repo, issue.number, comment_id
+            )
+            jwt_url_mappings.update(comment_jwt_urls)
+
+        # Replace user-attachments asset URLs with working JWT URLs
+        for attachment in issue.attachments:
+            if "user-attachments/assets/" in attachment.original_url:
+                # Extract asset ID from the original URL
+                asset_id = attachment.original_url.split("/")[-1]
+                if asset_id in jwt_url_mappings:
+                    # Replace the broken URL with the working JWT URL
+                    attachment.original_url = jwt_url_mappings[asset_id]
 
         # Download attachments
         updated_attachments = await self.download_attachments(
