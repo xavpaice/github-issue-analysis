@@ -2,7 +2,7 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## Development Commands
+## Required Commands
 
 **Setup:**
 ```bash
@@ -17,41 +17,33 @@ uv add --dev package-name        # Add development dependency
 uv remove package-name           # Remove dependency (updates pyproject.toml)
 uv sync                          # Sync environment with pyproject.toml
 ```
-**IMPORTANT:** Always use `uv add/remove` instead of `pip install/uninstall` to maintain dependency tracking in pyproject.toml.
+Always use `uv add/remove` instead of `pip install/uninstall` to maintain dependency tracking in pyproject.toml.
 
-**Quality Checks (All Required Before Commit):**
+**Quality Checks (Required Before Every Commit):**
 ```bash
-# Complete linting suite - all must pass:
-uv run ruff check --fix --unsafe-fixes  # Code linting and formatting fixes (with unsafe fixes)
-uv run black .                          # Code formatting (auto-applies fixes)  
-uv run mypy .                           # Type checking (REQUIRED)
-uv run pytest                          # Run test suite (REQUIRED)
+uv run ruff check --fix --unsafe-fixes && uv run black . && uv run mypy . && uv run pytest
 ```
 
-**CRITICAL: "Linting" includes ALL of the above tools:**
+All four tools must pass:
 - **Ruff**: Code quality, imports, style violations
 - **Black**: Code formatting consistency  
 - **MyPy**: Type checking and type annotations
 - **Pytest**: All tests must pass
 
-**IMPORTANT Pre-Commit Requirements:**
-- ALL quality checks MUST pass before commit
-- Run the complete command: `uv run ruff check --fix --unsafe-fixes && uv run black . && uv run mypy . && uv run pytest`
-- Let automated tools fix linting errors - don't fix manually
-- No exceptions - mypy is REQUIRED, not optional
+**Runtime Requirements:**
+- Never use `python` directly - Always use `uv run python` or `uv run <command>`
+- Add type annotations during development, not after mypy fails
+- Use specific types from `typing` module, avoid `Any`
 
-**CRITICAL REQUIREMENTS FOR AGENTS:**
-- **NEVER use `python` directly** - Always use `uv run python` or `uv run <command>`
-- **ALWAYS add type annotations during development** - Don't wait for mypy to fail, add proper typing as you write code
-- **ALWAYS run type checking** - `mypy .` is mandatory for all code changes
-- **Use specific types, not `Any`** - Import proper types from typing module
-- **Run full quality checks** - All three commands (ruff, black, mypy) must pass
+**Type Annotation Examples:**
+```python
+from typing import List, Dict, Optional
 
-**IMPORTANT: Type annotations should be added DURING development, not after mypy fails. This reduces rework and catches issues early:**
-- Add return type annotations to all functions: `def func() -> RetType:`
-- Add parameter type annotations: `def func(param: ParamType) -> RetType:`
-- Use proper type hints from `typing` module: `List[str]`, `Dict[str, Any]`, `Optional[int]`
-- Annotate complex variables: `data: Dict[str, Any] = {...}`
+def process_issues(issues: List[Dict[str, Any]]) -> Optional[str]:
+    """Process GitHub issues and return summary."""
+    data: Dict[str, Any] = {...}
+    return result
+```
 
 **CLI Usage:**
 ```bash
@@ -74,21 +66,35 @@ This is a Python CLI tool for GitHub issue collection and AI-powered analysis us
 ### Data Flow
 GitHub API → Issue Collection → JSON Storage (`data/issues/`) → AI Processing → Results (`data/results/`)
 
-### Agent Development Workflow
-This project uses a worktree-based development model for agents:
+### Reference Documentation
+When implementing features, consult these docs for detailed specifications:
+- `docs/architecture.md` - Component details and design principles
+- `docs/data-schemas.md` - JSON schemas for issues, results, and tasks
+- `docs/api-reference.md` - CLI commands and options
 
-**CRITICAL: Always create worktree BEFORE starting any work!**
+## Agent Development Workflow
 
-1. **FIRST:** Read task specification from `tasks/task-name.md` to understand requirements and determine appropriate branch naming
-2. **IMMEDIATELY:** Create worktree: `git worktree add trees/task-name -b feature/task-name`
-3. **CHANGE DIRECTORY:** `cd trees/task-name` - All work must be done in the worktree
-4. Implement feature with full test coverage in the worktree
-5. Document progress in the task markdown file
-6. **BEFORE committing:** Verify all tests pass and linting passes
-7. Commit changes and push branch
+**Step-by-Step Process:**
+
+1. Read task specification from `tasks/task-name.md`
+2. Create worktree: `git worktree add trees/task-name -b feature/task-name`
+3. Change directory: `cd trees/task-name`
+4. Install dependencies: `uv sync --all-extras`
+5. Implement feature with full test coverage following existing patterns
+6. Run quality checks: `uv run ruff check --fix --unsafe-fixes && uv run black . && uv run mypy . && uv run pytest`
+7. Commit changes and push branch (follow git commit requirements above)
 8. Create pull request with detailed description and test plan
-9. **IMMEDIATELY mark task status as "complete"** in `tasks/task-name.md`
+9. Mark task status as "complete" in `tasks/task-name.md`
 10. Commit and push the status update
+
+**Implementation Requirements:**
+- Deliver complete functionality, not partial implementation
+- Add CLI interface for new features
+- Use Pydantic models for data validation
+- Follow existing code structure and naming conventions
+- Write comprehensive tests (unit and integration)
+- Add type hints throughout
+- Implement proper error handling
 
 ### Key Technologies
 - **Python 3.12+** with strict typing
@@ -110,9 +116,15 @@ This project uses a worktree-based development model for agents:
       ...
   ```
 
-## Git Practices
+## Git Commit Requirements
 
-- **NEVER credit yourself in git commit messages**
+**NEVER credit yourself in git commit messages** - this is a critical requirement that agents frequently violate.
+
+Standard commit messages should focus on the change, not the author:
+- ✅ Good: "Add user authentication validation"
+- ❌ Bad: "Add user authentication validation 🤖 Generated with Claude Code"
+
+Only use the standard co-author format when explicitly requested by the user.
 
 ## GitHub CLI Usage
 
