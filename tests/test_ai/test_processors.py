@@ -24,7 +24,7 @@ def sample_issue_data() -> dict[str, Any]:
             "number": 1,
             "title": "KOTS admin console not loading",
             "body": "The kotsadm interface shows a blank screen after login",
-            "labels": [{"name": "bug"}],
+            "labels": [{"name": "bug"}, {"name": "product::kots"}],
             "comments": [],
         },
     }
@@ -157,7 +157,8 @@ def test_format_issue_prompt(sample_issue_data: dict[str, Any]) -> None:
     assert "KOTS admin console not loading" in prompt
     assert "kotsadm interface shows a blank screen" in prompt
     assert "test-org/test-repo" in prompt
-    assert "bug" in prompt
+    assert "product::kots" in prompt
+    assert "bug" not in prompt  # Non-product labels should be filtered out
     assert "No comments" in prompt
 
 

@@ -158,7 +158,10 @@ Analyze this GitHub issue for product labeling:
 
 **Body:** {issue["body"][:1500]}
 
-**Current Labels:** {[label["name"] for label in issue["labels"]]}
+**Current Labels:** {[
+    label["name"] for label in issue["labels"]
+    if label["name"].startswith("product::")
+]}
 
 **Repository:** {issue_data["org"]}/{issue_data["repo"]}
 
