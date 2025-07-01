@@ -47,10 +47,20 @@ def process_issues(issues: List[Dict[str, Any]]) -> Optional[str]:
 
 **CLI Usage:**
 ```bash
-uv run github-analysis collect --org myorg --repo myrepo     # Collect GitHub issues
-uv run github-analysis status                               # Show storage statistics  
-uv run github-analysis version                              # Check version
-# uv run github-analysis process --task product-labeling    # Process with AI (future)
+# Collect GitHub issues (various modes)
+uv run github-analysis collect --org myorg --repo myrepo                    # Repository-specific
+uv run github-analysis collect --org myorg                                  # Organization-wide  
+uv run github-analysis collect --org myorg --repo myrepo --issue-number 123 # Single issue
+
+# Show storage statistics
+uv run github-analysis status
+
+# Show version information
+uv run github-analysis version
+
+# AI processing commands
+uv run github-analysis process product-labeling --org myorg --repo myrepo   # Process all issues for repo
+uv run github-analysis process product-labeling --org myorg --repo myrepo --issue-number 123  # Process single issue
 ```
 
 ## Architecture

@@ -18,7 +18,7 @@ Collect GitHub issues and analyze them with AI to improve issue labeling and cat
 
 3. **Process with AI**
    ```bash
-   uv run github-analysis process --task product-labeling
+   uv run github-analysis process product-labeling
    ```
 
 ## For AI Agents
