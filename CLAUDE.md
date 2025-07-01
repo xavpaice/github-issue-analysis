@@ -42,9 +42,16 @@ uv run pytest                          # Run test suite (REQUIRED)
 
 **CRITICAL REQUIREMENTS FOR AGENTS:**
 - **NEVER use `python` directly** - Always use `uv run python` or `uv run <command>`
+- **ALWAYS add type annotations during development** - Don't wait for mypy to fail, add proper typing as you write code
 - **ALWAYS run type checking** - `mypy .` is mandatory for all code changes
 - **Use specific types, not `Any`** - Import proper types from typing module
 - **Run full quality checks** - All three commands (ruff, black, mypy) must pass
+
+**IMPORTANT: Type annotations should be added DURING development, not after mypy fails. This reduces rework and catches issues early:**
+- Add return type annotations to all functions: `def func() -> RetType:`
+- Add parameter type annotations: `def func(param: ParamType) -> RetType:`
+- Use proper type hints from `typing` module: `List[str]`, `Dict[str, Any]`, `Optional[int]`
+- Annotate complex variables: `data: Dict[str, Any] = {...}`
 
 **CLI Usage:**
 ```bash

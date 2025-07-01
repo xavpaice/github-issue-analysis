@@ -28,12 +28,18 @@ def product_labeling(
     model: str | None = typer.Option(
         None, help="AI model to use (e.g., 'openai:gpt-4o-mini')"
     ),
+    include_images: bool = typer.Option(
+        True, help="Include image analysis (use --no-include-images to disable)"
+    ),
     dry_run: bool = typer.Option(
         False, help="Show what would be processed without running AI"
     ),
 ) -> None:
-    """Analyze GitHub issues for product labeling recommendations."""
-    asyncio.run(_run_product_labeling(org, repo, issue_number, model, dry_run))
+    """Analyze GitHub issues for product labeling recommendations with optional
+    image processing."""
+    asyncio.run(
+        _run_product_labeling(org, repo, issue_number, model, include_images, dry_run)
+    )
 
 
 async def _run_product_labeling(
@@ -41,6 +47,7 @@ async def _run_product_labeling(
     repo: str | None,
     issue_number: int | None,
     model: str | None,
+    include_images: bool,
     dry_run: bool,
 ) -> None:
     """Run product labeling analysis."""
@@ -106,6 +113,9 @@ async def _run_product_labeling(
     # Initialize processor
     processor = ProductLabelingProcessor(model_name=model)
     console.print(f"[blue]Using model: {processor.model_name}[/blue]")
+    console.print(
+        f"[blue]Image processing: {'enabled' if include_images else 'disabled'}[/blue]"
+    )
 
     # Process each issue
     results_dir = Path("data/results")
@@ -119,8 +129,21 @@ async def _run_product_labeling(
             with open(file_path) as f:
                 issue_data = json.load(f)
 
+            # Check for images if enabled
+            if include_images:
+                attachment_count = len(
+                    [
+                        att
+                        for att in issue_data["issue"].get("attachments", [])
+                        if att.get("downloaded")
+                        and att.get("content_type", "").startswith("image/")
+                    ]
+                )
+                if attachment_count > 0:
+                    console.print(f"  Found {attachment_count} image(s) to analyze")
+
             # Analyze with AI
-            result = await processor.analyze_issue(issue_data)
+            result = await processor.analyze_issue(issue_data, include_images)
 
             # Save result
             result_file = results_dir / f"{file_path.stem}_product-labeling.json"
@@ -133,8 +156,9 @@ async def _run_product_labeling(
                 },
                 "processor": {
                     "name": "product-labeling",
-                    "version": "1.0.0",
+                    "version": "2.0.0",  # Phase 2 version
                     "model": processor.model_name,
+                    "include_images": include_images,
                     "timestamp": datetime.utcnow().isoformat() + "Z",
                 },
                 "analysis": result.model_dump(),
