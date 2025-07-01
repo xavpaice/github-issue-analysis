@@ -142,7 +142,7 @@ async def test_processor_model_configuration() -> None:
     """Test processor model configuration."""
     # Test default model
     processor1 = ProductLabelingProcessor()
-    assert processor1.model_name == "openai:gpt-4o"
+    assert processor1.model_name == "openai:o4-mini"
 
     # Test custom model
     processor2 = ProductLabelingProcessor(model_name="anthropic:claude-3-5-sonnet")

@@ -176,7 +176,7 @@ class TestAISettings:
     def test_ai_settings_defaults(self) -> None:
         """Test AI settings with default values."""
         settings = AISettings()
-        assert settings.model == "openai:gpt-4o"
+        assert settings.model == "openai:o4-mini"
         assert settings.thinking_effort is None
         assert settings.thinking_budget is None
 

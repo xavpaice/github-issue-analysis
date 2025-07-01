@@ -75,7 +75,7 @@ Results are stored in `data/results/` with filename format: `org_repo_issue_<num
   "processor": {
     "name": "product-labeling",
     "version": "1.0.0",
-    "model": "gpt-4o-mini",
+    "model": "o4-mini",
     "timestamp": "2024-01-01T21:00:00Z"
   },
   "analysis": {

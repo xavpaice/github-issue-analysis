@@ -60,7 +60,7 @@ class AISettings(BaseSettings):
     """Settings for AI configuration with environment variable support."""
 
     model: str = Field(
-        default="openai:gpt-4o",
+        default="openai:o4-mini",
         description="Default AI model",
         validation_alias="AI_MODEL",
     )

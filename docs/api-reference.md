@@ -65,7 +65,7 @@ uv run github-analysis process product-labeling [OPTIONS]
 uv run github-analysis process product-labeling --org myorg --repo myrepo
 
 # Process a specific issue with custom model
-uv run github-analysis process product-labeling --org myorg --repo myrepo --issue-number 123 --model openai:gpt-4o
+uv run github-analysis process product-labeling --org myorg --repo myrepo --issue-number 123 --model openai:o4-mini
 
 # Dry run to see what would be processed
 uv run github-analysis process product-labeling --org myorg --repo myrepo --dry-run
