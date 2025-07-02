@@ -192,7 +192,9 @@ async def _run_batch_submit(
 
 
 @app.command()
-def status(job_id: str = typer.Argument(help="Batch job ID to check")) -> None:
+def status(
+    job_id: str = typer.Argument(help="Batch job ID to check (supports partial IDs)")
+) -> None:
     """Check the status of a batch processing job."""
     try:
         asyncio.run(_run_batch_status(job_id))
@@ -293,7 +295,9 @@ async def _run_batch_status(job_id: str) -> None:
 
 @app.command()
 def collect(
-    job_id: str = typer.Argument(help="Batch job ID to collect results from"),
+    job_id: str = typer.Argument(
+        help="Batch job ID to collect results from (supports partial IDs)"
+    ),
 ) -> None:
     """Collect and process results from a completed batch job."""
     try:
@@ -409,7 +413,7 @@ async def _run_batch_list() -> None:
             created_display = job.created_at.strftime("%m/%d %H:%M")
 
             table.add_row(
-                job.job_id[:8] + "...",  # Truncated job ID
+                job.job_id[:12] + "...",  # More chars for easier ID
                 job.processor_type,
                 scope,
                 status_display,
@@ -422,7 +426,7 @@ async def _run_batch_list() -> None:
         console.print(table)
 
         # Show helpful commands
-        console.print("\n[dim]Commands:[/dim]")
+        console.print("\n[dim]Commands (supports partial job IDs):[/dim]")
         console.print(
             "  [dim]Check status:[/dim] uv run github-analysis batch status <job-id>"
         )
@@ -443,7 +447,9 @@ async def _run_batch_list() -> None:
 
 
 @app.command()
-def cancel(job_id: str = typer.Argument(help="Batch job ID to cancel")) -> None:
+def cancel(
+    job_id: str = typer.Argument(help="Batch job ID to cancel (supports partial IDs)")
+) -> None:
     """Cancel an active batch processing job."""
     try:
         asyncio.run(_run_batch_cancel(job_id))
@@ -472,7 +478,7 @@ async def _run_batch_cancel(job_id: str) -> None:
 
 @app.command()
 def remove(
-    job_id: str = typer.Argument(help="Batch job ID to remove"),
+    job_id: str = typer.Argument(help="Batch job ID to remove (supports partial IDs)"),
     force: bool = typer.Option(False, "--force", help="Skip confirmation prompts"),
 ) -> None:
     """Remove a batch job record and associated files."""
