@@ -53,6 +53,11 @@ class ImageAnalysis(BaseModel):
 class ProductLabelingResponse(BaseModel):
     """Structured response for product labeling analysis."""
 
+    root_cause_analysis: str = Field(
+        default="Root cause unclear",
+        description="Root cause analysis of the issue. "
+        "State 'Root cause unclear' if unable to determine.",
+    )
     confidence: float = Field(
         ge=0.0, le=1.0, description="Overall confidence in analysis"
     )

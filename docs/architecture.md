@@ -13,12 +13,13 @@ github_issue_analysis/
 
 ### Data Flow
 ```
-GitHub API → Issue Collection → JSON Storage → AI Processing → Results
+GitHub API → Issue Collection → JSON Storage → **Batch AI Processing** → Results
 ```
 
 ### CLI Commands
 - `collect`: Fetch issues from GitHub using advanced search
-- `process`: Run AI analysis on collected issues
+- `batch`: **Batch AI processing (recommended)** - cost-effective parallel analysis
+- `process`: Individual AI analysis (use only for single issues or testing)
 
 ## Component Details
 

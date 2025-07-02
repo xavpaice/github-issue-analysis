@@ -25,40 +25,60 @@ class CommentGenerator:
         additions = [c for c in plan.changes if c.action == "add"]
         removals = [c for c in plan.changes if c.action == "remove"]
 
+        # Create clean label transition format (old → new)
         lines = []
-        lines.append("🤖 **AI Label Update**")
+
+        # Generate title showing the label change
+        if len(additions) == 1 and len(removals) == 1:
+            old_label = removals[0].label.replace("product::", "")
+            new_label = additions[0].label.replace("product::", "")
+            lines.append(f"**Label Update: {old_label} → {new_label}**")
+        else:
+            lines.append("**Label Update**")
+
         lines.append("")
-        lines.append(
-            "The following label changes have been applied based on AI analysis:"
-        )
+
+        # Create a concise reclassification message
+        if len(additions) == 1 and len(removals) == 1:
+            old_label = removals[0].label.replace("product::", "")
+            new_label = additions[0].label.replace("product::", "")
+            lines.append(
+                f"Based on AI analysis, this issue has been reclassified from "
+                f"`{old_label}` to `{new_label}`."
+            )
+        else:
+            lines.append("Based on AI analysis, this issue has been reclassified.")
         lines.append("")
 
-        if additions:
-            lines.append("**Added Labels:**")
-            for change in additions:
-                confidence_text = f"confidence: {change.confidence:.2f}"
-                lines.append(
-                    f"- `{change.label}` ({confidence_text}) - {change.reason}"
-                )
+        # Add root cause analysis if available and meaningful
+        if (
+            hasattr(plan, "ai_result")
+            and plan.ai_result
+            and hasattr(plan.ai_result, "root_cause_analysis")
+            and plan.ai_result.root_cause_analysis
+            and plan.ai_result.root_cause_analysis != "Root cause unclear"
+        ):
+            lines.append(
+                f"**Root Cause Analysis**: {plan.ai_result.root_cause_analysis}"
+            )
+            lines.append("")
+        elif len(additions) == 1:
+            # Use the reasoning from the addition as the root cause
+            lines.append(f"**Root Cause Analysis**: {additions[0].reason}")
             lines.append("")
 
-        if removals:
-            lines.append("**Removed Labels:**")
-            for change in removals:
-                confidence_text = f"confidence: {change.confidence:.2f}"
-                lines.append(
-                    f"- `{change.label}` ({confidence_text}) - {change.reason}"
-                )
-            lines.append("")
+        # Add confidence level
+        lines.append(f"**Confidence Level**: {plan.overall_confidence:.0%}")
 
-        if plan.comment_summary:
-            lines.append(f"**Reasoning:** {plan.comment_summary}")
-            lines.append("")
-
-        lines.append("---")
-        lines.append(
-            "*This update was automated based on AI analysis of issue content.*"
-        )
+        # Add image analysis context if available
+        if (
+            hasattr(plan, "ai_result")
+            and plan.ai_result
+            and hasattr(plan.ai_result, "image_impact")
+        ):
+            if plan.ai_result.image_impact:
+                lines.append("")
+                lines.append(f"**Analysis included**: {plan.ai_result.image_impact}")
 
         return "\n".join(lines)
 

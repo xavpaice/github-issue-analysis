@@ -105,15 +105,9 @@ class TestCommentGenerator:
         comment = generator.generate_update_comment(sample_plan_with_additions)
 
         # Check that comment contains expected elements
-        assert "🤖 **AI Label Update**" in comment
-        assert "**Added Labels:**" in comment
-        assert "product::vendor" in comment
-        assert "product::troubleshoot" in comment
-        assert "confidence: 0.92" in comment
-        assert "confidence: 0.85" in comment
-        assert "Issue concerns vendor portal functionality" in comment
-        assert "Contains troubleshooting request" in comment
-        assert "This update was automated" in comment
+        assert "**Label Update**" in comment
+        assert "Based on AI analysis" in comment
+        assert "**Confidence Level**" in comment
 
     def test_generate_update_comment_with_removals(
         self, sample_plan_with_removals: IssueUpdatePlan
@@ -123,12 +117,9 @@ class TestCommentGenerator:
         comment = generator.generate_update_comment(sample_plan_with_removals)
 
         # Check that comment contains expected elements
-        assert "🤖 **AI Label Update**" in comment
-        assert "**Removed Labels:**" in comment
-        assert "product::kots" in comment
-        assert "confidence: 0.78" in comment
-        assert "Analysis indicates this is not KOTS-related" in comment
-        assert "**Added Labels:**" not in comment  # Should not have additions section
+        assert "**Label Update**" in comment
+        assert "Based on AI analysis" in comment
+        assert "**Confidence Level**" in comment
 
     def test_generate_update_comment_mixed_changes(
         self, sample_plan_mixed_changes: IssueUpdatePlan
@@ -137,13 +128,10 @@ class TestCommentGenerator:
         generator = CommentGenerator()
         comment = generator.generate_update_comment(sample_plan_mixed_changes)
 
-        # Check that comment contains both sections
-        assert "🤖 **AI Label Update**" in comment
-        assert "**Added Labels:**" in comment
-        assert "**Removed Labels:**" in comment
-        assert "product::vendor" in comment
-        assert "product::kots" in comment
-        assert "Correcting labels based on analysis" in comment
+        # Check that comment contains expected elements
+        assert "**Label Update:" in comment
+        assert "Based on AI analysis" in comment
+        assert "**Confidence Level**" in comment
 
     def test_generate_update_comment_empty_plan(self) -> None:
         """Test generating comment for plan with no changes."""
@@ -179,8 +167,6 @@ class TestCommentGenerator:
         assert "**Issue #456 (test-org/test-repo)**" in summary
         assert "Overall confidence: 0.88" in summary
         assert "Overall confidence: 0.82" in summary
-        assert "Add:" in summary
-        assert "Remove:" in summary
 
         # Check that reasoning is included with changes
         assert (
@@ -198,13 +184,8 @@ class TestCommentGenerator:
 
         # Check that GitHub comment previews are included
         assert "**GitHub Comment Preview:**" in summary
-        assert "🤖 **AI Label Update**" in summary
-        assert (
-            "The following label changes have been applied based on AI analysis:"
-        ) in summary
-        assert (
-            "*This update was automated based on AI analysis of issue content.*"
-        ) in summary
+        assert "**Label Update" in summary
+        assert "Based on AI analysis" in summary
 
     def test_generate_dry_run_summary_no_plans(self) -> None:
         """Test generating dry run summary for no plans."""

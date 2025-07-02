@@ -16,9 +16,16 @@ Collect GitHub issues and analyze them with AI to improve issue labeling and cat
    uv run github-analysis collect --org microsoft --repo vscode --labels bug --limit 5
    ```
 
-3. **Process with AI**
+3. **Process with AI (Batch Processing - Recommended)**
    ```bash
-   uv run github-analysis process product-labeling --org microsoft --repo vscode
+   # Submit batch job (50% cheaper than individual processing)
+   uv run github-analysis batch submit product-labeling --org microsoft --repo vscode
+   
+   # Check status
+   uv run github-analysis batch list
+   
+   # Collect results when completed
+   uv run github-analysis batch collect <job-id>
    ```
 
 4. **Update Labels** (with GitHub write token)
