@@ -1,3 +1,8 @@
+**🚨 CRITICAL: ZERO TOLERANCE FOR CI FAILURES 🚨**
+
+PRs that fail CI are unacceptable. ALL quality checks must pass locally before creating the PR.
+If CI fails, it means local testing was insufficient. Fix the code, don't bypass tests.
+
 Think very carefully about creating this pull request. I need you to:
 
 1. **Determine the current task/branch context**:
@@ -10,15 +15,18 @@ Think very carefully about creating this pull request. I need you to:
    - Check that all code follows the established patterns
    - Ensure proper error handling and type annotations are in place
 
-3. **Run comprehensive quality checks**:
+3. **Run comprehensive quality checks (CRITICAL - CI MUST NOT FAIL)**:
    - Execute: `uv run ruff check --fix --unsafe-fixes && uv run black . && uv run mypy . && uv run pytest`
-   - Fix any issues that arise before proceeding
-   - Verify all tests pass and code quality is maintained
+   - **MANDATORY**: All four commands MUST pass with zero failures/errors before proceeding
+   - If ANY tool fails, fix the code to pass the checks - NEVER bypass or skip tests
+   - Re-run the full command chain until ALL tools pass completely
+   - This exact command chain runs in CI - if it fails locally, it WILL fail in CI
 
-4. **Perform manual testing**:
+4. **Perform manual testing (VERIFY FUNCTIONALITY WORKS)**:
    - Run the validation commands specified in the task file
-   - Test the new functionality with specific examples
+   - Test the new functionality with specific examples from the requirements
    - Document what was tested and verified
+   - **CRITICAL**: Test that all new CLI commands/features actually work as expected
 
 5. **Prepare and create the commit**:
    - Ensure all changes are staged
@@ -31,8 +39,9 @@ Think very carefully about creating this pull request. I need you to:
 
 7. **PR content should include**:
    - **Summary**: Concise bullets of real functionality added
-   - **Testing**: Specific commands run and what was verified
+   - **Testing**: Specific commands run and confirmation that ALL passed locally
    - **Manual validation**: Steps taken to confirm functionality works
+   - **CI Guarantee**: Explicit statement that all quality checks passed locally
 
 Task for PR: $ARGUMENTS
 
