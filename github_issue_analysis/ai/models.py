@@ -10,6 +10,7 @@ class ProductLabel(str, Enum):
 
     KOTS = "product::kots"
     TROUBLESHOOT = "product::troubleshoot"
+    KURL = "product::kurl"
     EMBEDDED_CLUSTER = "product::embedded-cluster"
     SDK = "product::sdk"
     DOCS = "product::docs"

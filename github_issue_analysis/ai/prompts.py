@@ -13,6 +13,7 @@ def build_product_labeling_prompt() -> str:
 **CRITICAL INSTRUCTIONS:**
 - ONLY assess existing product labels in current_labels_assessment
 - Recommend ONE primary product label unless there are truly multiple distinct root causes
+- **MANDATORY**: For vendor application failures in kURL/embedded-cluster installations, ALWAYS assign to the cluster product (kurl/embedded-cluster), never use unknown
 
 **Available Product Labels:**
 - **kots**: Kubernetes Off-The-Shelf (KOTS): Admin console for managing Kubernetes applications. The admin console IS the KOTS product. Issues involve the admin interface, application lifecycle, license validation, configuration screens, and KOTS CLI functionality. Look for: 'kotsadm' processes/jobs, admin console problems, KOTS runtime functionality, upgrade jobs with 'kots' in name, application management features.
@@ -58,6 +59,14 @@ def build_product_labeling_prompt() -> str:
 - **Error messages mentioning specific products** → Strong signal for that product
 - **Look for confirmation/resolution in comments** → When issue is confirmed/resolved, weight that product more heavily
 
+**CRITICAL: kotsadm Namespace Distinction:**
+- **kotsadm namespace ≠ KOTS product issue** → Vendor applications deploy in kotsadm namespace by default
+- **KOTS components that ARE KOTS issues**: Admin console, KOTS upgrade jobs, license validation, configuration templating, KOTS CLI, template rendering errors
+- **KOTS templating/configuration failures** → kots product (even if affecting vendor apps in kotsadm namespace)
+- **Generic vendor application deployment failures** → cluster product (kurl/embedded-cluster) as default when no clear KOTS functionality is involved
+- **Key test**: Is there evidence of KOTS templating, configuration, or admin console functionality failing? If yes → kots. If no → DEFAULT to cluster product (kurl/embedded-cluster).
+**Never use unknown for vendor application failures in cluster installations** - always assign to the cluster product team as the responsible platform team.
+
 **Common Pitfalls to Avoid:**
 - Don't assume the product mentioned first is the problem source
 - **Cluster symptoms ≠ cluster problems**: Pod/job failures may be symptoms of application issues
@@ -74,6 +83,7 @@ def build_product_labeling_prompt() -> str:
 
 **When to Use Special Classifications:**
 - **product::unknown**: When issue lacks sufficient detail, is too vague, or you genuinely cannot determine the product from available information
+- **NEVER use unknown for vendor application failures in cluster installations** → ALWAYS assign to cluster product (kurl/embedded-cluster) unless clear KOTS functionality is failing
 - **Confidence threshold**: Use unknown for confidence < 0.6, prefer specific product for confidence ≥ 0.6
 
 **FOCUS:** Find the PRIMARY product where the bug needs to be fixed or feature implemented. Most issues have one root cause requiring one product team's attention.
@@ -88,7 +98,8 @@ def build_product_labeling_prompt() -> str:
    - Some customers call kURL embedded-cluster look for an indication it's kubeadm or k0s based.
 3. **Layer Distinction**:
    - Infrastructure layer (nodes, networking, storage, container runtime) → cluster product (kurl or embedded-cluster)
-   - Application layer (admin console, app deployment, KOTS processes) → kots product
+   - KOTS functionality (admin console, KOTS upgrade jobs, license validation, templating, configuration rendering) → kots product
+   - Generic vendor application deployment failures without KOTS component involvement → cluster product (kurl or embedded-cluster) even if in kotsadm namespace
 4. **Simple Test**: 
    - Would fixing this require changes to kURL codebase? → kurl product
    - Would fixing this require changes to embedded-cluster codebase? → embedded-cluster product  
