@@ -29,6 +29,15 @@ class OpenAIBatchProvider:
         if not self.api_key:
             raise ValueError("OPENAI_API_KEY environment variable is required")
 
+        # Validate model supports batch processing
+        model_name = config.model_name.split(":", 1)[-1].lower()
+        unsupported_models = ["o1-mini", "o1-preview", "o3-mini"]
+        if any(unsupported in model_name for unsupported in unsupported_models):
+            raise ValueError(
+                f"Model '{config.model_name}' does not support OpenAI Batch API. "
+                f"Use gpt-4o, gpt-4o-mini, gpt-3.5-turbo, or o4-mini for batch processing."
+            )
+
         self.base_url = "https://api.openai.com/v1"
         self.headers = {
             "Authorization": f"Bearer {self.api_key}",
@@ -87,6 +96,10 @@ class OpenAIBatchProvider:
 
                     # Add images to the message
                     for attachment in issue["attachments"]:
+                        # Skip attachments that failed to download
+                        if not attachment.get("local_path"):
+                            continue
+
                         # Load image file and convert to base64
                         image_path = Path(attachment["local_path"])
                         if image_path.exists():
