@@ -208,11 +208,11 @@ Add exclusions to the existing collection parameters table shown to users.
 - [ ] Integration with batch processing works correctly
 
 ### Testing
-- [ ] Unit tests for exclusion list building logic
-- [ ] Unit tests for query building with exclusions
-- [ ] Integration tests with GitHub API
-- [ ] CLI parameter validation tests
-- [ ] End-to-end tests with real organization data
+- [ ] Unit tests for exclusion list building logic (using mocks, no API keys)
+- [ ] Unit tests for query building with exclusions (using mocks, no API keys)
+- [ ] Integration tests with mocked GitHub API responses (no API keys)
+- [ ] CLI parameter validation tests (using mocks, no API keys)
+- [ ] Manual verification with real organization data (uses GITHUB_TOKEN)
 
 ### Documentation
 - [ ] API reference updated with new parameters
@@ -234,10 +234,10 @@ Add exclusions to the existing collection parameters table shown to users.
 4. Integrate with existing collection flow
 
 ### Phase 3: Testing & Validation (1.5 hours)
-1. Write unit tests for new functionality
-2. Test with real GitHub API
-3. Validate edge cases and error handling
-4. End-to-end testing with organization data
+1. Write unit tests using mocks (no API keys required)
+2. Test edge cases and error handling with mocked responses
+3. Manual validation with real GitHub API (using GITHUB_TOKEN)
+4. Verify automated tests pass in CI environment (no API keys)
 
 ### Phase 4: Documentation (1 hour)
 1. Update API reference documentation
@@ -246,30 +246,42 @@ Add exclusions to the existing collection parameters table shown to users.
 
 ## Test Cases
 
-### Unit Tests
-- `test_build_exclusion_list()` - Various input combinations
-- `test_build_organization_query_with_exclusions()` - Query building
-- `test_exclusion_parameter_processing()` - CLI parameter handling
+### Unit Tests (No API Keys Required - Use Mocks)
+- `test_build_exclusion_list()` - Various input combinations with mock data
+- `test_build_organization_query_with_exclusions()` - Query building with mock parameters
+- `test_exclusion_parameter_processing()` - CLI parameter handling with mocked CLI runner
+- `test_github_client_search_with_exclusions()` - Mock GitHub client responses
+- `test_searcher_organization_exclusions()` - Mock GitHubSearcher behavior
 
-### Integration Tests
-- Test with real GitHub organization
-- Verify exclusions actually exclude repositories
-- Test with various combinations of parameters
+### Manual Integration Tests (Uses GITHUB_TOKEN)
+- Test with real GitHub organization (manual testing only)
+- Verify exclusions actually exclude repositories (manual verification)
+- Test with various combinations of parameters (manual testing)
 
-### Edge Case Tests
-- Empty exclusion lists
-- Invalid repository names
-- Duplicate exclusions
-- Mixed parameter formats
+### Edge Case Tests (No API Keys - Use Mocks)
+- Empty exclusion lists with mocked responses
+- Invalid repository names with mocked validation
+- Duplicate exclusions with mock data
+- Mixed parameter formats with mocked CLI input
 
-## Validation Commands
+### Test Implementation Guidelines
+Follow existing test patterns in the codebase:
+- Use `@patch.dict(os.environ, {"GITHUB_TOKEN": "test_token"})` for environment mocking
+- Use `@patch("github_issue_analysis.github_client.client.Github")` for GitHub API mocking
+- Use `typer.testing.CliRunner` for CLI command testing
+- Create structured mock data that mirrors real GitHub API responses
+- Use pytest fixtures for reusable test data
+
+## Manual Validation Commands (Require GITHUB_TOKEN)
+
+**Note**: These commands are for manual testing only and require a valid GITHUB_TOKEN environment variable. Automated tests use mocks instead.
 
 ```bash
 # Test basic exclusion functionality
-uv run github-analysis collect --org replicated-collab --exclude-repo private-repo --limit 5 --dry-run
+uv run github-analysis collect --org replicated-collab --exclude-repo private-repo --limit 5
 
 # Test multiple exclusions
-uv run github-analysis collect --org replicated-collab --exclude-repos "repo1,repo2,repo3" --limit 5 --dry-run
+uv run github-analysis collect --org replicated-collab --exclude-repos "repo1,repo2,repo3" --limit 5
 
 # Test with existing filters
 uv run github-analysis collect --org replicated-collab --exclude-repo private-repo --labels bug --state closed --limit 10
@@ -279,6 +291,22 @@ uv run github-analysis collect --org replicated-collab --exclude-repos "test-rep
 
 # Test error handling
 uv run github-analysis collect --org replicated-collab --exclude-repo "invalid repo name" --limit 1
+```
+
+## Automated Test Commands (No API Keys Required)
+
+```bash
+# Run all tests (these use mocks, no API keys needed)
+uv run pytest
+
+# Run specific exclusion tests
+uv run pytest tests/test_exclusions.py -v
+
+# Run CLI tests with mocked responses
+uv run pytest tests/cli/test_collect_exclusions.py -v
+
+# Check test coverage
+uv run pytest --cov=github_issue_analysis tests/
 ```
 
 ## Dependencies and Risks
