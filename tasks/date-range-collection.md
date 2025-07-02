@@ -1,6 +1,6 @@
 # Task: Enable Collection Based on Date Ranges
 
-**Status:** planning
+**Status:** complete
 
 **Description:**
 Enable GitHub issue collection based on date ranges (e.g., "collect all issues in the last 6 months") by extending the existing collect command with date filtering capabilities.

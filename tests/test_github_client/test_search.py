@@ -44,6 +44,10 @@ class TestGitHubSearcher:
             labels=["bug", "enhancement"],
             state="open",
             limit=5,
+            created_after=None,
+            created_before=None,
+            updated_after=None,
+            updated_before=None,
         )
 
     def test_search_repository_issues_defaults(self) -> None:
@@ -58,7 +62,15 @@ class TestGitHubSearcher:
 
         assert results == mock_issues
         mock_client.search_issues.assert_called_once_with(
-            org="testorg", repo="testrepo", labels=None, state="open", limit=10
+            org="testorg",
+            repo="testrepo",
+            labels=None,
+            state="open",
+            limit=10,
+            created_after=None,
+            created_before=None,
+            updated_after=None,
+            updated_before=None,
         )
 
     def test_get_single_issue(self) -> None:
@@ -159,6 +171,10 @@ class TestBuildGitHubQuery:
             labels=["bug"],
             state="closed",
             limit=5,
+            created_after=None,
+            created_before=None,
+            updated_after=None,
+            updated_before=None,
             excluded_repos=["private-repo", "test-repo"],
         )
 
@@ -183,6 +199,10 @@ class TestBuildGitHubQuery:
             labels=["bug"],
             state="open",
             limit=10,
+            created_after=None,
+            created_before=None,
+            updated_after=None,
+            updated_before=None,
             excluded_repos=None,
         )
 

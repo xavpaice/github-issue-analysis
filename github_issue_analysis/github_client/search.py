@@ -1,7 +1,11 @@
 """GitHub search functionality and query building."""
 
-from .client import GitHubClient
+from typing import TYPE_CHECKING
+
 from .models import GitHubIssue
+
+if TYPE_CHECKING:
+    from .client import GitHubClient
 
 
 def build_exclusion_list(
@@ -39,21 +43,32 @@ def build_organization_query(
     labels: list[str] | None = None,
     state: str = "open",
     excluded_repos: list[str] | None = None,
+    created_after: str | None = None,
+    created_before: str | None = None,
+    updated_after: str | None = None,
+    updated_before: str | None = None,
 ) -> str:
-    """Build GitHub search query for organization with exclusions.
+    """Build GitHub search query for organization with exclusions and date filtering.
 
     Args:
         org: Organization name
         labels: List of label names to filter by
         state: Issue state (open, closed, all)
         excluded_repos: List of repository names to exclude
+        created_after: ISO date string to filter issues created after this date
+        created_before: ISO date string to filter issues created before this date
+        updated_after: ISO date string to filter issues updated after this date
+        updated_before: ISO date string to filter issues updated before this date
 
     Returns:
-        GitHub search query string with exclusions
+        GitHub search query string with exclusions and date filtering
 
     Example:
-        >>> build_organization_query("myorg", ["bug"], "closed", ["private-repo"])
-        "org:myorg is:issue state:closed label:bug -repo:myorg/private-repo"
+        >>> build_organization_query(
+        ...     "myorg", ["bug"], "closed", ["private-repo"], "2024-01-01"
+        ... )
+        "org:myorg is:issue state:closed label:bug -repo:myorg/private-repo " \\
+        "created:>2024-01-01"
     """
     query_parts = [f"org:{org}", "is:issue"]
 
@@ -69,13 +84,23 @@ def build_organization_query(
         for repo in excluded_repos:
             query_parts.append(f"-repo:{org}/{repo}")
 
+    # Date filtering
+    if created_after:
+        query_parts.append(f"created:>{created_after}")
+    if created_before:
+        query_parts.append(f"created:<{created_before}")
+    if updated_after:
+        query_parts.append(f"updated:>{updated_after}")
+    if updated_before:
+        query_parts.append(f"updated:<{updated_before}")
+
     return " ".join(query_parts)
 
 
 class GitHubSearcher:
     """High-level interface for searching GitHub issues."""
 
-    def __init__(self, client: GitHubClient):
+    def __init__(self, client: "GitHubClient"):
         """Initialize searcher with GitHub client.
 
         Args:
@@ -90,6 +115,10 @@ class GitHubSearcher:
         labels: list[str] | None = None,
         state: str = "open",
         limit: int = 10,
+        created_after: str | None = None,
+        created_before: str | None = None,
+        updated_after: str | None = None,
+        updated_before: str | None = None,
     ) -> list[GitHubIssue]:
         """Search for issues in a specific repository.
 
@@ -99,12 +128,24 @@ class GitHubSearcher:
             labels: List of label names to filter by
             state: Issue state (open, closed, all)
             limit: Maximum number of issues to return
+            created_after: ISO date string to filter issues created after this date
+            created_before: ISO date string to filter issues created before this date
+            updated_after: ISO date string to filter issues updated after this date
+            updated_before: ISO date string to filter issues updated before this date
 
         Returns:
             List of GitHubIssue objects with full details including comments
         """
         return self.client.search_issues(
-            org=org, repo=repo, labels=labels, state=state, limit=limit
+            org=org,
+            repo=repo,
+            labels=labels,
+            state=state,
+            limit=limit,
+            created_after=created_after,
+            created_before=created_before,
+            updated_after=updated_after,
+            updated_before=updated_before,
         )
 
     def get_single_issue(self, org: str, repo: str, issue_number: int) -> GitHubIssue:
@@ -126,6 +167,10 @@ class GitHubSearcher:
         labels: list[str] | None = None,
         state: str = "open",
         limit: int = 10,
+        created_after: str | None = None,
+        created_before: str | None = None,
+        updated_after: str | None = None,
+        updated_before: str | None = None,
         excluded_repos: list[str] | None = None,
     ) -> list[GitHubIssue]:
         """Search for issues across all repositories in an organization.
@@ -135,6 +180,10 @@ class GitHubSearcher:
             labels: List of label names to filter by
             state: Issue state (open, closed, all)
             limit: Maximum number of issues to return
+            created_after: ISO date string to filter issues created after this date
+            created_before: ISO date string to filter issues created before this date
+            updated_after: ISO date string to filter issues updated after this date
+            updated_before: ISO date string to filter issues updated before this date
             excluded_repos: List of repository names to exclude
 
         Returns:
@@ -145,6 +194,10 @@ class GitHubSearcher:
             labels=labels,
             state=state,
             limit=limit,
+            created_after=created_after,
+            created_before=created_before,
+            updated_after=updated_after,
+            updated_before=updated_before,
             excluded_repos=excluded_repos,
         )
 
@@ -155,6 +208,9 @@ def build_github_query(
     labels: list[str] | None = None,
     state: str = "open",
     created_after: str | None = None,
+    created_before: str | None = None,
+    updated_after: str | None = None,
+    updated_before: str | None = None,
 ) -> str:
     """Build a GitHub search query string.
 
@@ -164,13 +220,19 @@ def build_github_query(
         labels: List of label names to filter by
         state: Issue state (open, closed, all)
         created_after: ISO date string to filter issues created after this date
+        created_before: ISO date string to filter issues created before this date
+        updated_after: ISO date string to filter issues updated after this date
+        updated_before: ISO date string to filter issues updated before this date
 
     Returns:
         GitHub search query string
 
     Example:
-        >>> build_github_query("microsoft", "vscode", ["bug"], "open", "2024-01-01")
-        "repo:microsoft/vscode is:issue state:open label:bug created:>2024-01-01"
+        >>> build_github_query(
+        ...     "microsoft", "vscode", ["bug"], "open", "2024-01-01", "2024-12-31"
+        ... )
+        "repo:microsoft/vscode is:issue state:open label:bug " \\
+        "created:>2024-01-01 created:<2024-12-31"
     """
     query_parts = [f"repo:{org}/{repo}", "is:issue"]
 
@@ -181,7 +243,63 @@ def build_github_query(
         for label in labels:
             query_parts.append(f"label:{label}")
 
+    # Date filtering
     if created_after:
         query_parts.append(f"created:>{created_after}")
+    if created_before:
+        query_parts.append(f"created:<{created_before}")
+    if updated_after:
+        query_parts.append(f"updated:>{updated_after}")
+    if updated_before:
+        query_parts.append(f"updated:<{updated_before}")
+
+    return " ".join(query_parts)
+
+
+def build_github_organization_query(
+    org: str,
+    labels: list[str] | None = None,
+    state: str = "open",
+    created_after: str | None = None,
+    created_before: str | None = None,
+    updated_after: str | None = None,
+    updated_before: str | None = None,
+) -> str:
+    """Build a GitHub search query string for organization-wide search.
+
+    Args:
+        org: Organization name
+        labels: List of label names to filter by
+        state: Issue state (open, closed, all)
+        created_after: ISO date string to filter issues created after this date
+        created_before: ISO date string to filter issues created before this date
+        updated_after: ISO date string to filter issues updated after this date
+        updated_before: ISO date string to filter issues updated before this date
+
+    Returns:
+        GitHub search query string
+
+    Example:
+        >>> build_github_organization_query("microsoft", ["bug"], "open", "2024-01-01")
+        "org:microsoft is:issue state:open label:bug created:>2024-01-01"
+    """
+    query_parts = [f"org:{org}", "is:issue"]
+
+    if state != "all":
+        query_parts.append(f"state:{state}")
+
+    if labels:
+        for label in labels:
+            query_parts.append(f"label:{label}")
+
+    # Date filtering
+    if created_after:
+        query_parts.append(f"created:>{created_after}")
+    if created_before:
+        query_parts.append(f"created:<{created_before}")
+    if updated_after:
+        query_parts.append(f"updated:>{updated_after}")
+    if updated_before:
+        query_parts.append(f"updated:<{updated_before}")
 
     return " ".join(query_parts)
