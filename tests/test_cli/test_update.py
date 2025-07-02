@@ -32,11 +32,11 @@ def mock_github_client() -> Generator[MagicMock, None, None]:
 @pytest.fixture
 def sample_data_dir(temp_data_dir: Path) -> Path:
     """Create sample data directory with test files."""
-    # Create directory structure
-    issues_dir = temp_data_dir / "issues" / "test-org" / "test-repo"
-    issues_dir.mkdir(parents=True)
-    results_dir = temp_data_dir / "results" / "test-org" / "test-repo"
-    results_dir.mkdir(parents=True)
+    # Create directory structure (flat structure)
+    issues_dir = temp_data_dir / "issues"
+    issues_dir.mkdir(parents=True, exist_ok=True)
+    results_dir = temp_data_dir / "results"
+    results_dir.mkdir(parents=True, exist_ok=True)
 
     # Sample issue data
     issue_data = {
@@ -95,9 +95,9 @@ def sample_data_dir(temp_data_dir: Path) -> Path:
         "image_impact": "",
     }
 
-    # Write test files
-    (issues_dir / "issue-123.json").write_text(json.dumps(issue_data))
-    (results_dir / "issue-123-product-labeling.json").write_text(
+    # Write test files using flat structure
+    (issues_dir / "test-org_test-repo_issue_123.json").write_text(json.dumps(issue_data))
+    (results_dir / "test-org_test-repo_issue_123_product-labeling.json").write_text(
         json.dumps(ai_result_data)
     )
 
