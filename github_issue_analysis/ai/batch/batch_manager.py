@@ -212,15 +212,14 @@ class BatchManager:
         """Check status of batch job.
 
         Args:
-            job_id: Batch job identifier
+            job_id: Full or partial batch job identifier
 
         Returns:
             Updated batch job
         """
-        job_file = self.base_path / "jobs" / f"{job_id}.json"
-
-        if not job_file.exists():
-            raise ValueError(f"Batch job {job_id} not found")
+        # Resolve partial ID to full ID
+        full_job_id = self.resolve_job_id(job_id)
+        job_file = self.base_path / "jobs" / f"{full_job_id}.json"
 
         # Load current job state
         with open(job_file, encoding="utf-8") as f:
@@ -284,7 +283,7 @@ class BatchManager:
         """Download and process batch results.
 
         Args:
-            job_id: Batch job identifier
+            job_id: Full or partial batch job identifier
 
         Returns:
             Batch results with processing summary
@@ -503,7 +502,7 @@ class BatchManager:
         """Cancel a batch job.
 
         Args:
-            job_id: Local batch job ID
+            job_id: Full or partial batch job ID
 
         Returns:
             Updated batch job with cancelled status
@@ -511,10 +510,9 @@ class BatchManager:
         Raises:
             ValueError: If job cannot be cancelled
         """
-        job_file = self.base_path / "jobs" / f"{job_id}.json"
-
-        if not job_file.exists():
-            raise ValueError(f"Batch job {job_id} not found")
+        # Resolve partial ID to full ID
+        full_job_id = self.resolve_job_id(job_id)
+        job_file = self.base_path / "jobs" / f"{full_job_id}.json"
 
         # Load current job state
         with open(job_file, encoding="utf-8") as f:
@@ -573,7 +571,7 @@ class BatchManager:
         """Remove a batch job record.
 
         Args:
-            job_id: Local batch job ID
+            job_id: Full or partial batch job ID
             force: Skip confirmation prompt
 
         Returns:
@@ -582,10 +580,9 @@ class BatchManager:
         Raises:
             ValueError: If job doesn't exist
         """
-        job_file = self.base_path / "jobs" / f"{job_id}.json"
-
-        if not job_file.exists():
-            raise ValueError(f"Batch job {job_id} not found")
+        # Resolve partial ID to full ID
+        full_job_id = self.resolve_job_id(job_id)
+        job_file = self.base_path / "jobs" / f"{full_job_id}.json"
 
         # Load job to get details for confirmation and cleanup
         with open(job_file, encoding="utf-8") as f:
@@ -659,7 +656,7 @@ class BatchManager:
                     output_file.unlink()
                     removed_files.append(str(output_file))
 
-            console.print(f"[green]✓ Removed batch job {job_id}[/green]")
+            console.print(f"[green]✓ Removed batch job {full_job_id}[/green]")
             console.print(f"[green]Removed {len(removed_files)} file(s):[/green]")
             for file_path in removed_files:
                 console.print(f"  - {file_path}")
@@ -671,19 +668,61 @@ class BatchManager:
             console.print("[yellow]Some files may have been partially removed[/yellow]")
             raise
 
-    def get_job(self, job_id: str) -> BatchJob:
-        """Get batch job by ID.
+    def resolve_job_id(self, partial_id: str) -> str:
+        """Resolve a partial job ID to a full job ID.
 
         Args:
-            job_id: Batch job identifier
+            partial_id: Full or partial job ID
+
+        Returns:
+            Full job ID
+
+        Raises:
+            ValueError: If no matching job found or multiple matches
+        """
+        jobs_dir = self.base_path / "jobs"
+
+        if not jobs_dir.exists():
+            raise ValueError("No batch jobs found")
+
+        # If it's already a full UUID (36 chars with dashes), try exact match first
+        if len(partial_id) == 36 and partial_id.count('-') == 4:
+            job_file = jobs_dir / f"{partial_id}.json"
+            if job_file.exists():
+                return partial_id
+
+        # Find all job files that start with the partial ID
+        matching_files = []
+        for job_file in jobs_dir.glob("*.json"):
+            job_id = job_file.stem
+            if job_id.startswith(partial_id):
+                matching_files.append(job_id)
+
+        if not matching_files:
+            raise ValueError(f"No batch job found matching '{partial_id}'")
+
+        if len(matching_files) > 1:
+            job_list = ', '.join(matching_files[:3])
+            extra_count = len(matching_files) - 3
+            extra_msg = f" and {extra_count} more" if len(matching_files) > 3 else ""
+            raise ValueError(
+                f"Multiple batch jobs match '{partial_id}': {job_list}{extra_msg}"
+            )
+
+        return matching_files[0]
+
+    def get_job(self, job_id: str) -> BatchJob:
+        """Get batch job by ID (supports partial IDs).
+
+        Args:
+            job_id: Full or partial batch job identifier
 
         Returns:
             Batch job
         """
-        job_file = self.base_path / "jobs" / f"{job_id}.json"
-
-        if not job_file.exists():
-            raise ValueError(f"Batch job {job_id} not found")
+        # Resolve partial ID to full ID
+        full_job_id = self.resolve_job_id(job_id)
+        job_file = self.base_path / "jobs" / f"{full_job_id}.json"
 
         with open(job_file, encoding="utf-8") as f:
             job_data = json.load(f)
