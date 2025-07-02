@@ -1,21 +1,10 @@
 """Pydantic models for batch processing operations."""
 
 from datetime import datetime
-from enum import Enum
 from typing import Any
 
 from pydantic import BaseModel, Field
 
-
-class BatchJobStatus(str, Enum):
-    """Status of a batch processing job."""
-
-    PENDING = "pending"
-    VALIDATING = "validating"
-    RUNNING = "running"
-    COMPLETED = "completed"
-    FAILED = "failed"
-    CANCELLED = "cancelled"
 
 
 class BatchJobError(BaseModel):
@@ -52,8 +41,8 @@ class BatchJob(BaseModel):
     )
     completed_at: datetime | None = Field(None, description="When job completed")
 
-    # Status and results
-    status: BatchJobStatus = Field(default=BatchJobStatus.PENDING)
+    # Status and results (store OpenAI's actual status string)
+    status: str = Field(default="pending")
     total_items: int = Field(0, description="Total number of items in the batch")
     processed_items: int = Field(
         0, description="Number of successfully processed items"
@@ -98,7 +87,7 @@ class BatchJobSummary(BaseModel):
     org: str
     repo: str | None
     issue_number: int | None
-    status: BatchJobStatus
+    status: str
     created_at: datetime
     total_items: int
     processed_items: int
