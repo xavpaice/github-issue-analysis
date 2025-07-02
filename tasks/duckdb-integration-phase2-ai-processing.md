@@ -21,9 +21,75 @@ Integrate DuckDB queries with AI processing pipeline for intelligent issue selec
 ## Files to Modify
 - `github_issue_analysis/storage/database.py` - Add AI results storage methods
 - `github_issue_analysis/storage/schema.sql` - Add AI results tables
+- `github_issue_analysis/storage/queries.py` - Extend label_summary alias with AI data
 - `github_issue_analysis/cli/main.py` - Add process-query commands
 
 ## Implementation Details
+
+### **Query Alias Extensions**
+
+**Extended `label_summary` Alias:**
+Phase 1 provides basic label usage percentages per repository. Phase 2 extends this with AI recommendation data:
+
+```python
+# Add to queries.py - extended label_summary alias
+QUERY_ALIASES['label_summary'] = {
+    'sql': '''
+        SELECT 
+            i.org || '/' || i.repo as repository,
+            l.name as label,
+            COUNT(*) as issue_count,
+            ROUND(COUNT(*) * 100.0 / 
+                (SELECT COUNT(*) FROM issues i2 WHERE i2.org = i.org AND i2.repo = i.repo), 1
+            ) as current_percentage,
+            
+            -- AI recommendation data
+            COUNT(ar.label) as recommended_count,
+            ROUND(COUNT(ar.label) * 100.0 / 
+                (SELECT COUNT(*) FROM issues i3 WHERE i3.org = i.org AND i3.repo = i.repo), 1
+            ) as recommended_percentage,
+            
+            -- Impact analysis
+            CASE 
+                WHEN COUNT(ar.label) > COUNT(*) THEN 'Under-labeled'
+                WHEN COUNT(ar.label) < COUNT(*) THEN 'Over-labeled'
+                ELSE 'Balanced'
+            END as recommendation_impact,
+            
+            AVG(ar.confidence) as avg_ai_confidence
+            
+        FROM labels l
+        JOIN issues i ON l.issue_id = i.id
+        LEFT JOIN ai_results air ON i.id = air.issue_id
+        LEFT JOIN ai_recommendations ar ON air.id = ar.result_id AND ar.label = l.name
+        GROUP BY i.org, i.repo, l.name
+        ORDER BY i.org, i.repo, current_percentage DESC
+    ''',
+    'description': 'Label usage percentages per repository with AI recommendation analysis'
+}
+```
+
+**Extended Output Columns:**
+- `repository` - Repository name (org/repo)
+- `label` - Label name
+- `issue_count` - Current issues with this label
+- `current_percentage` - Current usage percentage
+- `recommended_count` - Issues AI recommends should have this label
+- `recommended_percentage` - AI recommended usage percentage
+- `recommendation_impact` - Under-labeled/Over-labeled/Balanced
+- `avg_ai_confidence` - Average AI confidence for this label
+
+**Usage Examples:**
+```bash
+# Show label analysis for all repositories
+uv run github-analysis query alias label_summary
+
+# Filter to specific repository
+uv run github-analysis query sql "SELECT * FROM (${label_summary_sql}) WHERE repository = 'replicated/kots'"
+
+# Find under-labeled issues
+uv run github-analysis query sql "SELECT * FROM (${label_summary_sql}) WHERE recommendation_impact = 'Under-labeled'"
+```
 
 ### **AI Results Schema Extension**
 ```sql
@@ -810,6 +876,7 @@ uv run ruff check --fix --unsafe-fixes && uv run black . && uv run mypy . && uv 
 1. User can run `uv run github-analysis process-query missing product-labeling --state open --limit 10` to intelligently select and process issues
 2. `uv run github-analysis process-query analytics` shows comprehensive AI processing insights
 3. Processing pipeline enables complex workflows like "process open issues from specific repos that don't have product labels"
+4. Extended `uv run github-analysis query alias label_summary` shows current vs AI-recommended label usage with impact analysis
 
 ## Agent Notes
 [Document your pipeline design decisions, integration approach, and performance optimizations]

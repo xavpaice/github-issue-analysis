@@ -333,7 +333,7 @@ class DatabaseManager:
 # queries.py
 """Pre-built query templates for common operations."""
 
-COMMON_QUERIES = {
+QUERY_ALIASES = {
     'open_issues': {
         'sql': '''
             SELECT 
@@ -341,88 +341,44 @@ COMMON_QUERIES = {
                 number,
                 title,
                 created_at,
-                array_agg(l.name) FILTER (WHERE l.name IS NOT NULL) as labels
+                COUNT(c.id) as comment_count
             FROM issues i
-            LEFT JOIN labels l ON i.id = l.issue_id
+            LEFT JOIN comments c ON i.id = c.issue_id
             WHERE state = 'open'
             GROUP BY i.id, org, repo, number, title, created_at
             ORDER BY created_at DESC
         ''',
-        'description': 'List all open issues with labels'
-    },
-    
-    'recent_activity': {
-        'sql': '''
-            SELECT 
-                org || '/' || repo as repository,
-                number,
-                title,
-                state,
-                updated_at
-            FROM issues 
-            WHERE updated_at > datetime('now', '-7 days')
-            ORDER BY updated_at DESC
-        ''',
-        'description': 'Issues updated in the last 7 days'
+        'description': 'List all open issues with comment counts'
     },
     
     'label_summary': {
         'sql': '''
             SELECT 
+                org || '/' || repo as repository,
                 l.name as label,
-                COUNT(*) as usage_count,
-                COUNT(CASE WHEN i.state = 'open' THEN 1 END) as open_issues,
-                COUNT(CASE WHEN i.state = 'closed' THEN 1 END) as closed_issues
+                COUNT(*) as issue_count,
+                ROUND(COUNT(*) * 100.0 / 
+                    (SELECT COUNT(*) FROM issues i2 WHERE i2.org = i.org AND i2.repo = i.repo), 1
+                ) as percentage
             FROM labels l
             JOIN issues i ON l.issue_id = i.id
-            GROUP BY l.name
-            ORDER BY usage_count DESC
+            GROUP BY org, repo, l.name
+            ORDER BY org, repo, percentage DESC
         ''',
-        'description': 'Label usage statistics'
-    },
-    
-    'repository_health': {
-        'sql': '''
-            SELECT 
-                org || '/' || repo as repository,
-                COUNT(*) as total_issues,
-                COUNT(CASE WHEN state = 'open' THEN 1 END) as open_issues,
-                COUNT(CASE WHEN state = 'closed' THEN 1 END) as closed_issues,
-                ROUND(COUNT(CASE WHEN state = 'closed' THEN 1 END) * 100.0 / COUNT(*), 1) as closure_rate,
-                MAX(created_at) as latest_issue_date,
-                COUNT(CASE WHEN created_at > datetime('now', '-30 days') THEN 1 END) as issues_last_30d
-            FROM issues
-            GROUP BY org, repo
-            ORDER BY total_issues DESC
-        ''',
-        'description': 'Repository health metrics'
-    },
-    
-    'issue_timeline': {
-        'sql': '''
-            SELECT 
-                date_trunc('month', created_at) as month,
-                COUNT(*) as issues_created,
-                COUNT(CASE WHEN state = 'closed' THEN 1 END) as issues_closed
-            FROM issues
-            WHERE created_at > datetime('now', '-12 months')
-            GROUP BY date_trunc('month', created_at)
-            ORDER BY month
-        ''',
-        'description': 'Monthly issue creation and closure trends'
+        'description': 'Label usage percentages per repository'
     }
 }
 
 def get_query(name: str) -> str:
-    """Get SQL for a named query."""
-    if name not in COMMON_QUERIES:
-        available = ', '.join(COMMON_QUERIES.keys())
-        raise ValueError(f"Unknown query '{name}'. Available: {available}")
-    return COMMON_QUERIES[name]['sql']
+    """Get SQL for a named query alias."""
+    if name not in QUERY_ALIASES:
+        available = ', '.join(QUERY_ALIASES.keys())
+        raise ValueError(f"Unknown query alias '{name}'. Available: {available}")
+    return QUERY_ALIASES[name]['sql']
 
 def list_queries() -> Dict[str, str]:
-    """List available queries with descriptions."""
-    return {name: info['description'] for name, info in COMMON_QUERIES.items()}
+    """List available query aliases with descriptions."""
+    return {name: info['description'] for name, info in QUERY_ALIASES.items()}
 ```
 
 ### **CLI Query Commands**
@@ -435,7 +391,7 @@ from rich.console import Console
 from rich import print_json
 
 from ..storage.database import DatabaseManager
-from ..storage.queries import get_query, list_queries, COMMON_QUERIES
+from ..storage.queries import get_query, list_queries, QUERY_ALIASES
 
 
 console = Console()
@@ -471,12 +427,12 @@ def sql(
 
 
 @app.command()
-def common(
-    name: str = typer.Argument(..., help="Query name"),
+def alias(
+    name: str = typer.Argument(..., help="Query alias name"),
     format: str = typer.Option("table", help="Output format: table, json, csv"),
     limit: Optional[int] = typer.Option(None, help="Limit number of results")
 ):
-    """Execute common pre-built queries."""
+    """Execute pre-built query aliases."""
     try:
         query = get_query(name)
         
@@ -490,7 +446,7 @@ def common(
             console.print("[yellow]No results found[/yellow]")
             return
         
-        console.print(f"[blue]Query: {COMMON_QUERIES[name]['description']}[/blue]")
+        console.print(f"[blue]Query: {QUERY_ALIASES[name]['description']}[/blue]")
         _output_results(results, format)
         
     except ImportError:
@@ -503,11 +459,11 @@ def common(
 
 @app.command()
 def list():
-    """List available common queries."""
+    """List available query aliases."""
     queries = list_queries()
     
-    table = Table(title="Available Common Queries")
-    table.add_column("Name", style="cyan")
+    table = Table(title="Available Query Aliases")
+    table.add_column("Alias", style="cyan")
     table.add_column("Description", style="white")
     
     for name, description in queries.items():
@@ -759,11 +715,11 @@ class TestDatabaseManager:
 
 # test_query.py
 class TestQueryCommands:
-    def test_common_queries(self):
-        """Test common query templates."""
+    def test_query_aliases(self):
+        """Test query alias templates."""
         from github_issue_analysis.storage.queries import get_query, list_queries
         
-        # Test listing queries
+        # Test listing query aliases
         queries = list_queries()
         assert 'open_issues' in queries
         assert isinstance(queries['open_issues'], str)
@@ -773,11 +729,11 @@ class TestQueryCommands:
         assert 'SELECT' in sql.upper()
         assert 'issues' in sql.lower()
     
-    def test_invalid_query_name(self):
-        """Test handling of invalid query names."""
+    def test_invalid_query_alias(self):
+        """Test handling of invalid query alias names."""
         from github_issue_analysis.storage.queries import get_query
         
-        with pytest.raises(ValueError, match="Unknown query"):
+        with pytest.raises(ValueError, match="Unknown query alias"):
             get_query('nonexistent_query')
 ```
 
@@ -814,17 +770,16 @@ ls -la data/issues.duckdb
 # 7. List available queries
 uv run github-analysis query list
 
-# 8. Test common queries
-uv run github-analysis query common open_issues
-uv run github-analysis query common repository_health
-uv run github-analysis query common label_summary
+# 8. Test query aliases
+uv run github-analysis query alias open_issues
+uv run github-analysis query alias label_summary
 
 # 9. Test custom SQL
 uv run github-analysis query sql "SELECT COUNT(*) as total FROM issues"
 uv run github-analysis query sql "SELECT org, repo, COUNT(*) FROM issues GROUP BY org, repo" --format json
 
 # 10. Test output formats
-uv run github-analysis query common open_issues --format csv --limit 3
+uv run github-analysis query alias open_issues --format csv --limit 3
 ```
 
 ### **Error Handling**
@@ -837,7 +792,7 @@ uv add duckdb  # Restore
 
 # 12. Test invalid queries
 uv run github-analysis query sql "INVALID SQL"  # Should show error
-uv run github-analysis query common invalid_query  # Should show error
+uv run github-analysis query alias invalid_query  # Should show error
 ```
 
 ### **Quality Assurance**
@@ -859,7 +814,7 @@ uv run github-analysis query sql "SELECT title, state FROM issues WHERE repo = '
 - [ ] DatabaseManager with full CRUD operations
 - [ ] Automatic database sync on issue collection (optional, graceful failure)
 - [ ] Manual sync command with progress reporting
-- [ ] SQL query interface with custom and common queries
+- [ ] SQL query interface with custom queries and pre-built aliases
 - [ ] Multiple output formats (table, JSON, CSV)
 - [ ] Enhanced status command with database statistics
 - [ ] Comprehensive error handling and user feedback
@@ -869,7 +824,7 @@ uv run github-analysis query sql "SELECT title, state FROM issues WHERE repo = '
 - [ ] All quality checks pass (ruff, black, mypy)
 - [ ] Clear documentation of query capabilities
 
-**Success Metric**: User can collect issues normally (unchanged workflow) and then use `uv run github-analysis query common repository_health` to get rich insights not possible with JSON alone.
+**Success Metric**: User can collect issues normally (unchanged workflow) and then use `uv run github-analysis query alias open_issues` to get rich insights not possible with JSON alone.
 
 ## Agent Notes
 [Document your implementation approach, database design decisions, and query interface choices]
