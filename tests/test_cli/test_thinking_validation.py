@@ -25,7 +25,7 @@ class TestCLIThinkingValidation:
                 app,
                 [
                     "--model",
-                    "openai:o1-mini",
+                    "openai:o4-mini",
                     "--thinking-effort",
                     "high",
                     "--dry-run",
@@ -120,7 +120,7 @@ class TestCLIThinkingValidation:
             app,
             [
                 "--model",
-                "openai:o1-mini",
+                "openai:o4-mini",
                 "--thinking-effort",
                 "invalid",
                 "--dry-run",
@@ -146,8 +146,25 @@ class TestCLIThinkingValidation:
         assert result.exit_code == 1
         assert "Invalid thinking budget" in result.stdout
 
+    def test_invalid_model_format_with_thinking(self) -> None:
+        """Test invalid model format (missing provider) with thinking options."""
+        result = self.runner.invoke(
+            app,
+            [
+                "--model",
+                "o4-mini",
+                "--thinking-effort",
+                "high",
+                "--dry-run",
+            ],
+        )
+
+        assert result.exit_code == 1
+        assert "Invalid model format 'o4-mini'" in result.stdout
+        assert "Expected format: provider:model" in result.stdout
+
     @patch.dict(
-        "os.environ", {"AI_THINKING_EFFORT": "medium", "AI_MODEL": "openai:o1-mini"}
+        "os.environ", {"AI_THINKING_EFFORT": "medium", "AI_MODEL": "openai:o4-mini"}
     )
     def test_environment_variable_thinking_config(self) -> None:
         """Test thinking configuration from environment variables."""
@@ -155,7 +172,7 @@ class TestCLIThinkingValidation:
         from github_issue_analysis.ai.config import build_ai_config
 
         config = build_ai_config()
-        assert config.model_name == "openai:o1-mini"
+        assert config.model_name == "openai:o4-mini"
         assert config.thinking is not None
         assert config.thinking.effort == "medium"
 
@@ -166,9 +183,9 @@ class TestCLIThinkingValidation:
 
             # CLI value should override environment
             config = build_ai_config(
-                model_name="openai:o1-mini", thinking_effort="high"
+                model_name="openai:o4-mini", thinking_effort="high"
             )
-            assert config.model_name == "openai:o1-mini"
+            assert config.model_name == "openai:o4-mini"
             assert config.thinking is not None
             assert config.thinking.effort == "high"  # CLI value, not env "low"
 
@@ -186,10 +203,10 @@ class TestCLIConfigurationIntegration:
 
         # Test that CLI-style parameters work with config builder
         config = build_ai_config(
-            model_name="openai:o1-mini", thinking_effort="high", thinking_budget=None
+            model_name="openai:o4-mini", thinking_effort="high", thinking_budget=None
         )
 
-        assert config.model_name == "openai:o1-mini"
+        assert config.model_name == "openai:o4-mini"
         assert config.thinking is not None
         assert config.thinking.effort == "high"
         assert config.thinking.budget_tokens is None
@@ -203,7 +220,7 @@ class TestCLIConfigurationIntegration:
             app,
             [
                 "--model",
-                "openai:o1-mini",
+                "openai:o4-mini",
                 "--thinking-effort",
                 "high",
                 "--dry-run",
@@ -227,7 +244,7 @@ class TestCLIConfigurationIntegration:
             app,
             [
                 "--model",
-                "openai:o1-mini",
+                "openai:o4-mini",
                 "--thinking-effort",
                 "medium",
                 "--dry-run",

@@ -471,7 +471,8 @@ class BatchManager:
                         batch_job = await self.check_job_status(batch_job.job_id)
                     except Exception as e:
                         console.print(
-                            f"[yellow]Warning: Failed to refresh status for {batch_job.job_id}: {e}[/yellow]"
+                            f"[yellow]Warning: Failed to refresh status for "
+                            f"{batch_job.job_id}: {e}[/yellow]"
                         )
 
                 summaries.append(

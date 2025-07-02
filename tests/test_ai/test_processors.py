@@ -212,7 +212,7 @@ class TestPydanticAIIntegration:
             effort="high", budget_tokens=None, summary="detailed"
         )
         ai_config = AIModelConfig(
-            model_name="openai:o1-mini",
+            model_name="openai:o4-mini",
             thinking=thinking_config,
             temperature=None,
             include_images=True,
@@ -228,7 +228,7 @@ class TestPydanticAIIntegration:
         mock_agent_class.assert_called_once()
         call_kwargs = mock_agent_class.call_args[1]
 
-        assert call_kwargs["model"] == "openai:o1-mini"
+        assert call_kwargs["model"] == "openai:o4-mini"
         assert call_kwargs["output_type"] == ProductLabelingResponse
         assert "model_settings" in call_kwargs
 
@@ -359,7 +359,7 @@ class TestPydanticAIIntegration:
             effort="high", budget_tokens=None, summary=None
         )
         ai_config = AIModelConfig(
-            model_name="openai:o1-mini",
+            model_name="openai:o4-mini",
             thinking=thinking_config,
             temperature=None,
             include_images=True,
@@ -428,7 +428,7 @@ class TestPydanticAIIntegration:
             effort="medium", budget_tokens=None, summary=None
         )
         ai_config = AIModelConfig(
-            model_name="openai:o1-mini",
+            model_name="openai:o4-mini",
             thinking=thinking_config,
             temperature=None,
             include_images=True,

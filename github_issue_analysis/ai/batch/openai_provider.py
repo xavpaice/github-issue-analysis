@@ -35,7 +35,8 @@ class OpenAIBatchProvider:
         if any(unsupported in model_name for unsupported in unsupported_models):
             raise ValueError(
                 f"Model '{config.model_name}' does not support OpenAI Batch API. "
-                f"Use gpt-4o, gpt-4o-mini, gpt-3.5-turbo, or o4-mini for batch processing."
+                f"Use gpt-4o, gpt-4o-mini, gpt-3.5-turbo, or o4-mini for batch "
+                f"processing."
             )
 
         self.base_url = "https://api.openai.com/v1"

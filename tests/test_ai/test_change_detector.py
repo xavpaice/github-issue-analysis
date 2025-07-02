@@ -209,7 +209,9 @@ class TestChangeDetector:
 
         # Create test files using flat structure
         (issues_dir / "test-org_test-repo_issue_123.json").write_text("{}")
-        (results_dir / "test-org_test-repo_issue_123_product-labeling.json").write_text("{}")
+        (results_dir / "test-org_test-repo_issue_123_product-labeling.json").write_text(
+            "{}"
+        )
         (issues_dir / "test-org_test-repo_issue_456.json").write_text("{}")
         # Missing result file for 456
 

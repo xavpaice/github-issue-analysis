@@ -56,6 +56,8 @@ uv run github-analysis batch submit product-labeling [OPTIONS]
 - `--repo, -r TEXT`: GitHub repository name (optional for org-wide processing)
 - `--issue-number INTEGER`: Specific issue number to process
 - `--model TEXT`: AI model to use (e.g., 'openai:gpt-4o-mini', 'openai:o4-mini')
+- `--thinking-effort TEXT`: Reasoning effort level for thinking models (low, medium, high)
+- `--thinking-budget INTEGER`: Thinking token budget for Anthropic/Google models
 - `--include-images / --no-include-images`: Include image analysis (default: true)
 
 **Examples:**
@@ -127,7 +129,9 @@ uv run github-analysis process product-labeling [OPTIONS]
 - `--org, -o TEXT`: GitHub organization name
 - `--repo, -r TEXT`: GitHub repository name
 - `--issue-number INTEGER`: Specific issue number to process
-- `--model TEXT`: AI model to use (e.g., 'openai:gpt-4o-mini')
+- `--model TEXT`: AI model to use (e.g., 'openai:gpt-4o-mini', 'openai:o4-mini')
+- `--thinking-effort TEXT`: Reasoning effort level for thinking models (low, medium, high)
+- `--thinking-budget INTEGER`: Thinking token budget for Anthropic/Google models
 - `--include-images / --no-include-images`: Include image analysis (default: true)
 - `--dry-run / --no-dry-run`: Show what would be processed without running AI (default: false)
 
@@ -138,6 +142,12 @@ uv run github-analysis process product-labeling --org myorg --repo myrepo
 
 # Process a specific issue with custom model
 uv run github-analysis process product-labeling --org myorg --repo myrepo --issue-number 123 --model openai:o4-mini
+
+# Process with thinking model and reasoning effort
+uv run github-analysis process product-labeling --org myorg --repo myrepo --issue-number 123 --model openai:o4-mini --thinking-effort medium
+
+# Process with Anthropic thinking model and budget
+uv run github-analysis process product-labeling --org myorg --repo myrepo --issue-number 123 --model anthropic:claude-3-5-sonnet-latest --thinking-budget 2048
 
 # Dry run to see what would be processed
 uv run github-analysis process product-labeling --org myorg --repo myrepo --dry-run
@@ -232,6 +242,40 @@ Show version information.
 
 ```bash
 uv run github-analysis version
+```
+
+## Thinking Models and Advanced Configuration
+
+### Model Format
+All models must be specified in the format `provider:model-name`:
+- ✅ `openai:o4-mini`
+- ✅ `anthropic:claude-3-5-sonnet-latest`
+- ❌ `o4-mini` (missing provider)
+
+### Thinking Capabilities
+Different models support different thinking options:
+
+**OpenAI Reasoning Models** (o4-mini, o3):
+- `--thinking-effort`: Controls reasoning depth (low, medium, high)
+- `--thinking-summary`: Provides reasoning summaries
+
+**Anthropic Models** (claude-3-5-sonnet-latest):
+- `--thinking-budget`: Token budget for thinking process
+
+**Google Models** (gemini-2.0-flash):
+- `--thinking-budget`: Token budget for thinking process
+
+### Examples
+```bash
+# Use OpenAI reasoning model with medium effort
+uv run github-analysis process product-labeling --model openai:o4-mini --thinking-effort medium
+
+# Use Anthropic with thinking budget
+uv run github-analysis process product-labeling --model anthropic:claude-3-5-sonnet-latest --thinking-budget 2048
+
+# Invalid format will show helpful error
+uv run github-analysis process product-labeling --model o4-mini --thinking-effort high
+# Error: Invalid model format 'o4-mini'. Expected format: provider:model
 ```
 
 ## Development Commands

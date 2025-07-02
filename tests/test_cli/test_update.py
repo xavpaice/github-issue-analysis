@@ -96,7 +96,9 @@ def sample_data_dir(temp_data_dir: Path) -> Path:
     }
 
     # Write test files using flat structure
-    (issues_dir / "test-org_test-repo_issue_123.json").write_text(json.dumps(issue_data))
+    (issues_dir / "test-org_test-repo_issue_123.json").write_text(
+        json.dumps(issue_data)
+    )
     (results_dir / "test-org_test-repo_issue_123_product-labeling.json").write_text(
         json.dumps(ai_result_data)
     )

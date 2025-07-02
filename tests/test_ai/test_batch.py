@@ -13,7 +13,6 @@ from github_issue_analysis.ai.batch.batch_manager import BatchManager
 from github_issue_analysis.ai.batch.models import (
     BatchJob,
     BatchJobError,
-    BatchJobStatus,
     BatchResult,
 )
 from github_issue_analysis.ai.batch.openai_provider import OpenAIBatchProvider
@@ -173,7 +172,7 @@ class TestBatchManager:
         assert result.org == "test-org"
         assert result.repo == "test-repo"
         assert result.total_items == 2
-        assert result.status == BatchJobStatus.VALIDATING
+        assert result.status == "validating"
         assert result.openai_batch_id == "batch_123"
         assert result.input_file_id == "file_123"
 
@@ -260,7 +259,7 @@ class TestBatchManager:
             failed_items=0,
             input_file_path=None,
             output_file_path=None,
-            status=BatchJobStatus.RUNNING,
+            status="in_progress",
         )
 
         # Mock file operations
@@ -280,7 +279,7 @@ class TestBatchManager:
 
         result = await manager.check_job_status(job_id)
 
-        assert result.status == BatchJobStatus.COMPLETED
+        assert result.status == "completed"
         assert result.output_file_id == "output_123"
         assert result.processed_items == 2
         assert result.failed_items == 0
@@ -328,7 +327,7 @@ class TestBatchManager:
             failed_items=0,
             input_file_path=None,
             output_file_path=None,
-            status=BatchJobStatus.COMPLETED,
+            status="completed",
         )
 
         # Mock file operations
@@ -415,7 +414,7 @@ class TestBatchManager:
             failed_items=0,
             input_file_path=None,
             output_file_path=None,
-            status=BatchJobStatus.RUNNING,  # Not completed
+            status="in_progress",  # Not completed
         )
 
         # Mock check_job_status to return running job
@@ -423,16 +422,18 @@ class TestBatchManager:
             with pytest.raises(ValueError, match="Job .* is not completed"):
                 await manager.collect_results(job_id)
 
-    def test_list_jobs_empty(self, temp_batch_dir: Path) -> None:
+    @pytest.mark.asyncio
+    async def test_list_jobs_empty(self, temp_batch_dir: Path) -> None:
         """Test listing jobs when no jobs exist."""
         manager = BatchManager(str(temp_batch_dir))
 
-        result = manager.list_jobs()
+        result = await manager.list_jobs()
         assert result == []
 
+    @pytest.mark.asyncio
     @patch("builtins.open", new_callable=mock_open)
     @patch("pathlib.Path.glob")
-    def test_list_jobs_with_data(
+    async def test_list_jobs_with_data(
         self,
         mock_glob: MagicMock,
         mock_file: MagicMock,
@@ -460,7 +461,7 @@ class TestBatchManager:
             failed_items=1,
             input_file_path=None,
             output_file_path=None,
-            status=BatchJobStatus.COMPLETED,
+            status="completed",
             created_at=datetime(2024, 1, 1, 12, 0, 0),
         )
 
@@ -481,7 +482,7 @@ class TestBatchManager:
             failed_items=0,
             input_file_path=None,
             output_file_path=None,
-            status=BatchJobStatus.RUNNING,
+            status="in_progress",
             created_at=datetime(2024, 1, 2, 12, 0, 0),
         )
 
@@ -492,14 +493,14 @@ class TestBatchManager:
             json.dumps(job2.model_dump(), default=str),
         ]
 
-        result = manager.list_jobs()
+        result = await manager.list_jobs()
 
         assert len(result) == 2
         # Should be sorted by creation time (newest first)
         assert result[0].job_id == "job2"
         assert result[1].job_id == "job1"
-        assert result[0].status == BatchJobStatus.RUNNING
-        assert result[1].status == BatchJobStatus.COMPLETED
+        assert result[0].status == "in_progress"
+        assert result[1].status == "completed"
 
 
 class TestOpenAIBatchProvider:
@@ -766,7 +767,7 @@ class TestBatchModels:
         )
 
         assert job.job_id == "test_job"
-        assert job.status == BatchJobStatus.PENDING
+        assert job.status == "pending"
         assert job.total_items == 10
         assert job.processed_items == 0
         assert job.failed_items == 0
@@ -794,16 +795,16 @@ class TestBatchModels:
         )
 
         # Test status progression
-        assert job.status == BatchJobStatus.PENDING
+        assert job.status == "pending"
 
-        job.status = BatchJobStatus.VALIDATING
-        assert job.status == BatchJobStatus.VALIDATING
+        job.status = "validating"
+        assert job.status == "validating"
 
-        job.status = BatchJobStatus.RUNNING
-        assert job.status == BatchJobStatus.RUNNING
+        job.status = "in_progress"
+        assert job.status == "in_progress"
 
-        job.status = BatchJobStatus.COMPLETED
-        assert job.status == BatchJobStatus.COMPLETED
+        job.status = "completed"
+        assert job.status == "completed"
 
     def test_batch_job_error_handling(self, ai_model_config: AIModelConfig) -> None:
         """Test batch job error tracking."""

@@ -31,7 +31,8 @@ def product_labeling(
         None, help="AI model to use (e.g., 'openai:gpt-4o-mini')"
     ),
     thinking_effort: str | None = typer.Option(
-        None, help="Reasoning effort level for OpenAI o1 models (low, medium, high)"
+        None,
+        help="Reasoning effort level for thinking models (low, medium, high)",
     ),
     thinking_budget: int | None = typer.Option(
         None, help="Thinking token budget for Anthropic/Google models"
