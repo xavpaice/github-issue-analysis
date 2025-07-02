@@ -37,8 +37,80 @@ uv run github-analysis collect --org replicated-collab --limit 20
 uv run github-analysis collect --org microsoft --repo vscode --labels bug --limit 5
 ```
 
+### batch (RECOMMENDED)
+**Batch processing for cost-effective AI analysis (50% cheaper than individual processing).**
+
+```bash
+uv run github-analysis batch [COMMAND] [OPTIONS]
+```
+
+#### submit
+Submit a batch processing job for multiple issues.
+
+```bash
+uv run github-analysis batch submit product-labeling [OPTIONS]
+```
+
+**Options:**
+- `--org, -o TEXT`: GitHub organization name
+- `--repo, -r TEXT`: GitHub repository name (optional for org-wide processing)
+- `--issue-number INTEGER`: Specific issue number to process
+- `--model TEXT`: AI model to use (e.g., 'openai:gpt-4o-mini', 'openai:o4-mini')
+- `--include-images / --no-include-images`: Include image analysis (default: true)
+
+**Examples:**
+```bash
+# Batch process all collected issues for an organization (RECOMMENDED)
+uv run github-analysis batch submit product-labeling --org myorg
+
+# Batch process all issues for a specific repository
+uv run github-analysis batch submit product-labeling --org myorg --repo myrepo
+
+# Batch process with specific model
+uv run github-analysis batch submit product-labeling --org myorg --model openai:gpt-4o-mini
+```
+
+#### status
+Check the status of a batch processing job.
+
+```bash
+uv run github-analysis batch status <job-id>
+```
+
+#### collect
+Collect and process results from a completed batch job.
+
+```bash
+uv run github-analysis batch collect <job-id>
+```
+
+#### list
+List all batch processing jobs.
+
+```bash
+uv run github-analysis batch list
+```
+
+**Typical Batch Workflow:**
+```bash
+# 1. Collect issues
+uv run github-analysis collect --org myorg --limit 30
+
+# 2. Submit batch job
+uv run github-analysis batch submit product-labeling --org myorg
+
+# 3. Check status periodically (shows real-time progress)
+uv run github-analysis batch status <job-id>
+
+# 4. Collect results when completed
+uv run github-analysis batch collect <job-id>
+
+# 5. Update labels with dry run first
+uv run github-analysis update-labels --org myorg --dry-run
+```
+
 ### process
-AI processing commands for collected issues.
+**Individual AI processing commands (use only for single issues or testing).**
 
 ```bash
 uv run github-analysis process [COMMAND] [OPTIONS]
@@ -94,10 +166,17 @@ uv run github-analysis update-labels [OPTIONS]
 - `--delay FLOAT`: Delay between API calls in seconds (default: 0.0)
 - `--data-dir TEXT`: Data directory path (defaults to ./data)
 
-**Workflow:**
-1. First collect issues: `uv run github-analysis collect --org myorg --repo myrepo`
-2. Run AI analysis: `uv run github-analysis process product-labeling --org myorg --repo myrepo`
-3. Update labels: `uv run github-analysis update-labels --org myorg --repo myrepo`
+**Recommended Workflow (Batch Processing):**
+1. Collect issues: `uv run github-analysis collect --org myorg --limit 30`
+2. Submit batch job: `uv run github-analysis batch submit product-labeling --org myorg`
+3. Check status: `uv run github-analysis batch status <job-id>`
+4. Collect results: `uv run github-analysis batch collect <job-id>`
+5. Update labels: `uv run github-analysis update-labels --org myorg --dry-run`
+
+**Alternative Workflow (Individual Processing - for single issues only):**
+1. Collect single issue: `uv run github-analysis collect --org myorg --repo myrepo --issue-number 123`
+2. Process individual issue: `uv run github-analysis process product-labeling --org myorg --repo myrepo --issue-number 123`
+3. Update labels: `uv run github-analysis update-labels --org myorg --repo myrepo --issue-number 123 --dry-run`
 
 **Examples:**
 ```bash
