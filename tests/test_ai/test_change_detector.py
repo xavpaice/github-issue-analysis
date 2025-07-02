@@ -201,16 +201,16 @@ class TestChangeDetector:
 
     def test_find_matching_files(self, temp_data_dir: Path) -> None:
         """Test finding matching issue and result files."""
-        # Create test file structure
-        org_dir = temp_data_dir / "issues" / "test-org" / "test-repo"
-        org_dir.mkdir(parents=True)
-        results_dir = temp_data_dir / "results" / "test-org" / "test-repo"
-        results_dir.mkdir(parents=True)
+        # Create test file structure (flat structure)
+        issues_dir = temp_data_dir / "issues"
+        issues_dir.mkdir(parents=True, exist_ok=True)
+        results_dir = temp_data_dir / "results"
+        results_dir.mkdir(parents=True, exist_ok=True)
 
-        # Create test files
-        (org_dir / "issue-123.json").write_text("{}")
-        (results_dir / "issue-123-product-labeling.json").write_text("{}")
-        (org_dir / "issue-456.json").write_text("{}")
+        # Create test files using flat structure
+        (issues_dir / "test-org_test-repo_issue_123.json").write_text("{}")
+        (results_dir / "test-org_test-repo_issue_123_product-labeling.json").write_text("{}")
+        (issues_dir / "test-org_test-repo_issue_456.json").write_text("{}")
         # Missing result file for 456
 
         detector = ChangeDetector()
@@ -218,7 +218,7 @@ class TestChangeDetector:
         # Test finding all files
         matches = detector.find_matching_files(temp_data_dir, "test-org", "test-repo")
         assert len(matches) == 1
-        assert "issue-123.json" in str(matches[0][0])
+        assert "test-org_test-repo_issue_123.json" in str(matches[0][0])
 
         # Test finding specific issue
         matches = detector.find_matching_files(
