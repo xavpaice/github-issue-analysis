@@ -499,6 +499,178 @@ class BatchManager:
         summaries.sort(key=lambda x: x.created_at, reverse=True)
         return summaries
 
+    async def cancel_job(self, job_id: str) -> BatchJob:
+        """Cancel a batch job.
+
+        Args:
+            job_id: Local batch job ID
+
+        Returns:
+            Updated batch job with cancelled status
+
+        Raises:
+            ValueError: If job cannot be cancelled
+        """
+        job_file = self.base_path / "jobs" / f"{job_id}.json"
+
+        if not job_file.exists():
+            raise ValueError(f"Batch job {job_id} not found")
+
+        # Load current job state
+        with open(job_file, encoding="utf-8") as f:
+            job_data = json.load(f)
+            batch_job = BatchJob.model_validate(job_data)
+
+        # Check if job can be cancelled
+        cancellable_states = [
+            "pending",
+            "validating",
+            "in_progress",
+            "finalizing",
+            "cancelling",
+        ]
+        if batch_job.status not in cancellable_states:
+            if batch_job.status == "cancelled":
+                console.print(f"[yellow]Job {job_id} is already cancelled[/yellow]")
+                return batch_job
+            elif batch_job.status == "completed":
+                console.print(f"[yellow]Job {job_id} has already completed[/yellow]")
+                return batch_job
+            elif batch_job.status == "failed":
+                console.print(f"[yellow]Job {job_id} has already failed[/yellow]")
+                return batch_job
+            else:
+                raise ValueError(
+                    f"Job {job_id} cannot be cancelled (status: {batch_job.status})"
+                )
+
+        if not batch_job.openai_batch_id:
+            raise ValueError(f"Job {job_id} has no OpenAI batch ID to cancel")
+
+        try:
+            # Cancel the batch with OpenAI
+            model_config = AIModelConfig.model_validate(batch_job.ai_model_config)
+            provider = OpenAIBatchProvider(model_config)
+
+            await provider.cancel_batch(batch_job.openai_batch_id)
+
+            # Update local job status
+            batch_job.status = "cancelled"
+
+            # Save updated job state
+            with open(job_file, "w", encoding="utf-8") as f:
+                json.dump(batch_job.model_dump(), f, indent=2, default=str)
+
+            console.print(f"[green]✓ Cancelled batch job {job_id}[/green]")
+
+        except Exception as e:
+            console.print(f"[red]Failed to cancel batch job: {e}[/red]")
+            raise
+
+        return batch_job
+
+    def remove_job(self, job_id: str, force: bool = False) -> bool:
+        """Remove a batch job record.
+
+        Args:
+            job_id: Local batch job ID
+            force: Skip confirmation prompt
+
+        Returns:
+            True if job was removed, False if cancelled by user
+
+        Raises:
+            ValueError: If job doesn't exist
+        """
+        job_file = self.base_path / "jobs" / f"{job_id}.json"
+
+        if not job_file.exists():
+            raise ValueError(f"Batch job {job_id} not found")
+
+        # Load job to get details for confirmation and cleanup
+        with open(job_file, encoding="utf-8") as f:
+            job_data = json.load(f)
+            batch_job = BatchJob.model_validate(job_data)
+
+        # Warn if job is still active
+        active_states = [
+            "pending",
+            "validating",
+            "in_progress",
+            "finalizing",
+            "cancelling",
+        ]
+        if batch_job.status in active_states:
+            console.print(
+                f"[yellow]Warning: Job {job_id} is still active "
+                f"(status: {batch_job.status})[/yellow]"
+            )
+            console.print(
+                "[yellow]Consider cancelling it first before removing.[/yellow]"
+            )
+            if not force:
+                confirmation = (
+                    input("Remove active job anyway? [y/N]: ").strip().lower()
+                )
+                if confirmation not in ["y", "yes"]:
+                    console.print("[yellow]Job removal cancelled[/yellow]")
+                    return False
+            else:
+                console.print(
+                    "[yellow]--force flag used: proceeding with removal "
+                    "of active job[/yellow]"
+                )
+
+        # Ask for confirmation unless force is used
+        if not force:
+            console.print("[yellow]About to remove batch job:[/yellow]")
+            console.print(f"  Job ID: {job_id}")
+            console.print(f"  Processor: {batch_job.processor_type}")
+            console.print(f"  Status: {batch_job.status}")
+            console.print(f"  Created: {batch_job.created_at}")
+
+            confirmation = (
+                input("Are you sure you want to remove this job? [y/N]: ")
+                .strip()
+                .lower()
+            )
+            if confirmation not in ["y", "yes"]:
+                console.print("[yellow]Job removal cancelled[/yellow]")
+                return False
+
+        removed_files = []
+
+        try:
+            # Remove job metadata file
+            job_file.unlink()
+            removed_files.append(str(job_file))
+
+            # Remove input file if it exists
+            if batch_job.input_file_path:
+                input_file = Path(batch_job.input_file_path)
+                if input_file.exists():
+                    input_file.unlink()
+                    removed_files.append(str(input_file))
+
+            # Remove output file if it exists
+            if batch_job.output_file_path:
+                output_file = Path(batch_job.output_file_path)
+                if output_file.exists():
+                    output_file.unlink()
+                    removed_files.append(str(output_file))
+
+            console.print(f"[green]✓ Removed batch job {job_id}[/green]")
+            console.print(f"[green]Removed {len(removed_files)} file(s):[/green]")
+            for file_path in removed_files:
+                console.print(f"  - {file_path}")
+
+            return True
+
+        except Exception as e:
+            console.print(f"[red]Failed to remove job files: {e}[/red]")
+            console.print("[yellow]Some files may have been partially removed[/yellow]")
+            raise
+
     def get_job(self, job_id: str) -> BatchJob:
         """Get batch job by ID.
 

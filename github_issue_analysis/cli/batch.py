@@ -430,10 +430,75 @@ async def _run_batch_list() -> None:
             "  [dim]Collect results:[/dim] "
             "uv run github-analysis batch collect <job-id>"
         )
+        console.print(
+            "  [dim]Cancel job:[/dim] uv run github-analysis batch cancel <job-id>"
+        )
+        console.print(
+            "  [dim]Remove job:[/dim] uv run github-analysis batch remove <job-id>"
+        )
 
     except Exception as e:
         console.print(f"[red]Failed to list jobs: {e}[/red]")
         raise
+
+
+@app.command()
+def cancel(job_id: str = typer.Argument(help="Batch job ID to cancel")) -> None:
+    """Cancel an active batch processing job."""
+    try:
+        asyncio.run(_run_batch_cancel(job_id))
+    except Exception as e:
+        console.print(f"[red]❌ {e}[/red]")
+        raise typer.Exit(1)
+
+
+async def _run_batch_cancel(job_id: str) -> None:
+    """Run batch job cancellation."""
+    batch_manager = BatchManager()
+
+    try:
+        console.print(f"[blue]Cancelling batch job {job_id}...[/blue]")
+
+        batch_job = await batch_manager.cancel_job(job_id)
+
+        console.print("[green]✓ Batch job cancelled successfully![/green]")
+        console.print(f"[blue]Job ID: {batch_job.job_id}[/blue]")
+        console.print(f"[blue]Status: {batch_job.status}[/blue]")
+
+    except ValueError as e:
+        console.print(f"[red]{e}[/red]")
+        raise typer.Exit(1)
+
+
+@app.command()
+def remove(
+    job_id: str = typer.Argument(help="Batch job ID to remove"),
+    force: bool = typer.Option(False, "--force", help="Skip confirmation prompts"),
+) -> None:
+    """Remove a batch job record and associated files."""
+    try:
+        _run_batch_remove(job_id, force)
+    except Exception as e:
+        console.print(f"[red]❌ {e}[/red]")
+        raise typer.Exit(1)
+
+
+def _run_batch_remove(job_id: str, force: bool) -> None:
+    """Run batch job removal."""
+    batch_manager = BatchManager()
+
+    try:
+        console.print(f"[blue]Removing batch job {job_id}...[/blue]")
+
+        removed = batch_manager.remove_job(job_id, force)
+
+        if not removed:
+            # User cancelled the operation
+            raise typer.Exit(0)
+
+    except ValueError as e:
+        console.print(f"[red]{e}[/red]")
+        raise typer.Exit(1)
 
 
 if __name__ == "__main__":
