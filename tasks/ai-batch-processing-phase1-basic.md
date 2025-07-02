@@ -26,8 +26,14 @@ Implement basic OpenAI Batch API integration for cost-effective AI processing. W
 
 ## New Operations
 ```bash
-# Submit batch job from issue files
-uv run github-analysis batch submit product-labeling --files "data/issues/org_repo_*.json"
+# Submit batch job using standard CLI patterns
+uv run github-analysis batch submit product-labeling --org myorg --repo myrepo
+
+# Submit batch job for entire organization
+uv run github-analysis batch submit product-labeling --org myorg
+
+# Submit specific issue to batch processing
+uv run github-analysis batch submit product-labeling --org myorg --repo myrepo --issue-number 123
 
 # Check batch job status
 uv run github-analysis batch status <job-id>
@@ -48,6 +54,31 @@ uv run github-analysis batch list
 
 ## Implementation Details
 
+### CLI Command Design Principles
+
+**Standard Flag Patterns (follow existing commands):**
+- `--org, -o TEXT`: GitHub organization name (required for scoped operations)
+- `--repo, -r TEXT`: GitHub repository name (optional, enables org-wide when omitted)  
+- `--issue-number INTEGER`: Specific issue number for single-issue operations
+- `--model TEXT`: AI model selection (e.g., 'openai:gpt-4o-mini')
+- `--dry-run / --no-dry-run`: Preview mode without execution (default: false)
+
+**Batch Command Implementation:**
+```bash
+# Follow same patterns as collect/process commands
+uv run github-analysis batch submit product-labeling [STANDARD_FLAGS]
+
+# Where STANDARD_FLAGS match existing commands:
+# --org myorg --repo myrepo          # Repository-specific  
+# --org myorg                        # Organization-wide
+# --org myorg --repo myrepo --issue-number 123  # Single issue
+```
+
+**Integration with Storage Manager:**
+- Use existing `StorageManager.find_issues()` method with same filtering
+- Maintain consistency with `collect` and `process` command behavior
+- Leverage existing JSON file discovery and validation logic
+
 ### Batch Manager
 ```python
 class BatchManager:
@@ -55,9 +86,11 @@ class BatchManager:
     
     async def create_batch_job(self, 
                               processor_type: str,
-                              issue_files: List[Path],
+                              org: str,
+                              repo: Optional[str] = None,
+                              issue_number: Optional[int] = None,
                               model_config: AIModelConfig) -> BatchJob:
-        """Create batch job from issue files."""
+        """Create batch job using standard filtering options."""
         
     async def check_job_status(self, job_id: str) -> BatchJobStatus:
         """Check status of batch job."""
@@ -97,8 +130,8 @@ class OpenAIBatchProvider:
 # 1. Ensure existing data is available
 uv run github-analysis status
 
-# 2. Test batch submission
-uv run github-analysis batch submit product-labeling --files "data/issues/test_org_*.json"
+# 2. Test batch submission with standard CLI patterns
+uv run github-analysis batch submit product-labeling --org test-org --repo test-repo
 
 # 3. Check job status
 uv run github-analysis batch status <job-id>
@@ -112,11 +145,11 @@ ls data/results/*_product-labeling.json
 
 ### **Error Handling**
 ```bash
-# 6. Test with invalid files
-uv run github-analysis batch submit product-labeling --files "nonexistent/*.json"
+# 6. Test with nonexistent organization/repository
+uv run github-analysis batch submit product-labeling --org nonexistent-org --repo nonexistent-repo
 
-# 7. Test with malformed JSON
-# Create malformed test file and verify graceful handling
+# 7. Test with no collected issues
+uv run github-analysis batch submit product-labeling --org empty-org --repo empty-repo
 ```
 
 ## Success Criteria
