@@ -5,6 +5,7 @@ from rich.console import Console
 
 from . import batch, process
 from .collect import collect, status
+from .update import update_labels
 
 app = typer.Typer(
     name="github-analysis", help="GitHub issue collection and AI analysis"
@@ -13,6 +14,7 @@ console = Console()
 
 app.command()(collect)
 app.command()(status)
+app.command(name="update-labels")(update_labels)
 app.add_typer(process.app, name="process")
 app.add_typer(batch.app, name="batch")
 
