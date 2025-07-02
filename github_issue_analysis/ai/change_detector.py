@@ -31,6 +31,7 @@ class IssueUpdatePlan:
     overall_confidence: float
     needs_update: bool
     comment_summary: str
+    ai_result: ProductLabelingResponse | None = None
 
 
 class ChangeDetector:
@@ -112,6 +113,7 @@ class ChangeDetector:
             overall_confidence=ai_result.confidence,
             needs_update=needs_update,
             comment_summary=comment_summary,
+            ai_result=ai_result,
         )
 
     def _should_remove_label(

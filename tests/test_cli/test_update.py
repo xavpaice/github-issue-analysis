@@ -183,7 +183,7 @@ class TestUpdateLabelsCommand:
         assert "Issue is about vendor portal" in result.stdout
         assert "functionality" in result.stdout
         assert "**GitHub Comment Preview:**" in result.stdout
-        assert "🤖 **AI Label Update**" in result.stdout
+        assert "**Label Update:" in result.stdout
 
     @patch.dict("os.environ", {"GITHUB_TOKEN": "fake-token"})
     def test_update_labels_force_mode(
