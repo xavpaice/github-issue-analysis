@@ -55,6 +55,7 @@ Thumbs.db
 data/issues/
 data/attachments/
 data/results/
+data/
 trees/
 *.log
 

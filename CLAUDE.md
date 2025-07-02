@@ -7,7 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 **Setup:**
 ```bash
 uv sync --all-extras             # Install all dependencies including dev tools
-cp .env.example .env            # Set up environment (edit with API keys)
+# Set GITHUB_TOKEN and OPENAI_API_KEY environment variables
 ```
 
 **Dependency Management:**
