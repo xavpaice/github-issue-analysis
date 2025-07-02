@@ -14,6 +14,7 @@ from rich.console import Console
 
 from .attachments import AttachmentDownloader
 from .models import GitHubComment, GitHubIssue, GitHubLabel, GitHubUser
+from .search import build_github_query
 
 console = Console()
 
@@ -134,6 +135,10 @@ class GitHubClient:
         labels: list[str] | None = None,
         state: str = "open",
         limit: int = 10,
+        created_after: str | None = None,
+        created_before: str | None = None,
+        updated_after: str | None = None,
+        updated_before: str | None = None,
     ) -> list[GitHubIssue]:
         """Search for issues in a repository.
 
@@ -143,82 +148,26 @@ class GitHubClient:
             labels: List of label names to filter by
             state: Issue state (open, closed, all)
             limit: Maximum number of issues to return
+            created_after: ISO date string to filter issues created after this date
+            created_before: ISO date string to filter issues created before this date
+            updated_after: ISO date string to filter issues updated after this date
+            updated_before: ISO date string to filter issues updated before this date
 
         Returns:
             List of GitHubIssue objects
         """
         self._check_rate_limit()
 
-        # Build search query
-        query_parts = [f"repo:{org}/{repo}", "is:issue"]
-
-        if state != "all":
-            query_parts.append(f"state:{state}")
-
-        if labels:
-            for label in labels:
-                query_parts.append(f"label:{label}")
-
-        query = " ".join(query_parts)
-        console.print(f"Searching with query: {query}")
-
-        try:
-            # Use GitHub search API
-            issues = self.github.search_issues(query)
-
-            # Convert to our models, limiting results
-            result_issues = []
-            for i, github_issue in enumerate(issues):
-                if i >= limit:
-                    break
-
-                try:
-                    result_issues.append(self._convert_issue(github_issue))
-                    console.print(
-                        f"Processed issue #{github_issue.number}: {github_issue.title}"
-                    )
-                except Exception as e:
-                    console.print(f"Error processing issue #{github_issue.number}: {e}")
-                    continue
-
-            return result_issues
-
-        except RateLimitExceededException:
-            console.print("Rate limit exceeded, waiting...")
-            time.sleep(60)
-            return self.search_issues(org, repo, labels, state, limit)
-        except Exception as e:
-            console.print(f"Error searching issues: {e}")
-            raise
-
-    def search_organization_issues(
-        self,
-        org: str,
-        labels: list[str] | None = None,
-        state: str = "open",
-        limit: int = 10,
-        excluded_repos: list[str] | None = None,
-    ) -> list[GitHubIssue]:
-        """Search for issues across all repositories in an organization.
-
-        Args:
-            org: Organization name
-            labels: List of label names to filter by
-            state: Issue state (open, closed, all)
-            limit: Maximum number of issues to return
-            excluded_repos: List of repository names to exclude
-
-        Returns:
-            List of GitHubIssue objects
-        """
-        self._check_rate_limit()
-
-        # Import here to avoid circular import
-        from .search import build_organization_query
-
-        # Build search query for organization-wide search with exclusions
-        query = build_organization_query(
-            org=org, labels=labels, state=state, excluded_repos=excluded_repos
+        # Build search query using the centralized function
+        query = build_github_query(
+            org=org,
+            repo=repo,
+            labels=labels,
+            state=state,
+            created_after=created_after,
+            created_before=created_before,
+            updated_after=updated_after,
+            updated_before=updated_before,
         )
         console.print(f"Searching with query: {query}")
 
@@ -246,7 +195,102 @@ class GitHubClient:
         except RateLimitExceededException:
             console.print("Rate limit exceeded, waiting...")
             time.sleep(60)
-            return self.search_organization_issues(org, labels, state, limit)
+            return self.search_issues(
+                org=org,
+                repo=repo,
+                labels=labels,
+                state=state,
+                limit=limit,
+                created_after=created_after,
+                created_before=created_before,
+                updated_after=updated_after,
+                updated_before=updated_before,
+            )
+        except Exception as e:
+            console.print(f"Error searching issues: {e}")
+            raise
+
+    def search_organization_issues(
+        self,
+        org: str,
+        labels: list[str] | None = None,
+        state: str = "open",
+        limit: int = 10,
+        created_after: str | None = None,
+        created_before: str | None = None,
+        updated_after: str | None = None,
+        updated_before: str | None = None,
+        excluded_repos: list[str] | None = None,
+    ) -> list[GitHubIssue]:
+        """Search for issues across all repositories in an organization.
+
+        Args:
+            org: Organization name
+            labels: List of label names to filter by
+            state: Issue state (open, closed, all)
+            limit: Maximum number of issues to return
+            created_after: ISO date string to filter issues created after this date
+            created_before: ISO date string to filter issues created before this date
+            updated_after: ISO date string to filter issues updated after this date
+            updated_before: ISO date string to filter issues updated before this date
+            excluded_repos: List of repository names to exclude
+
+        Returns:
+            List of GitHubIssue objects
+        """
+        self._check_rate_limit()
+
+        # Import here to avoid circular import
+        from .search import build_organization_query
+
+        # Build search query for organization-wide search with exclusions and dates
+        query = build_organization_query(
+            org=org,
+            labels=labels,
+            state=state,
+            excluded_repos=excluded_repos,
+            created_after=created_after,
+            created_before=created_before,
+            updated_after=updated_after,
+            updated_before=updated_before,
+        )
+        console.print(f"Searching with query: {query}")
+
+        try:
+            # Use GitHub search API
+            issues = self.github.search_issues(query)
+
+            # Convert to our models, limiting results
+            result_issues = []
+            for i, github_issue in enumerate(issues):
+                if i >= limit:
+                    break
+
+                try:
+                    result_issues.append(self._convert_issue(github_issue))
+                    console.print(
+                        f"Processed issue #{github_issue.number}: {github_issue.title}"
+                    )
+                except Exception as e:
+                    console.print(f"Error processing issue #{github_issue.number}: {e}")
+                    continue
+
+            return result_issues
+
+        except RateLimitExceededException:
+            console.print("Rate limit exceeded, waiting...")
+            time.sleep(60)
+            return self.search_organization_issues(
+                org=org,
+                labels=labels,
+                state=state,
+                limit=limit,
+                created_after=created_after,
+                created_before=created_before,
+                updated_after=updated_after,
+                updated_before=updated_before,
+                excluded_repos=excluded_repos,
+            )
         except Exception as e:
             console.print(f"Error searching organization issues: {e}")
             raise

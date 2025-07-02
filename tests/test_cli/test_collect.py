@@ -149,6 +149,10 @@ class TestCollectCommand:
             labels=None,
             state="open",
             limit=10,
+            created_after=None,
+            created_before=None,
+            updated_after=None,
+            updated_before=None,
             excluded_repos=["private-repo"],
         )
 
@@ -207,7 +211,15 @@ class TestCollectCommand:
 
         # Verify search was called without exclusions
         mock_searcher.search_organization_issues.assert_called_once_with(
-            org="testorg", labels=None, state="closed", limit=10, excluded_repos=[]
+            org="testorg",
+            labels=None,
+            state="closed",
+            limit=10,
+            created_after=None,
+            created_before=None,
+            updated_after=None,
+            updated_before=None,
+            excluded_repos=[],
         )
 
     @patch.dict(os.environ, {"GITHUB_TOKEN": "test_token"})
@@ -269,7 +281,15 @@ class TestCollectCommand:
 
         # Verify repository search was called (not organization search)
         mock_searcher.search_repository_issues.assert_called_once_with(
-            org="testorg", repo="test-repo", labels=None, state="closed", limit=10
+            org="testorg",
+            repo="test-repo",
+            labels=None,
+            state="closed",
+            limit=10,
+            created_after=None,
+            created_before=None,
+            updated_after=None,
+            updated_before=None,
         )
 
         # Verify organization search was not called

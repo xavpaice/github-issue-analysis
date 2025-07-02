@@ -9,6 +9,7 @@ from ..github_client.client import GitHubClient
 from ..github_client.models import GitHubIssue
 from ..github_client.search import GitHubSearcher, build_exclusion_list
 from ..storage.manager import StorageManager
+from ..utils.date_parser import format_datetime_for_github, validate_date_parameters
 
 console = Console()
 app = typer.Typer(help="Collect GitHub issues and store them locally")
@@ -46,6 +47,30 @@ def collect(
     max_attachment_size: int = typer.Option(
         10, "--max-attachment-size", help="Maximum attachment size in MB"
     ),
+    # Date filtering options - absolute dates
+    created_after: str | None = typer.Option(
+        None, "--created-after", help="Filter issues created after date (YYYY-MM-DD)"
+    ),
+    created_before: str | None = typer.Option(
+        None, "--created-before", help="Filter issues created before date (YYYY-MM-DD)"
+    ),
+    updated_after: str | None = typer.Option(
+        None, "--updated-after", help="Filter issues updated after date (YYYY-MM-DD)"
+    ),
+    updated_before: str | None = typer.Option(
+        None, "--updated-before", help="Filter issues updated before date (YYYY-MM-DD)"
+    ),
+    # Date filtering options - relative dates (convenience)
+    last_days: int | None = typer.Option(
+        None, "--last-days", help="Filter issues from last N days"
+    ),
+    last_weeks: int | None = typer.Option(
+        None, "--last-weeks", help="Filter issues from last N weeks"
+    ),
+    last_months: int | None = typer.Option(
+        None, "--last-months", help="Filter issues from last N months"
+    ),
+    # Repository exclusion options (for organization-wide searches)
     exclude_repo: list[str] | None = typer.Option(
         None,
         "--exclude-repo",
@@ -67,12 +92,42 @@ def collect(
     - Organization-wide: --org ORGNAME (searches all repos in org)
     - Repository-specific: --org ORGNAME --repo REPONAME (existing behavior)
 
-    Examples:
+    Date filtering examples:
+        # Absolute date ranges
+        github-analysis collect --org myorg --created-after 2024-01-01 \\
+            --created-before 2024-06-30
+        github-analysis collect --org myorg --repo myrepo --updated-after 2024-01-01
+
+        # Relative date filtering (convenience options)
+        github-analysis collect --org myorg --last-months 6
+        github-analysis collect --org myorg --repo myrepo --last-weeks 2
+
+        # Combined with existing filters
+        github-analysis collect --org myorg --repo myrepo --labels bug --last-days 30
+
+    Basic examples:
         github-analysis collect --org replicated-collab --repo pixee-replicated \\
             --issue-number 71
         github-analysis collect --org replicated-collab --limit 20
         github-analysis collect --org microsoft --repo vscode --labels bug --limit 5
     """
+    # Date parameter validation
+    try:
+        created_after_dt, created_before_dt, updated_after_dt, updated_before_dt = (
+            validate_date_parameters(
+                created_after=created_after,
+                created_before=created_before,
+                updated_after=updated_after,
+                updated_before=updated_before,
+                last_days=last_days,
+                last_weeks=last_weeks,
+                last_months=last_months,
+            )
+        )
+    except ValueError as e:
+        console.print(f"❌ Date validation error: {e}")
+        raise typer.Exit(1)
+
     # Parameter validation
     if issue_number is not None:
         # Single issue mode - requires both org and repo
@@ -119,6 +174,24 @@ def collect(
     if collection_mode == "organization" and excluded_repositories:
         params_table.add_row("Excluded Repos", ", ".join(excluded_repositories))
 
+    # Add date filtering parameters if provided
+    if created_after_dt:
+        params_table.add_row("Created After", created_after_dt.strftime("%Y-%m-%d"))
+    if created_before_dt:
+        params_table.add_row("Created Before", created_before_dt.strftime("%Y-%m-%d"))
+    if updated_after_dt:
+        params_table.add_row("Updated After", updated_after_dt.strftime("%Y-%m-%d"))
+    if updated_before_dt:
+        params_table.add_row("Updated Before", updated_before_dt.strftime("%Y-%m-%d"))
+
+    # Show relative date info if used
+    if last_days:
+        params_table.add_row("Time Range", f"Last {last_days} days")
+    elif last_weeks:
+        params_table.add_row("Time Range", f"Last {last_weeks} weeks")
+    elif last_months:
+        params_table.add_row("Time Range", f"Last {last_months} months")
+
     console.print(params_table)
 
     try:
@@ -142,13 +215,57 @@ def collect(
                 labels=labels,
                 state=state,
                 limit=limit,
+                created_after=(
+                    format_datetime_for_github(created_after_dt)
+                    if created_after_dt
+                    else None
+                ),
+                created_before=(
+                    format_datetime_for_github(created_before_dt)
+                    if created_before_dt
+                    else None
+                ),
+                updated_after=(
+                    format_datetime_for_github(updated_after_dt)
+                    if updated_after_dt
+                    else None
+                ),
+                updated_before=(
+                    format_datetime_for_github(updated_before_dt)
+                    if updated_before_dt
+                    else None
+                ),
                 excluded_repos=excluded_repositories,
             )
         else:
             # Repository-specific search
             assert repo is not None  # guaranteed by validation above
             issues = searcher.search_repository_issues(
-                org=org, repo=repo, labels=labels, state=state, limit=limit
+                org=org,
+                repo=repo,
+                labels=labels,
+                state=state,
+                limit=limit,
+                created_after=(
+                    format_datetime_for_github(created_after_dt)
+                    if created_after_dt
+                    else None
+                ),
+                created_before=(
+                    format_datetime_for_github(created_before_dt)
+                    if created_before_dt
+                    else None
+                ),
+                updated_after=(
+                    format_datetime_for_github(updated_after_dt)
+                    if updated_after_dt
+                    else None
+                ),
+                updated_before=(
+                    format_datetime_for_github(updated_before_dt)
+                    if updated_before_dt
+                    else None
+                ),
             )
 
         if not issues:
