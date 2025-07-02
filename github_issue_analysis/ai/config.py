@@ -34,6 +34,7 @@ class AIModelConfig(BaseModel):
     """Enhanced AI model configuration with thinking support."""
 
     model_name: str = Field(description="Model identifier (e.g., 'openai:gpt-4o-mini')")
+    include_images: bool = Field(True, description="Whether to include image analysis")
     thinking: ThinkingConfig | None = Field(
         None, description="Thinking model configuration"
     )
@@ -139,7 +140,10 @@ def build_ai_config(
         )
 
     return AIModelConfig(
-        model_name=final_model, thinking=thinking_config, temperature=final_temperature
+        model_name=final_model,
+        thinking=thinking_config,
+        temperature=final_temperature,
+        include_images=True,
     )
 
 

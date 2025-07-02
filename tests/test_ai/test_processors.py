@@ -212,7 +212,10 @@ class TestPydanticAIIntegration:
             effort="high", budget_tokens=None, summary="detailed"
         )
         ai_config = AIModelConfig(
-            model_name="openai:o1-mini", thinking=thinking_config, temperature=None
+            model_name="openai:o1-mini",
+            thinking=thinking_config,
+            temperature=None,
+            include_images=True,
         )
 
         # Create processor with thinking config
@@ -247,6 +250,7 @@ class TestPydanticAIIntegration:
             model_name="anthropic:claude-3-5-sonnet-latest",
             thinking=thinking_config,
             temperature=0.7,
+            include_images=True,
         )
 
         processor = ProductLabelingProcessor(config=ai_config)
@@ -269,7 +273,10 @@ class TestPydanticAIIntegration:
         mock_agent_class.return_value = mock_agent_instance
 
         ai_config = AIModelConfig(
-            model_name="openai:gpt-4o", thinking=None, temperature=0.5
+            model_name="openai:gpt-4o",
+            thinking=None,
+            temperature=0.5,
+            include_images=True,
         )
 
         processor = ProductLabelingProcessor(config=ai_config)
@@ -352,7 +359,10 @@ class TestPydanticAIIntegration:
             effort="high", budget_tokens=None, summary=None
         )
         ai_config = AIModelConfig(
-            model_name="openai:o1-mini", thinking=thinking_config, temperature=None
+            model_name="openai:o1-mini",
+            thinking=thinking_config,
+            temperature=None,
+            include_images=True,
         )
         processor = ProductLabelingProcessor(config=ai_config)
 
@@ -418,7 +428,10 @@ class TestPydanticAIIntegration:
             effort="medium", budget_tokens=None, summary=None
         )
         ai_config = AIModelConfig(
-            model_name="openai:o1-mini", thinking=thinking_config, temperature=None
+            model_name="openai:o1-mini",
+            thinking=thinking_config,
+            temperature=None,
+            include_images=True,
         )
         processor = ProductLabelingProcessor(config=ai_config)
 
