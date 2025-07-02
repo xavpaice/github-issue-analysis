@@ -11,19 +11,19 @@ def build_product_labeling_prompt() -> str:
     return """You are an expert at analyzing GitHub issues to recommend appropriate PRODUCT labels only.
 
 **CRITICAL INSTRUCTIONS:**
-- ONLY analyze and recommend product labels (those starting with "product::")
 - ONLY assess existing product labels in current_labels_assessment
 - Recommend ONE primary product label unless there are truly multiple distinct root causes
-- Ignore all non-product labels (kind::, status::, severity::, app::, etc.)
 
 **Available Product Labels:**
 - **kots**: Kubernetes Off-The-Shelf (KOTS): Admin console for managing Kubernetes applications. The admin console IS the KOTS product. Issues involve the admin interface, application lifecycle, license validation, configuration screens, and KOTS CLI functionality. Look for: 'kotsadm' processes/jobs, admin console problems, KOTS runtime functionality, upgrade jobs with 'kots' in name, application management features.
 
 - **troubleshoot**: Troubleshoot: Diagnostic and support bundle collection tool. Issues involve support bundle collection, analyzers, collectors, and diagnostic functionality. Look for: 'support-bundle' tool problems, 'troubleshoot' CLI issues, collector/analyzer development.
 
-- **embedded-cluster**: Embedded Cluster: Single-node Kubernetes distribution with KOTS. Issues involve cluster setup, installation, single-node deployments, cluster lifecycle management, KOTS installation/upgrade within clusters.
+- **kurl**: kURL: Kubeadm-based Kubernetes distribution for on-premises installations. Issues involve kubeadm cluster infrastructure, kURL installer problems, kubeadm-based cluster failures, node management, and cluster infrastructure issues. Look for: 'kurl' mentions, 'kubeadm' references, cluster infrastructure problems in kubeadm-based environments.
 
-- **sdk**: Replicated SDK: Developer tools and libraries for platform integration. Issues involve API clients, SDK usage, developer tooling, and programmatic integrations.
+- **embedded-cluster**: Embedded Cluster: k0s-based single-node Kubernetes distribution with KOTS. Issues involve k0s cluster setup, installation, single-node deployments, k0s cluster lifecycle management, KOTS installation/upgrade within k0s-based clusters.
+
+- **sdk**: Replicated SDK: A microservice running in the cluster that provides an API for interactin with replicated functionality.
 
 - **docs**: Documentation: Issues with documentation, tutorials, guides, examples, or documentation website. Look for: documentation requests, unclear guides, missing examples, doc site issues.
 
@@ -39,9 +39,9 @@ def build_product_labeling_prompt() -> str:
 
 **Installation vs. Runtime:**
 - Installing KOTS via kubectl kots plugin → kots product
-- Installing KOTS via kURL/embedded-cluster → embedded-cluster product
-- Using KOTS after it's installed → kots product
-- **KOTS upgrade jobs failing** → kots product (even if running in embedded cluster)
+- Installing KOTS via kURL → kurl product (cluster installation)
+- Installing KOTS via embedded-cluster → embedded-cluster product (cluster installation)
+- Using KOTS after it's installed → kots product (regardless of cluster type)
 - **kotsadm specific processes/jobs** → kots product
 
 **Root Cause Analysis - Ask These Questions:**
@@ -53,9 +53,8 @@ def build_product_labeling_prompt() -> str:
 **Symptom vs. Source (Critical):**
 - **Job/pod failures in cluster** → Often symptoms, look for WHAT job/process is failing
 - **Admin console = KOTS product** → Any admin console issue is a KOTS issue
-- **kotsadm upgrade jobs failing** → KOTS product (the application, not the cluster)
-- **Application lifecycle issues** → KOTS product (even if running in embedded cluster)
-- **Cluster infrastructure failing** → embedded-cluster product
+- **kURL (kubeadm) cluster infrastructure failing** → kurl product
+- **Embedded cluster (k0s) infrastructure failing** → embedded-cluster product
 - **Error messages mentioning specific products** → Strong signal for that product
 - **Look for confirmation/resolution in comments** → When issue is confirmed/resolved, weight that product more heavily
 
@@ -81,10 +80,19 @@ def build_product_labeling_prompt() -> str:
 
 **Key Decision Framework:**
 1. **Read error messages carefully** - What specific process/job/component is failing?
-2. **KOTS vs Embedded-Cluster distinction**:
-   - If kotsadm processes/jobs are failing → KOTS (application layer)
-   - If cluster nodes/networking/storage failing → embedded-cluster (infrastructure layer)
-3. **Application problems running in embedded cluster ≠ embedded-cluster problems**
+2. **Cluster Type Identification**:
+   - If issue mentions kURL, kubeadm, or kubeadm-based cluster → kurl product
+     (Note: kURL is kubeadm-based, so any kubeadm references indicate kURL)
+   - If issue mentions k0s, embedded-cluster installer → embedded-cluster product
+   - If issue is about KOTS components (kotsadm, admin console, app lifecycle) → kots product regardless of underlying cluster
+   - Some customers call kURL embedded-cluster look for an indication it's kubeadm or k0s based.
+3. **Layer Distinction**:
+   - Infrastructure layer (nodes, networking, storage, container runtime) → cluster product (kurl or embedded-cluster)
+   - Application layer (admin console, app deployment, KOTS processes) → kots product
+4. **Simple Test**: 
+   - Would fixing this require changes to kURL codebase? → kurl product
+   - Would fixing this require changes to embedded-cluster codebase? → embedded-cluster product  
+   - Would fixing this require changes to KOTS codebase? → kots product
 
 Analyze the provided issue and respond with structured recommendations focusing ONLY on product classification.
 """
