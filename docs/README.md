@@ -7,13 +7,15 @@ User documentation for the GitHub issue collection and AI analysis tool.
 - [Architecture](architecture.md) - System design and component overview
 - [API Reference](api-reference.md) - CLI commands and usage
 - [Data Schemas](data-schemas.md) - JSON schemas for issues and results
+- [Label Updates Guide](label-updates-guide.md) - Comprehensive guide for automated label updates
 
 ## Quick Start
 
 1. Set up environment: `uv sync --all-extras`
 2. Configure `.env` file with API keys
 3. Collect issues: `uv run github-analysis collect --org myorg --repo myrepo`
-4. Process issues: `uv run github-analysis process product-labeling`
+4. Process issues: `uv run github-analysis process product-labeling --org myorg --repo myrepo`
+5. Update labels: `uv run github-analysis update-labels --org myorg --repo myrepo --dry-run`
 
 ## For AI Agents
 

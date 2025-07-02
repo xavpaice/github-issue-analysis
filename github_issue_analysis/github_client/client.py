@@ -266,3 +266,116 @@ class GitHubClient:
             raise ValueError("GitHub token is required for attachment processing")
         downloader = AttachmentDownloader(self.token)
         return downloader.process_issue_attachments(issue)
+
+    def update_issue_labels(
+        self, org: str, repo: str, issue_number: int, labels: list[str]
+    ) -> bool:
+        """Update issue labels by replacing all current labels.
+
+        Args:
+            org: Organization name
+            repo: Repository name
+            issue_number: Issue number
+            labels: List of label names to set on the issue
+
+        Returns:
+            True if successful, False otherwise
+
+        Raises:
+            ValueError: If repository or issue not found
+            Exception: For other API errors
+        """
+        self._check_rate_limit()
+
+        try:
+            repository = self.get_repository(org, repo)
+            github_issue = repository.get_issue(issue_number)
+
+            # Set new labels (this replaces all existing labels)
+            github_issue.set_labels(*labels)
+
+            console.print(f"Updated labels for issue #{issue_number}: {labels}")
+            return True
+
+        except UnknownObjectException:
+            raise ValueError(f"Issue #{issue_number} not found in {org}/{repo}")
+        except RateLimitExceededException:
+            console.print("Rate limit exceeded during label update, waiting...")
+            time.sleep(60)
+            return self.update_issue_labels(org, repo, issue_number, labels)
+        except Exception as e:
+            console.print(f"Error updating labels for issue #{issue_number}: {e}")
+            raise
+
+    def add_issue_comment(
+        self, org: str, repo: str, issue_number: int, comment: str
+    ) -> bool:
+        """Add a comment to an issue.
+
+        Args:
+            org: Organization name
+            repo: Repository name
+            issue_number: Issue number
+            comment: Comment text to add
+
+        Returns:
+            True if successful, False otherwise
+
+        Raises:
+            ValueError: If repository or issue not found
+            Exception: For other API errors
+        """
+        self._check_rate_limit()
+
+        try:
+            repository = self.get_repository(org, repo)
+            github_issue = repository.get_issue(issue_number)
+
+            # Create the comment
+            github_issue.create_comment(comment)
+
+            console.print(f"Added comment to issue #{issue_number}")
+            return True
+
+        except UnknownObjectException:
+            raise ValueError(f"Issue #{issue_number} not found in {org}/{repo}")
+        except RateLimitExceededException:
+            console.print("Rate limit exceeded during comment creation, waiting...")
+            time.sleep(60)
+            return self.add_issue_comment(org, repo, issue_number, comment)
+        except Exception as e:
+            console.print(f"Error adding comment to issue #{issue_number}: {e}")
+            raise
+
+    def get_issue_labels(self, org: str, repo: str, issue_number: int) -> list[str]:
+        """Get current labels for an issue.
+
+        Args:
+            org: Organization name
+            repo: Repository name
+            issue_number: Issue number
+
+        Returns:
+            List of current label names
+
+        Raises:
+            ValueError: If repository or issue not found
+            Exception: For other API errors
+        """
+        self._check_rate_limit()
+
+        try:
+            repository = self.get_repository(org, repo)
+            github_issue = repository.get_issue(issue_number)
+
+            return [label.name for label in github_issue.labels]
+
+        except UnknownObjectException:
+            raise ValueError(f"Issue #{issue_number} not found in {org}/{repo}")
+        except RateLimitExceededException:
+            console.print("Rate limit exceeded during label fetch, waiting...")
+            time.sleep(60)
+            return self.get_issue_labels(org, repo, issue_number)
+        except Exception as e:
+            console.print(f"Error fetching labels for issue #{issue_number}: {e}")
+            raise

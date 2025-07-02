@@ -1,0 +1,267 @@
+"""CLI commands for updating GitHub issue labels based on AI recommendations."""
+
+import os
+from pathlib import Path
+
+import typer
+from rich.console import Console
+from rich.prompt import Confirm
+
+from ..ai.change_detector import ChangeDetector, IssueUpdatePlan
+from ..ai.comment_generator import CommentGenerator
+from ..github_client.client import GitHubClient
+
+console = Console()
+
+
+def update_labels(
+    org: str | None = typer.Option(
+        None, help="Organization name (required if --repo specified)"
+    ),
+    repo: str | None = typer.Option(None, help="Repository name"),
+    issue_number: int | None = typer.Option(
+        None, help="Specific issue number to update"
+    ),
+    min_confidence: float = typer.Option(
+        0.8, help="Minimum confidence threshold for applying changes"
+    ),
+    dry_run: bool = typer.Option(False, help="Preview changes without applying them"),
+    skip_comments: bool = typer.Option(
+        False, help="Update labels but don't post explanatory comments"
+    ),
+    force: bool = typer.Option(False, help="Apply even low-confidence changes"),
+    max_issues: int | None = typer.Option(
+        None, help="Maximum number of issues to process"
+    ),
+    delay: float = typer.Option(0.0, help="Delay between API calls in seconds"),
+    data_dir: str | None = typer.Option(
+        None, help="Data directory path (defaults to ./data)"
+    ),
+) -> None:
+    """Update GitHub issue labels based on AI recommendations.
+
+    This command analyzes AI recommendations and applies label changes to GitHub issues.
+    It can process a single issue, all issues in a repository, or all issues across
+    an organization (if no repo specified).
+
+    The --dry-run mode shows you exactly what changes will be made, including:
+    - Which labels will be added/removed with confidence scores and reasoning
+    - The exact GitHub comment that will be posted to each issue
+    - Overall confidence assessment for each issue
+
+    Examples:
+        # Preview changes for specific issue (shows exact changes + comments)
+        uv run github-analysis update-labels --org myorg --repo myrepo \
+            --issue-number 123 --dry-run
+
+        # Update all issues for a repository with high confidence
+        uv run github-analysis update-labels --org myorg --repo myrepo \
+            --min-confidence 0.9
+
+        # Update specific issue with custom confidence
+        uv run github-analysis update-labels --org myorg --repo myrepo \
+            --issue-number 123 --min-confidence 0.75
+    """
+    # Validate arguments
+    if repo and not org:
+        console.print("❌ [red]Error: --org is required when --repo is specified[/red]")
+        raise typer.Exit(1)
+
+    if issue_number and not (org and repo):
+        console.print(
+            "❌ [red]Error: --org and --repo are required when "
+            "--issue-number is specified[/red]"
+        )
+        raise typer.Exit(1)
+
+    if not org:
+        console.print("❌ [red]Error: --org is required[/red]")
+        raise typer.Exit(1)
+
+    # Set up paths
+    base_data_dir = Path(data_dir) if data_dir else Path("data")
+    if not base_data_dir.exists():
+        console.print(
+            f"❌ [red]Error: Data directory {base_data_dir} does not exist[/red]"
+        )
+        raise typer.Exit(1)
+
+    # Apply force flag to confidence
+    if force:
+        min_confidence = 0.0
+        console.print(
+            "⚠️  [yellow]Force mode enabled - applying all changes "
+            "regardless of confidence[/yellow]"
+        )
+
+    console.print(
+        f"🔍 [blue]Analyzing label changes with confidence threshold: "
+        f"{min_confidence}[/blue]"
+    )
+
+    try:
+        # Initialize components
+        detector = ChangeDetector(min_confidence=min_confidence)
+        generator = CommentGenerator()
+
+        # Find files to process
+        file_pairs = detector.find_matching_files(
+            base_data_dir, org, repo, issue_number
+        )
+
+        if not file_pairs:
+            console.print(
+                f"❌ [red]No matching issue/result files found for {org}"
+                + (f"/{repo}" if repo else "")
+                + (f" issue #{issue_number}" if issue_number else "")
+                + "[/red]"
+            )
+            raise typer.Exit(1)
+
+        console.print(
+            f"📁 [green]Found {len(file_pairs)} file pair(s) to process[/green]"
+        )
+
+        # Detect changes
+        plans: list[IssueUpdatePlan] = []
+        for issue_file, result_file in file_pairs:
+            plan = detector.load_and_detect_for_file(issue_file, result_file)
+            if plan:
+                plans.append(plan)
+
+        # Apply max_issues limit
+        if max_issues and len(plans) > max_issues:
+            plans = plans[:max_issues]
+            console.print(
+                f"⚠️  [yellow]Limited to {max_issues} issues as requested[/yellow]"
+            )
+
+        if not plans:
+            console.print(
+                "✅ [green]No label changes needed based on current "
+                "confidence threshold[/green]"
+            )
+            return
+
+        # Show dry run summary
+        if dry_run:
+            summary = generator.generate_dry_run_summary(plans)
+            console.print("\n📋 [blue]Planned Changes:[/blue]")
+            console.print(summary)
+            return
+
+        # Confirm before applying changes
+        if not force and len(plans) > 1:
+            summary = generator.generate_dry_run_summary(plans)
+            console.print("\n📋 [blue]Planned Changes:[/blue]")
+            console.print(summary)
+
+            if not Confirm.ask("\nProceed with these changes?"):
+                console.print("❌ [yellow]Operation cancelled by user[/yellow]")
+                return
+
+        # Apply changes
+        successful, failed = _apply_label_changes(
+            plans, generator, skip_comments, delay
+        )
+
+        # Show execution summary
+        summary = generator.generate_execution_summary(successful, failed)
+        console.print("\n📊 [blue]Execution Summary:[/blue]")
+        console.print(summary)
+
+        if failed:
+            raise typer.Exit(1)
+
+    except KeyboardInterrupt:
+        console.print("\n❌ [yellow]Operation cancelled by user[/yellow]")
+        raise typer.Exit(1)
+    except Exception as e:
+        console.print(f"❌ [red]Error: {e}[/red]")
+        raise typer.Exit(1)
+
+
+def _apply_label_changes(
+    plans: list[IssueUpdatePlan],
+    generator: CommentGenerator,
+    skip_comments: bool,
+    delay: float,
+) -> tuple[list[IssueUpdatePlan], list[tuple[IssueUpdatePlan, str]]]:
+    """Apply label changes to GitHub issues.
+
+    Args:
+        plans: List of update plans to execute
+        generator: Comment generator for explanatory comments
+        skip_comments: Whether to skip posting comments
+        delay: Delay between API calls
+
+    Returns:
+        Tuple of (successful_plans, failed_plans_with_errors)
+    """
+    import time
+
+    # Get GitHub token
+    github_token = os.getenv("GITHUB_TOKEN")
+    if not github_token:
+        raise ValueError(
+            "GitHub token required for label updates. "
+            "Set GITHUB_TOKEN environment variable."
+        )
+
+    client = GitHubClient(token=github_token)
+    successful: list[IssueUpdatePlan] = []
+    failed: list[tuple[IssueUpdatePlan, str]] = []
+
+    for i, plan in enumerate(plans):
+        try:
+            console.print(
+                f"🏷️  [blue]Processing issue #{plan.issue_number} "
+                f"({i+1}/{len(plans)})[/blue]"
+            )
+
+            # Calculate new label set
+            current_labels = set(
+                client.get_issue_labels(plan.org, plan.repo, plan.issue_number)
+            )
+            new_labels = current_labels.copy()
+
+            # Apply changes
+            for change in plan.changes:
+                if change.action == "add":
+                    new_labels.add(change.label)
+                elif change.action == "remove":
+                    new_labels.discard(change.label)
+
+            # Update labels if there are actual changes
+            if new_labels != current_labels:
+                client.update_issue_labels(
+                    plan.org, plan.repo, plan.issue_number, list(new_labels)
+                )
+
+                # Add explanatory comment if not skipped
+                if not skip_comments:
+                    comment = generator.generate_update_comment(plan)
+                    if comment:
+                        client.add_issue_comment(
+                            plan.org, plan.repo, plan.issue_number, comment
+                        )
+
+                successful.append(plan)
+                console.print(
+                    f"  ✅ [green]Updated {len(plan.changes)} label(s)[/green]"
+                )
+            else:
+                console.print("  ⚠️  [yellow]No actual changes needed[/yellow]")
+                successful.append(plan)
+
+            # Rate limiting delay
+            if delay > 0 and i < len(plans) - 1:
+                time.sleep(delay)
+
+        except Exception as e:
+            error_msg = str(e)
+            failed.append((plan, error_msg))
+            console.print(f"  ❌ [red]Failed: {error_msg}[/red]")
+            continue
+
+    return successful, failed

@@ -1,0 +1,252 @@
+"""Logic for detecting and planning GitHub issue label changes based on
+AI recommendations."""
+
+import json
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Literal
+
+from ..github_client.models import GitHubIssue, StoredIssue
+from .models import LabelAssessment, ProductLabelingResponse, RecommendedLabel
+
+
+@dataclass
+class LabelChange:
+    """Represents a single label change operation."""
+
+    action: Literal["add", "remove"]
+    label: str
+    reason: str
+    confidence: float
+
+
+@dataclass
+class IssueUpdatePlan:
+    """Complete plan for updating a single issue's labels."""
+
+    org: str
+    repo: str
+    issue_number: int
+    changes: list[LabelChange]
+    overall_confidence: float
+    needs_update: bool
+    comment_summary: str
+
+
+class ChangeDetector:
+    """Detects needed label changes by comparing current labels with
+    AI recommendations."""
+
+    def __init__(self, min_confidence: float = 0.8):
+        """Initialize the change detector.
+
+        Args:
+            min_confidence: Minimum confidence threshold for applying changes
+        """
+        self.min_confidence = min_confidence
+
+    def detect_changes(
+        self,
+        issue: GitHubIssue,
+        ai_result: ProductLabelingResponse,
+        org: str,
+        repo: str,
+    ) -> IssueUpdatePlan:
+        """Detect what label changes are needed for an issue.
+
+        Args:
+            issue: The GitHub issue with current labels
+            ai_result: AI recommendations for the issue
+            org: Organization name
+            repo: Repository name
+
+        Returns:
+            IssueUpdatePlan with all detected changes
+        """
+        current_labels = {label.name for label in issue.labels}
+        changes: list[LabelChange] = []
+
+        # Process recommended additions
+        for recommendation in ai_result.recommended_labels:
+            if recommendation.confidence >= self.min_confidence:
+                if recommendation.label.value not in current_labels:
+                    changes.append(
+                        LabelChange(
+                            action="add",
+                            label=recommendation.label.value,
+                            reason=recommendation.reasoning,
+                            confidence=recommendation.confidence,
+                        )
+                    )
+
+        # Process recommended removals based on assessment
+        for assessment in ai_result.current_labels_assessment:
+            if (
+                not assessment.correct
+                and assessment.label in current_labels
+                and
+                # Only remove if we have high confidence it's wrong
+                self._should_remove_label(assessment, ai_result.recommended_labels)
+            ):
+                changes.append(
+                    LabelChange(
+                        action="remove",
+                        label=assessment.label,
+                        reason=assessment.reasoning,
+                        confidence=self._estimate_removal_confidence(
+                            assessment, ai_result
+                        ),
+                    )
+                )
+
+        needs_update = len(changes) > 0
+        comment_summary = (
+            self._generate_comment_summary(changes, ai_result) if needs_update else ""
+        )
+
+        return IssueUpdatePlan(
+            org=org,
+            repo=repo,
+            issue_number=issue.number,
+            changes=changes,
+            overall_confidence=ai_result.confidence,
+            needs_update=needs_update,
+            comment_summary=comment_summary,
+        )
+
+    def _should_remove_label(
+        self, assessment: LabelAssessment, recommendations: list[RecommendedLabel]
+    ) -> bool:
+        """Determine if a label should be removed based on assessment and
+        recommendations.
+
+        We only remove labels if:
+        1. The assessment says it's incorrect
+        2. No high-confidence recommendation suggests keeping it
+        3. The assessment reasoning is specific enough
+        """
+        # Check if any high-confidence recommendation suggests this label
+        for rec in recommendations:
+            if (
+                rec.label.value == assessment.label
+                and rec.confidence >= self.min_confidence
+            ):
+                return False
+
+        # Only remove if the reasoning is substantial (not just uncertain)
+        return len(assessment.reasoning.strip()) > 20
+
+    def _estimate_removal_confidence(
+        self, assessment: LabelAssessment, ai_result: ProductLabelingResponse
+    ) -> float:
+        """Estimate confidence for removing a label.
+
+        Base it on overall AI confidence but cap it lower since removal
+        is more risky than addition.
+        """
+        base_confidence = ai_result.confidence * 0.8  # Be more conservative
+        return min(base_confidence, 0.9)  # Cap at 0.9 for removals
+
+    def _generate_comment_summary(
+        self, changes: list[LabelChange], ai_result: ProductLabelingResponse
+    ) -> str:
+        """Generate a summary comment explaining the changes."""
+        additions = [c for c in changes if c.action == "add"]
+        removals = [c for c in changes if c.action == "remove"]
+
+        summary_parts = []
+
+        if additions:
+            summary_parts.append(f"Adding {len(additions)} label(s)")
+        if removals:
+            summary_parts.append(f"Removing {len(removals)} label(s)")
+
+        summary = " and ".join(summary_parts)
+
+        # Add brief reasoning
+        if ai_result.summary:
+            summary += f" based on analysis: {ai_result.summary[:100]}..."
+
+        return summary
+
+    def load_and_detect_for_file(
+        self, issue_file: Path, results_file: Path
+    ) -> IssueUpdatePlan | None:
+        """Load issue and AI result files and detect changes.
+
+        Args:
+            issue_file: Path to stored issue JSON file
+            results_file: Path to AI results JSON file
+
+        Returns:
+            IssueUpdatePlan if changes needed, None otherwise
+        """
+        try:
+            # Load issue data
+            with open(issue_file) as f:
+                issue_data = json.load(f)
+            stored_issue = StoredIssue(**issue_data)
+
+            # Load AI results
+            with open(results_file) as f:
+                ai_data = json.load(f)
+            ai_result = ProductLabelingResponse(**ai_data)
+
+            # Detect changes
+            plan = self.detect_changes(
+                stored_issue.issue, ai_result, stored_issue.org, stored_issue.repo
+            )
+
+            return plan if plan.needs_update else None
+
+        except Exception as e:
+            # Log error but don't fail the whole batch
+            print(f"Error processing {issue_file}: {e}")
+            return None
+
+    def find_matching_files(
+        self,
+        data_dir: Path,
+        org: str,
+        repo: str | None,
+        issue_number: int | None = None,
+    ) -> list[tuple[Path, Path]]:
+        """Find matching issue and result files.
+
+        Args:
+            data_dir: Base data directory
+            org: Organization name
+            repo: Repository name
+            issue_number: Specific issue number (optional)
+
+        Returns:
+            List of (issue_file, result_file) tuples
+        """
+        if repo is None:
+            return []
+
+        issues_dir = data_dir / "issues" / org / repo
+        results_dir = data_dir / "results" / org / repo
+
+        if not issues_dir.exists() or not results_dir.exists():
+            return []
+
+        matches = []
+
+        if issue_number:
+            # Single issue
+            issue_file = issues_dir / f"issue-{issue_number}.json"
+            result_file = results_dir / f"issue-{issue_number}-product-labeling.json"
+
+            if issue_file.exists() and result_file.exists():
+                matches.append((issue_file, result_file))
+        else:
+            # All issues in repo
+            for issue_file in issues_dir.glob("issue-*.json"):
+                issue_num = issue_file.stem.split("-")[1]
+                result_file = results_dir / f"issue-{issue_num}-product-labeling.json"
+
+                if result_file.exists():
+                    matches.append((issue_file, result_file))
+
+        return matches

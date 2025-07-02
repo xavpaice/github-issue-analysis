@@ -18,7 +18,16 @@ Collect GitHub issues and analyze them with AI to improve issue labeling and cat
 
 3. **Process with AI**
    ```bash
-   uv run github-analysis process product-labeling
+   uv run github-analysis process product-labeling --org microsoft --repo vscode
+   ```
+
+4. **Update Labels** (with GitHub write token)
+   ```bash
+   # Preview changes first
+   uv run github-analysis update-labels --org microsoft --repo vscode --dry-run
+   
+   # Apply changes
+   uv run github-analysis update-labels --org microsoft --repo vscode
    ```
 
 ## For AI Agents
