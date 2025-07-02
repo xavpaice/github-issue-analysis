@@ -58,9 +58,16 @@ uv run github-analysis status
 # Show version information
 uv run github-analysis version
 
-# AI processing commands
-uv run github-analysis process product-labeling --org myorg --repo myrepo   # Process all issues for repo
-uv run github-analysis process product-labeling --org myorg --repo myrepo --issue-number 123  # Process single issue
+# AI processing commands (BATCH PROCESSING RECOMMENDED)
+# Use batch processing for cost-effective analysis (50% cheaper than individual processing)
+uv run github-analysis batch submit product-labeling --org myorg --repo myrepo   # Batch process all issues for repo
+uv run github-analysis batch submit product-labeling --org myorg               # Batch process all org issues
+uv run github-analysis batch status <job-id>                                   # Check batch job progress
+uv run github-analysis batch collect <job-id>                                  # Collect completed results
+uv run github-analysis batch list                                              # List all batch jobs
+
+# Individual processing (use only for single issues or testing)
+uv run github-analysis process product-labeling --org myorg --repo myrepo --issue-number 123  # Single issue only
 ```
 
 ## Architecture
@@ -74,7 +81,9 @@ This is a Python CLI tool for GitHub issue collection and AI-powered analysis us
 - **Storage** (`storage/`): JSON-based data persistence
 
 ### Data Flow
-GitHub API → Issue Collection → JSON Storage (`data/issues/`) → AI Processing → Results (`data/results/`)
+GitHub API → Issue Collection → JSON Storage (`data/issues/`) → **Batch AI Processing** → Results (`data/results/`)
+
+**IMPORTANT**: Always use batch processing for multiple issues - it's 50% cheaper and processes in parallel.
 
 ### Reference Documentation
 When implementing features, consult these docs for detailed specifications:
