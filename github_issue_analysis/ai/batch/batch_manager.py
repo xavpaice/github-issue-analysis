@@ -12,7 +12,6 @@ from ..config import AIModelConfig
 from .models import (
     BatchJob,
     BatchJobError,
-    BatchJobStatus,
     BatchJobSummary,
     BatchResult,
 )
@@ -181,7 +180,7 @@ class BatchManager:
 
             openai_batch_id = await provider.submit_batch(input_file_id)
             batch_job.openai_batch_id = openai_batch_id
-            batch_job.status = BatchJobStatus.VALIDATING
+            batch_job.status = "validating"
             batch_job.submitted_at = datetime.utcnow()
 
             # Update job file
@@ -191,7 +190,7 @@ class BatchManager:
             console.print(f"Submitted to OpenAI: {openai_batch_id}")
 
         except Exception as e:
-            batch_job.status = BatchJobStatus.FAILED
+            batch_job.status = "failed"
             batch_job.errors = [
                 BatchJobError(
                     custom_id="job_submission",
@@ -238,25 +237,23 @@ class BatchManager:
 
             status_data = await provider.get_batch_status(batch_job.openai_batch_id)
 
-            # Update job status based on OpenAI response
+            # Store OpenAI's actual status string (no mapping needed)
             openai_status = status_data["status"]
+            batch_job.status = openai_status
 
-            if openai_status == "validating":
-                batch_job.status = BatchJobStatus.VALIDATING
-            elif openai_status == "in_progress":
-                batch_job.status = BatchJobStatus.RUNNING
-            elif openai_status == "completed":
-                batch_job.status = BatchJobStatus.COMPLETED
+            # Set completion time and output file when completed
+            if openai_status == "completed":
                 batch_job.completed_at = datetime.utcnow()
                 batch_job.output_file_id = status_data.get("output_file_id")
 
-                # Update counts from OpenAI response
+            # Update counts from OpenAI response for all active statuses
+            if openai_status in ["in_progress", "finalizing", "completed"]:
                 request_counts = status_data.get("request_counts", {})
                 batch_job.processed_items = request_counts.get("completed", 0)
                 batch_job.failed_items = request_counts.get("failed", 0)
 
-            elif openai_status == "failed":
-                batch_job.status = BatchJobStatus.FAILED
+            # Handle failed status
+            if openai_status == "failed":
                 # Add error information if available
                 if "errors" in status_data:
                     for error in status_data["errors"]:
@@ -270,7 +267,7 @@ class BatchManager:
                             )
                         )
             elif openai_status == "cancelled":
-                batch_job.status = BatchJobStatus.CANCELLED
+                batch_job.status = "cancelled"
 
             # Save updated job state
             with open(job_file, "w", encoding="utf-8") as f:
@@ -295,7 +292,7 @@ class BatchManager:
         # Check job status first
         batch_job = await self.check_job_status(job_id)
 
-        if batch_job.status != BatchJobStatus.COMPLETED:
+        if batch_job.status != "completed":
             raise ValueError(
                 f"Job {job_id} is not completed (status: {batch_job.status})"
             )
@@ -452,11 +449,11 @@ class BatchManager:
             errors=errors,
         )
 
-    def list_jobs(self) -> list[BatchJobSummary]:
-        """List all batch jobs.
+    async def list_jobs(self) -> list[BatchJobSummary]:
+        """List all batch jobs with real-time status updates.
 
         Returns:
-            List of batch job summaries
+            List of batch job summaries with current progress
         """
         jobs_dir = self.base_path / "jobs"
         job_files = list(jobs_dir.glob("*.json"))
@@ -468,20 +465,29 @@ class BatchManager:
                     job_data = json.load(f)
                     batch_job = BatchJob.model_validate(job_data)
 
-                    summaries.append(
-                        BatchJobSummary(
-                            job_id=batch_job.job_id,
-                            processor_type=batch_job.processor_type,
-                            org=batch_job.org,
-                            repo=batch_job.repo,
-                            issue_number=batch_job.issue_number,
-                            status=batch_job.status,
-                            created_at=batch_job.created_at,
-                            total_items=batch_job.total_items,
-                            processed_items=batch_job.processed_items,
-                            failed_items=batch_job.failed_items,
+                # Auto-refresh status for active jobs to show real-time progress
+                if batch_job.status in ["validating", "in_progress", "finalizing"]:
+                    try:
+                        batch_job = await self.check_job_status(batch_job.job_id)
+                    except Exception as e:
+                        console.print(
+                            f"[yellow]Warning: Failed to refresh status for {batch_job.job_id}: {e}[/yellow]"
                         )
+
+                summaries.append(
+                    BatchJobSummary(
+                        job_id=batch_job.job_id,
+                        processor_type=batch_job.processor_type,
+                        org=batch_job.org,
+                        repo=batch_job.repo,
+                        issue_number=batch_job.issue_number,
+                        status=batch_job.status,
+                        created_at=batch_job.created_at,
+                        total_items=batch_job.total_items,
+                        processed_items=batch_job.processed_items,
+                        failed_items=batch_job.failed_items,
                     )
+                )
             except Exception as e:
                 console.print(
                     f"[yellow]Warning: Failed to load job {job_file}: {e}[/yellow]"

@@ -177,7 +177,7 @@ async def _run_batch_submit(
         console.print("[green]✓ Batch job submitted successfully![/green]")
         console.print(f"[green]Job ID: {batch_job.job_id}[/green]")
         console.print(f"[green]OpenAI Batch ID: {batch_job.openai_batch_id}[/green]")
-        console.print(f"[blue]Status: {batch_job.status.value}[/blue]")
+        console.print(f"[blue]Status: {batch_job.status}[/blue]")
         console.print()
         console.print("[yellow]Check job status with:[/yellow]")
         console.print(f"  uv run github-analysis batch status {batch_job.job_id}")
@@ -238,14 +238,15 @@ async def _run_batch_status(job_id: str) -> None:
         status_color = {
             "pending": "yellow",
             "validating": "blue",
-            "running": "blue",
+            "in_progress": "blue",
+            "finalizing": "blue",
             "completed": "green",
             "failed": "red",
             "cancelled": "yellow",
-        }.get(batch_job.status.value, "white")
+        }.get(batch_job.status, "white")
 
         console.print(
-            f"Status: [{status_color}]{batch_job.status.value.upper()}[/{status_color}]"
+            f"Status: [{status_color}]{batch_job.status.upper()}[/{status_color}]"
         )
 
         # Progress information
@@ -274,12 +275,12 @@ async def _run_batch_status(job_id: str) -> None:
                 console.print(f"  ... and {len(batch_job.errors) - 5} more errors")
 
         # Next steps
-        if batch_job.status.value == "completed":
+        if batch_job.status == "completed":
             console.print("\n[green]✓ Job completed! Collect results with:[/green]")
             console.print(f"  uv run github-analysis batch collect {job_id}")
-        elif batch_job.status.value in ["pending", "validating", "running"]:
+        elif batch_job.status in ["pending", "validating", "in_progress", "finalizing"]:
             console.print("\n[blue]Job is still processing. Check again later.[/blue]")
-        elif batch_job.status.value == "failed":
+        elif batch_job.status == "failed":
             console.print(
                 "\n[red]Job failed. Check the errors above for details.[/red]"
             )
@@ -352,18 +353,18 @@ async def _run_batch_collect(job_id: str) -> None:
 def list_jobs() -> None:
     """List all batch processing jobs."""
     try:
-        _run_batch_list()
+        asyncio.run(_run_batch_list())
     except Exception as e:
         console.print(f"[red]❌ {e}[/red]")
         raise typer.Exit(1)
 
 
-def _run_batch_list() -> None:
+async def _run_batch_list() -> None:
     """Run batch job listing."""
     batch_manager = BatchManager()
 
     try:
-        jobs = batch_manager.list_jobs()
+        jobs = await batch_manager.list_jobs()
 
         if not jobs:
             console.print("[yellow]No batch jobs found.[/yellow]")
@@ -395,12 +396,13 @@ def _run_batch_list() -> None:
             status_map = {
                 "pending": "[yellow]PENDING[/yellow]",
                 "validating": "[blue]VALIDATING[/blue]",
-                "running": "[blue]RUNNING[/blue]",
+                "in_progress": "[blue]RUNNING[/blue]",
+                "finalizing": "[blue]FINALIZING[/blue]",
                 "completed": "[green]COMPLETED[/green]",
                 "failed": "[red]FAILED[/red]",
                 "cancelled": "[yellow]CANCELLED[/yellow]",
             }
-            status_display = status_map.get(job.status.value, job.status.value.upper())
+            status_display = status_map.get(job.status, job.status.upper())
 
             # Format created time
             created_display = job.created_at.strftime("%m/%d %H:%M")
