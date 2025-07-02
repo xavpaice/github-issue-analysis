@@ -82,23 +82,23 @@ Agents testing the CLI are getting confused about how to activate thinking with 
 ## Acceptance Criteria
 
 ### Functional Requirements
-- [ ] All hardcoded model references removed from error messages and help text
-- [ ] Dynamic capability detection determines thinking support at runtime
-- [ ] Error messages show compatible flags for the current model selection
-- [ ] Batch processing errors provide contextual guidance based on model capabilities
-- [ ] All tests validate dynamic capability detection instead of hardcoded models
+- [x] All hardcoded model references removed from error messages and help text
+- [x] Dynamic capability detection determines thinking support at runtime
+- [x] Error messages show compatible flags for the current model selection
+- [x] Batch processing errors provide contextual guidance based on model capabilities
+- [x] All tests validate dynamic capability detection instead of hardcoded models
 
 ### User Experience Requirements  
-- [ ] Users get contextual feedback about flag compatibility with their chosen model
-- [ ] Error messages provide actionable guidance without suggesting specific models
-- [ ] Clear distinction between thinking-effort vs thinking-budget based on provider detection
-- [ ] Documentation explains the dynamic capability system rather than static model lists
+- [x] Users get contextual feedback about flag compatibility with their chosen model
+- [x] Error messages provide actionable guidance without suggesting specific models
+- [x] Clear distinction between thinking-effort vs thinking-budget based on provider detection
+- [x] Documentation explains the dynamic capability system rather than static model lists
 
 ### Technical Requirements
-- [ ] All tests pass after model updates
-- [ ] Type checking passes (mypy)
-- [ ] Code formatting passes (ruff, black)
-- [ ] No breaking changes to existing functionality
+- [x] All tests pass after model updates
+- [x] Type checking passes (mypy)
+- [x] Code formatting passes (ruff, black)
+- [x] No breaking changes to existing functionality
 
 ## Implementation Guidelines
 
@@ -190,7 +190,7 @@ Compatible flags for this model: --thinking-budget (Anthropic reasoning control)
 
 ## Status
 
-- [ ] **Task Status**: Not Started
+- [x] **Task Status**: Complete
 - [ ] **Assignee**: TBD
 - [ ] **Priority**: High (affects agent testing experience)
 - [ ] **Estimated Effort**: 2-3 hours

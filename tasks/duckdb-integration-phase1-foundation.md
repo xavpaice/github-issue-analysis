@@ -1,6 +1,6 @@
 # Task: DuckDB Integration - Phase 1: Database Foundation + Query Interface
 
-**Status:** ready  
+**Status:** not started  
 **Priority:** high  
 **Estimated Time:** 4-5 hours
 

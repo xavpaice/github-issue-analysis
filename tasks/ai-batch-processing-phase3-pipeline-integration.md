@@ -1,6 +1,6 @@
 # Task: AI Batch Processing - Phase 3: Pipeline Batch Mode Integration
 
-**Status:** ready  
+**Status:** not started  
 **Priority:** medium  
 **Estimated Time:** 2-3 hours  
 **Dependencies:** DuckDB Phase 2 (AI processing integration with pipeline)

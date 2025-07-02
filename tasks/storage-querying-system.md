@@ -1,6 +1,6 @@
 # Task: Storage and Querying System
 
-**Status:** ready
+**Status:** not started
 
 **Description:**
 Enhance storage capabilities with filtering, querying, and data management utilities. Add CLI commands to list, filter, and manage collected issues and results.
