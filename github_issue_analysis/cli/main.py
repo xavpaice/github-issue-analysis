@@ -3,7 +3,7 @@
 import typer
 from rich.console import Console
 
-from . import process
+from . import batch, process
 from .collect import collect, status
 
 app = typer.Typer(
@@ -14,6 +14,7 @@ console = Console()
 app.command()(collect)
 app.command()(status)
 app.add_typer(process.app, name="process")
+app.add_typer(batch.app, name="batch")
 
 
 @app.command()

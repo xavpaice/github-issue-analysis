@@ -144,7 +144,10 @@ class TestAIModelConfig:
     def test_ai_model_config_without_thinking(self) -> None:
         """Test AIModelConfig without thinking configuration."""
         config = AIModelConfig(
-            model_name="openai:gpt-4o", thinking=None, temperature=None
+            model_name="openai:gpt-4o",
+            thinking=None,
+            temperature=None,
+            include_images=True,
         )
         assert config.model_name == "openai:gpt-4o"
         assert config.thinking is None
@@ -153,7 +156,10 @@ class TestAIModelConfig:
         """Test AIModelConfig with valid thinking configuration."""
         thinking = ThinkingConfig(effort="high", budget_tokens=None, summary=None)
         config = AIModelConfig(
-            model_name="openai:o1-mini", thinking=thinking, temperature=None
+            model_name="openai:o1-mini",
+            thinking=thinking,
+            temperature=None,
+            include_images=True,
         )
         assert config.model_name == "openai:o1-mini"
         assert config.thinking is not None
@@ -167,6 +173,7 @@ class TestAIModelConfig:
                 model_name="anthropic:claude-3-5-sonnet-latest",
                 thinking=thinking,
                 temperature=None,
+                include_images=True,
             )
 
 
@@ -229,7 +236,10 @@ class TestProviderSpecificSettings:
         """Test OpenAI provider-specific settings."""
         thinking = ThinkingConfig(effort="high", budget_tokens=None, summary="detailed")
         config = AIModelConfig(
-            model_name="openai:o1-mini", thinking=thinking, temperature=0.7
+            model_name="openai:o1-mini",
+            thinking=thinking,
+            temperature=0.7,
+            include_images=True,
         )
         settings = build_provider_specific_settings(config)
 
@@ -244,6 +254,7 @@ class TestProviderSpecificSettings:
             model_name="anthropic:claude-3-5-sonnet-latest",
             thinking=thinking,
             temperature=0.5,
+            include_images=True,
         )
         settings = build_provider_specific_settings(config)
 
@@ -258,6 +269,7 @@ class TestProviderSpecificSettings:
             model_name="google:gemini-2.0-flash",
             thinking=thinking,
             temperature=None,
+            include_images=True,
         )
         settings = build_provider_specific_settings(config)
 
@@ -266,7 +278,10 @@ class TestProviderSpecificSettings:
     def test_no_thinking_settings(self) -> None:
         """Test settings without thinking configuration."""
         config = AIModelConfig(
-            model_name="openai:gpt-4o", thinking=None, temperature=0.8
+            model_name="openai:gpt-4o",
+            thinking=None,
+            temperature=0.8,
+            include_images=True,
         )
         settings = build_provider_specific_settings(config)
 
@@ -277,7 +292,10 @@ class TestProviderSpecificSettings:
     def test_unknown_provider_settings(self) -> None:
         """Test settings for unknown provider."""
         config = AIModelConfig(
-            model_name="unknown:model", thinking=None, temperature=0.3
+            model_name="unknown:model",
+            thinking=None,
+            temperature=0.3,
+            include_images=True,
         )
         settings = build_provider_specific_settings(config)
 
