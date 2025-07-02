@@ -93,6 +93,34 @@ List all batch processing jobs.
 uv run github-analysis batch list
 ```
 
+#### cancel
+Cancel an active batch processing job.
+
+```bash
+uv run github-analysis batch cancel <job-id>
+```
+
+**Notes:**
+- Only jobs in states `pending`, `validating`, `in_progress`, or `finalizing` can be cancelled
+- Already completed, failed, or cancelled jobs will show their current status without error
+- Cancelling a job prevents further API charges for that batch
+
+#### remove
+Remove a batch job record and associated files.
+
+```bash
+uv run github-analysis batch remove <job-id>
+uv run github-analysis batch remove <job-id> --force
+```
+
+**Options:**
+- `--force`: Skip confirmation prompts
+
+**Notes:**
+- Removes job metadata file and associated input/output files
+- Warns if job is still active and requires confirmation (or `--force` flag)
+- Cannot be undone - use with caution
+
 **Typical Batch Workflow:**
 ```bash
 # 1. Collect issues

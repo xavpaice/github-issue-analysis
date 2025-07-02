@@ -460,6 +460,34 @@ Recommend the most appropriate product label(s) based on the issue content.
             console.print(f"Downloaded results: {output_path}")
             return output_path
 
+    async def cancel_batch(self, batch_id: str) -> dict[str, Any]:
+        """Cancel a batch job via OpenAI API.
+
+        Args:
+            batch_id: OpenAI batch ID to cancel
+
+        Returns:
+            Updated batch status information
+
+        Raises:
+            Exception: If cancellation fails
+        """
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                f"{self.base_url}/batches/{batch_id}/cancel",
+                headers=self.headers,
+                timeout=30.0,
+            )
+
+            if response.status_code != 200:
+                raise Exception(
+                    f"Batch cancellation failed: {response.status_code} {response.text}"
+                )
+
+            result = response.json()
+            console.print(f"Cancelled batch: {result['id']}")
+            return dict(result)
+
     def parse_batch_results(self, results_file: Path) -> list[dict[str, Any]]:
         """Parse batch results JSONL file.
 

@@ -1,6 +1,7 @@
 """Tests for batch processing functionality."""
 
 import json
+import os
 import uuid
 from datetime import datetime
 from pathlib import Path
@@ -865,3 +866,420 @@ class TestBatchModels:
         assert result.failed_items == 2
         assert result.cost_estimate is None
         assert result.processing_time is None
+
+
+class TestBatchCancelRemove:
+    """Test cancel and remove functionality."""
+
+    @pytest.mark.asyncio
+    async def test_cancel_job_success(
+        self, temp_batch_dir: Path, ai_model_config: AIModelConfig
+    ) -> None:
+        """Test successful job cancellation."""
+        manager = BatchManager(str(temp_batch_dir))
+        job_id = str(uuid.uuid4())
+
+        # Create a job in cancelable state
+        batch_job = BatchJob(
+            job_id=job_id,
+            processor_type="product-labeling",
+            org="test-org",
+            repo="test-repo",
+            issue_number=None,
+            ai_model_config=ai_model_config.model_dump(),
+            total_items=5,
+            openai_batch_id="batch_123",
+            input_file_id=None,
+            output_file_id=None,
+            submitted_at=None,
+            completed_at=None,
+            processed_items=0,
+            failed_items=0,
+            input_file_path=None,
+            output_file_path=None,
+            status="in_progress",
+        )
+
+        # Create job file
+        job_file = temp_batch_dir / "jobs" / f"{job_id}.json"
+        with open(job_file, "w") as f:
+            json.dump(batch_job.model_dump(), f, default=str)
+
+        # Mock OpenAI provider
+        with patch(
+            "github_issue_analysis.ai.batch.batch_manager.OpenAIBatchProvider"
+        ) as mock_provider_class:
+            mock_provider = AsyncMock()
+            mock_provider_class.return_value = mock_provider
+            mock_provider.cancel_batch.return_value = {
+                "id": "batch_123",
+                "status": "cancelled",
+            }
+
+            result = await manager.cancel_job(job_id)
+
+            assert result.status == "cancelled"
+            mock_provider.cancel_batch.assert_called_once_with("batch_123")
+
+            # Verify job file was updated
+            with open(job_file) as f:
+                updated_job = json.load(f)
+                assert updated_job["status"] == "cancelled"
+
+    @pytest.mark.asyncio
+    async def test_cancel_job_already_cancelled(
+        self, temp_batch_dir: Path, ai_model_config: AIModelConfig
+    ) -> None:
+        """Test cancelling an already cancelled job."""
+        manager = BatchManager(str(temp_batch_dir))
+        job_id = str(uuid.uuid4())
+
+        # Create a job already cancelled
+        batch_job = BatchJob(
+            job_id=job_id,
+            processor_type="product-labeling",
+            org="test-org",
+            repo="test-repo",
+            issue_number=None,
+            ai_model_config=ai_model_config.model_dump(),
+            total_items=5,
+            openai_batch_id="batch_123",
+            input_file_id=None,
+            output_file_id=None,
+            submitted_at=None,
+            completed_at=None,
+            processed_items=0,
+            failed_items=0,
+            input_file_path=None,
+            output_file_path=None,
+            status="cancelled",
+        )
+
+        # Create job file
+        job_file = temp_batch_dir / "jobs" / f"{job_id}.json"
+        with open(job_file, "w") as f:
+            json.dump(batch_job.model_dump(), f, default=str)
+
+        result = await manager.cancel_job(job_id)
+        assert result.status == "cancelled"
+
+    @pytest.mark.asyncio
+    async def test_cancel_job_completed(
+        self, temp_batch_dir: Path, ai_model_config: AIModelConfig
+    ) -> None:
+        """Test cancelling a completed job."""
+        manager = BatchManager(str(temp_batch_dir))
+        job_id = str(uuid.uuid4())
+
+        # Create a completed job
+        batch_job = BatchJob(
+            job_id=job_id,
+            processor_type="product-labeling",
+            org="test-org",
+            repo="test-repo",
+            issue_number=None,
+            ai_model_config=ai_model_config.model_dump(),
+            total_items=5,
+            openai_batch_id="batch_123",
+            input_file_id=None,
+            output_file_id=None,
+            submitted_at=None,
+            completed_at=None,
+            processed_items=0,
+            failed_items=0,
+            input_file_path=None,
+            output_file_path=None,
+            status="completed",
+        )
+
+        # Create job file
+        job_file = temp_batch_dir / "jobs" / f"{job_id}.json"
+        with open(job_file, "w") as f:
+            json.dump(batch_job.model_dump(), f, default=str)
+
+        result = await manager.cancel_job(job_id)
+        assert result.status == "completed"
+
+    @pytest.mark.asyncio
+    async def test_cancel_job_not_found(self, temp_batch_dir: Path) -> None:
+        """Test cancelling a non-existent job."""
+        manager = BatchManager(str(temp_batch_dir))
+        job_id = str(uuid.uuid4())
+
+        with pytest.raises(ValueError, match="Batch job .* not found"):
+            await manager.cancel_job(job_id)
+
+    @pytest.mark.asyncio
+    async def test_cancel_job_no_openai_batch_id(
+        self, temp_batch_dir: Path, ai_model_config: AIModelConfig
+    ) -> None:
+        """Test cancelling a job without OpenAI batch ID."""
+        manager = BatchManager(str(temp_batch_dir))
+        job_id = str(uuid.uuid4())
+
+        # Create a job without OpenAI batch ID
+        batch_job = BatchJob(
+            job_id=job_id,
+            processor_type="product-labeling",
+            org="test-org",
+            repo="test-repo",
+            issue_number=None,
+            ai_model_config=ai_model_config.model_dump(),
+            total_items=5,
+            openai_batch_id=None,
+            input_file_id=None,
+            output_file_id=None,
+            submitted_at=None,
+            completed_at=None,
+            processed_items=0,
+            failed_items=0,
+            input_file_path=None,
+            output_file_path=None,
+            status="pending",
+        )
+
+        # Create job file
+        job_file = temp_batch_dir / "jobs" / f"{job_id}.json"
+        with open(job_file, "w") as f:
+            json.dump(batch_job.model_dump(), f, default=str)
+
+        with pytest.raises(ValueError, match="has no OpenAI batch ID to cancel"):
+            await manager.cancel_job(job_id)
+
+    def test_remove_job_success_with_force(
+        self, temp_batch_dir: Path, ai_model_config: AIModelConfig
+    ) -> None:
+        """Test successful job removal with force flag."""
+        manager = BatchManager(str(temp_batch_dir))
+        job_id = str(uuid.uuid4())
+
+        # Create a completed job
+        batch_job = BatchJob(
+            job_id=job_id,
+            processor_type="product-labeling",
+            org="test-org",
+            repo="test-repo",
+            issue_number=None,
+            ai_model_config=ai_model_config.model_dump(),
+            total_items=5,
+            openai_batch_id=None,
+            input_file_id=None,
+            output_file_id=None,
+            submitted_at=None,
+            completed_at=None,
+            processed_items=0,
+            failed_items=0,
+            input_file_path=None,
+            output_file_path=None,
+            status="completed",
+        )
+
+        # Create job file
+        job_file = temp_batch_dir / "jobs" / f"{job_id}.json"
+        with open(job_file, "w") as f:
+            json.dump(batch_job.model_dump(), f, default=str)
+
+        # Create input and output files
+        input_file = temp_batch_dir / "input" / f"{job_id}.jsonl"
+        output_file = temp_batch_dir / "output" / f"{job_id}_results.jsonl"
+        input_file.write_text("test input")
+        output_file.write_text("test output")
+
+        # Update job with file paths
+        batch_job.input_file_path = str(input_file)
+        batch_job.output_file_path = str(output_file)
+        with open(job_file, "w") as f:
+            json.dump(batch_job.model_dump(), f, default=str)
+
+        result = manager.remove_job(job_id, force=True)
+
+        assert result is True
+        assert not job_file.exists()
+        assert not input_file.exists()
+        assert not output_file.exists()
+
+    def test_remove_job_not_found(self, temp_batch_dir: Path) -> None:
+        """Test removing a non-existent job."""
+        manager = BatchManager(str(temp_batch_dir))
+        job_id = str(uuid.uuid4())
+
+        with pytest.raises(ValueError, match="Batch job .* not found"):
+            manager.remove_job(job_id, force=True)
+
+    @patch("builtins.input", return_value="n")
+    def test_remove_job_user_cancels(
+        self,
+        mock_input: MagicMock,
+        temp_batch_dir: Path,
+        ai_model_config: AIModelConfig,
+    ) -> None:
+        """Test user cancelling job removal."""
+        manager = BatchManager(str(temp_batch_dir))
+        job_id = str(uuid.uuid4())
+
+        # Create a completed job
+        batch_job = BatchJob(
+            job_id=job_id,
+            processor_type="product-labeling",
+            org="test-org",
+            repo="test-repo",
+            issue_number=None,
+            ai_model_config=ai_model_config.model_dump(),
+            total_items=5,
+            openai_batch_id=None,
+            input_file_id=None,
+            output_file_id=None,
+            submitted_at=None,
+            completed_at=None,
+            processed_items=0,
+            failed_items=0,
+            input_file_path=None,
+            output_file_path=None,
+            status="completed",
+        )
+
+        # Create job file
+        job_file = temp_batch_dir / "jobs" / f"{job_id}.json"
+        with open(job_file, "w") as f:
+            json.dump(batch_job.model_dump(), f, default=str)
+
+        result = manager.remove_job(job_id, force=False)
+
+        assert result is False
+        assert job_file.exists()  # File should still exist
+
+    @patch("builtins.input", return_value="y")
+    def test_remove_job_user_confirms(
+        self,
+        mock_input: MagicMock,
+        temp_batch_dir: Path,
+        ai_model_config: AIModelConfig,
+    ) -> None:
+        """Test user confirming job removal."""
+        manager = BatchManager(str(temp_batch_dir))
+        job_id = str(uuid.uuid4())
+
+        # Create a completed job
+        batch_job = BatchJob(
+            job_id=job_id,
+            processor_type="product-labeling",
+            org="test-org",
+            repo="test-repo",
+            issue_number=None,
+            ai_model_config=ai_model_config.model_dump(),
+            total_items=5,
+            openai_batch_id=None,
+            input_file_id=None,
+            output_file_id=None,
+            submitted_at=None,
+            completed_at=None,
+            processed_items=0,
+            failed_items=0,
+            input_file_path=None,
+            output_file_path=None,
+            status="completed",
+        )
+
+        # Create job file
+        job_file = temp_batch_dir / "jobs" / f"{job_id}.json"
+        with open(job_file, "w") as f:
+            json.dump(batch_job.model_dump(), f, default=str)
+
+        result = manager.remove_job(job_id, force=False)
+
+        assert result is True
+        assert not job_file.exists()
+
+    @patch("builtins.input", side_effect=["n", "y"])
+    def test_remove_active_job_with_confirmation(
+        self,
+        mock_input: MagicMock,
+        temp_batch_dir: Path,
+        ai_model_config: AIModelConfig,
+    ) -> None:
+        """Test removing active job with multiple confirmation prompts."""
+        manager = BatchManager(str(temp_batch_dir))
+        job_id = str(uuid.uuid4())
+
+        # Create an active job
+        batch_job = BatchJob(
+            job_id=job_id,
+            processor_type="product-labeling",
+            org="test-org",
+            repo="test-repo",
+            issue_number=None,
+            ai_model_config=ai_model_config.model_dump(),
+            total_items=5,
+            openai_batch_id=None,
+            input_file_id=None,
+            output_file_id=None,
+            submitted_at=None,
+            completed_at=None,
+            processed_items=0,
+            failed_items=0,
+            input_file_path=None,
+            output_file_path=None,
+            status="in_progress",
+        )
+
+        # Create job file
+        job_file = temp_batch_dir / "jobs" / f"{job_id}.json"
+        with open(job_file, "w") as f:
+            json.dump(batch_job.model_dump(), f, default=str)
+
+        result = manager.remove_job(job_id, force=False)
+
+        assert result is False
+        # Should still exist since user said "n" to first prompt
+        assert job_file.exists()
+
+
+class TestOpenAIProviderCancel:
+    """Test OpenAI provider cancel functionality."""
+
+    @pytest.mark.asyncio
+    async def test_cancel_batch_success(self, ai_model_config: AIModelConfig) -> None:
+        """Test successful batch cancellation."""
+        with patch.dict(os.environ, {"OPENAI_API_KEY": "test-key"}):
+            provider = OpenAIBatchProvider(ai_model_config)
+
+        with patch("httpx.AsyncClient") as mock_client_class:
+            mock_client = AsyncMock()
+            mock_client_class.return_value.__aenter__.return_value = mock_client
+
+            # Mock successful response
+            mock_response = MagicMock()
+            mock_response.status_code = 200
+            mock_response.json.return_value = {"id": "batch_123", "status": "cancelled"}
+            mock_client.post.return_value = mock_response
+
+            result = await provider.cancel_batch("batch_123")
+
+            assert result["id"] == "batch_123"
+            assert result["status"] == "cancelled"
+            mock_client.post.assert_called_once_with(
+                "https://api.openai.com/v1/batches/batch_123/cancel",
+                headers=provider.headers,
+                timeout=30.0,
+            )
+
+    @pytest.mark.asyncio
+    async def test_cancel_batch_failure(self, ai_model_config: AIModelConfig) -> None:
+        """Test batch cancellation failure."""
+        with patch.dict(os.environ, {"OPENAI_API_KEY": "test-key"}):
+            provider = OpenAIBatchProvider(ai_model_config)
+
+        with patch("httpx.AsyncClient") as mock_client_class:
+            mock_client = AsyncMock()
+            mock_client_class.return_value.__aenter__.return_value = mock_client
+
+            # Mock error response
+            mock_response = MagicMock()
+            mock_response.status_code = 404
+            mock_response.text = "Batch not found"
+            mock_client.post.return_value = mock_response
+
+            with pytest.raises(
+                Exception, match="Batch cancellation failed: 404 Batch not found"
+            ):
+                await provider.cancel_batch("batch_123")
