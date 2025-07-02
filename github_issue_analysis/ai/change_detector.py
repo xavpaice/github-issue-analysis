@@ -190,7 +190,14 @@ class ChangeDetector:
             # Load AI results
             with open(results_file) as f:
                 ai_data = json.load(f)
-            ai_result = ProductLabelingResponse(**ai_data)
+
+            # Extract the analysis part if it's wrapped in metadata
+            if "analysis" in ai_data:
+                analysis_data = ai_data["analysis"]
+            else:
+                analysis_data = ai_data
+
+            ai_result = ProductLabelingResponse(**analysis_data)
 
             # Detect changes
             plan = self.detect_changes(
@@ -216,37 +223,56 @@ class ChangeDetector:
         Args:
             data_dir: Base data directory
             org: Organization name
-            repo: Repository name
+            repo: Repository name (optional - if None, searches all repos in org)
             issue_number: Specific issue number (optional)
 
         Returns:
             List of (issue_file, result_file) tuples
         """
-        if repo is None:
-            return []
-
-        issues_dir = data_dir / "issues" / org / repo
-        results_dir = data_dir / "results" / org / repo
+        issues_dir = data_dir / "issues"
+        results_dir = data_dir / "results"
 
         if not issues_dir.exists() or not results_dir.exists():
             return []
 
         matches = []
 
-        if issue_number:
-            # Single issue
-            issue_file = issues_dir / f"issue-{issue_number}.json"
-            result_file = results_dir / f"issue-{issue_number}-product-labeling.json"
+        if repo and issue_number:
+            # Single issue in specific repo
+            issue_file = issues_dir / f"{org}_{repo}_issue_{issue_number}.json"
+            result_file = (
+                results_dir / f"{org}_{repo}_issue_{issue_number}_product-labeling.json"
+            )
 
             if issue_file.exists() and result_file.exists():
                 matches.append((issue_file, result_file))
-        else:
-            # All issues in repo
-            for issue_file in issues_dir.glob("issue-*.json"):
-                issue_num = issue_file.stem.split("-")[1]
-                result_file = results_dir / f"issue-{issue_num}-product-labeling.json"
+        elif repo:
+            # All issues in specific repo
+            pattern = f"{org}_{repo}_issue_*.json"
+            for issue_file in issues_dir.glob(pattern):
+                # Extract issue number from filename like: org_repo_issue_123.json
+                filename_parts = issue_file.stem.split("_")
+                if len(filename_parts) >= 4 and filename_parts[-2] == "issue":
+                    issue_num = filename_parts[-1]
+                    result_file = (
+                        results_dir
+                        / f"{org}_{repo}_issue_{issue_num}_product-labeling.json"
+                    )
 
-                if result_file.exists():
-                    matches.append((issue_file, result_file))
+                    if result_file.exists():
+                        matches.append((issue_file, result_file))
+        else:
+            # All issues in organization
+            pattern = f"{org}_*_issue_*.json"
+            for issue_file in issues_dir.glob(pattern):
+                # Extract org, repo, and issue number from filename
+                filename_parts = issue_file.stem.split("_")
+                if len(filename_parts) >= 4 and filename_parts[-2] == "issue":
+                    # Reconstruct the base filename without extension
+                    base_name = issue_file.stem
+                    result_file = results_dir / f"{base_name}_product-labeling.json"
+
+                    if result_file.exists():
+                        matches.append((issue_file, result_file))
 
         return matches
