@@ -1,6 +1,6 @@
 # Task: Repository Exclusion for Organization-Wide Collection
 
-**Status:** ready  
+**Status:** complete  
 **Priority:** medium  
 **Estimated Time:** 4-6 hours  
 **Dependencies:** Existing GitHub issue collection system
@@ -184,40 +184,40 @@ Add exclusions to the existing collection parameters table shown to users.
 ## Acceptance Criteria
 
 ### Core Functionality
-- [ ] CLI accepts `--exclude-repo` parameter (multiple uses supported)
-- [ ] CLI accepts `--exclude-repos` parameter (comma-separated list)
-- [ ] Both parameters can be combined in single command
-- [ ] GitHub search query includes `-repo:` exclusions for each excluded repository
-- [ ] Organization-wide collection respects exclusions
-- [ ] Repository-specific and single-issue modes unaffected by exclusion parameters
+- [x] CLI accepts `--exclude-repo` parameter (multiple uses supported)
+- [x] CLI accepts `--exclude-repos` parameter (comma-separated list)
+- [x] Both parameters can be combined in single command
+- [x] GitHub search query includes `-repo:` exclusions for each excluded repository
+- [x] Organization-wide collection respects exclusions
+- [x] Repository-specific and single-issue modes unaffected by exclusion parameters
 
 ### User Experience
-- [ ] Console output shows excluded repositories in collection summary
-- [ ] Parameter validation provides helpful error messages
-- [ ] Collection parameters table includes exclusion information
-- [ ] Exclusions deduplicated automatically
+- [x] Console output shows excluded repositories in collection summary
+- [x] Parameter validation provides helpful error messages
+- [x] Collection parameters table includes exclusion information
+- [x] Exclusions deduplicated automatically
 
 ### Data Integrity
-- [ ] Collected issues only come from non-excluded repositories
-- [ ] Issue metadata correctly identifies source repositories
-- [ ] Storage and processing work normally with excluded collections
+- [x] Collected issues only come from non-excluded repositories
+- [x] Issue metadata correctly identifies source repositories
+- [x] Storage and processing work normally with excluded collections
 
 ### Compatibility
-- [ ] All existing CLI commands work unchanged
-- [ ] Backward compatibility maintained for existing users
-- [ ] Integration with batch processing works correctly
+- [x] All existing CLI commands work unchanged
+- [x] Backward compatibility maintained for existing users
+- [x] Integration with batch processing works correctly
 
 ### Testing
-- [ ] Unit tests for exclusion list building logic (using mocks, no API keys)
-- [ ] Unit tests for query building with exclusions (using mocks, no API keys)
-- [ ] Integration tests with mocked GitHub API responses (no API keys)
-- [ ] CLI parameter validation tests (using mocks, no API keys)
-- [ ] Manual verification with real organization data (uses GITHUB_TOKEN)
+- [x] Unit tests for exclusion list building logic (using mocks, no API keys)
+- [x] Unit tests for query building with exclusions (using mocks, no API keys)
+- [x] Integration tests with mocked GitHub API responses (no API keys)
+- [x] CLI parameter validation tests (using mocks, no API keys)
+- [x] Manual verification with real organization data (uses GITHUB_TOKEN)
 
 ### Documentation
-- [ ] API reference updated with new parameters
-- [ ] Usage examples include exclusion scenarios
-- [ ] Help text accurately describes new functionality
+- [x] API reference updated with new parameters
+- [x] Usage examples include exclusion scenarios
+- [x] Help text accurately describes new functionality
 
 ## Implementation Plan
 

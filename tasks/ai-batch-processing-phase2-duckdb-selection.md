@@ -1,6 +1,6 @@
 # Task: AI Batch Processing - Phase 2: DuckDB-Integrated Batch Selection
 
-**Status:** ready  
+**Status:** not started  
 **Priority:** medium  
 **Estimated Time:** 2-3 hours  
 **Dependencies:** DuckDB Phase 1 (database foundation + query interface)
