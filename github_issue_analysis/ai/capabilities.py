@@ -108,11 +108,11 @@ def get_models_with_capability(capability: str) -> list[str]:
     """
     # Return examples rather than trying to enumerate all models
     if capability == "thinking_effort":
-        return ["openai:o1-mini", "openai:o4-mini", "openai:o3"]
+        return ["openai:o4-mini", "openai:o3"]
     elif capability == "thinking_budget":
         return ["anthropic:claude-3-5-sonnet-latest", "google:gemini-2.0-flash"]
     elif capability == "thinking_summary":
-        return ["openai:o1-mini", "openai:o4-mini"]
+        return ["openai:o4-mini"]
     elif capability == "thinking_format":
         return ["groq:qwen-qwq-32b"]
     else:
@@ -126,12 +126,23 @@ def validate_thinking_configuration(
 
     Args:
         model: The model identifier
-        thinking_effort: Effort level for OpenAI o1 models
+        thinking_effort: Effort level for OpenAI reasoning models
         thinking_budget: Token budget for Anthropic/Google models
 
     Raises:
         ValueError: If configuration is invalid for the model
     """
+    # Check for valid model format first
+    if ":" not in model:
+        raise ValueError(
+            f"Invalid model format '{model}'. Expected format: provider:model\n\n"
+            f"💡 Examples of valid model formats:\n"
+            f"   openai:o4-mini\n"
+            f"   openai:gpt-4o-mini\n"
+            f"   anthropic:claude-3-5-sonnet-latest\n"
+            f"   google:gemini-2.0-flash"
+        )
+
     capabilities = get_model_capabilities(model)
 
     # Check if any thinking options are provided
@@ -150,7 +161,7 @@ def validate_thinking_configuration(
         raise ValueError(
             f"Model '{model}' does not support thinking options: {options_str}\n\n"
             f"💡 For thinking support, try these models:\n"
-            f"   OpenAI o1 models: o1-mini, o1-preview\n"
+            f"   OpenAI reasoning models: o4-mini, o3\n"
             f"   Available options: --thinking-effort {{low,medium,high}}\n\n"
             f"   Anthropic models: claude-3-5-sonnet-latest\n"
             f"   Available options: --thinking-budget <tokens>\n\n"
