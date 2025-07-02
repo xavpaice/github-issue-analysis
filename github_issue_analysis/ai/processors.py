@@ -1,5 +1,6 @@
 """Product labeling processor using PydanticAI."""
 
+import json
 from typing import Any
 
 from pydantic_ai import Agent
@@ -131,16 +132,16 @@ array with descriptions of what each image shows.
         """Format issue data for analysis prompt."""
         issue = issue_data["issue"]
 
-        # Simple comment summary (no truncation for phase 1)
-        comment_summary = ""
+        # Include all comments with full content
+        comment_text = ""
         if issue.get("comments"):
-            recent_comments = issue["comments"][-3:]  # Last 3 comments
-            summaries = []
-            for comment in recent_comments:
+            all_comments = issue["comments"]  # Include ALL comments
+            comment_entries = []
+            for comment in all_comments:
                 user = comment["user"]["login"]
-                body = comment["body"][:200].replace("\n", " ").strip()
-                summaries.append(f"{user}: {body}")
-            comment_summary = " | ".join(summaries)
+                body = comment["body"].replace("\n", " ").strip()  # Full content
+                comment_entries.append(f"{user}: {body}")
+            comment_text = " | ".join(comment_entries)
 
         # Add explicit image context instructions
         if image_count > 0:
@@ -170,16 +171,16 @@ Analyze this GitHub issue for product labeling:
 
 **Title:** {issue["title"]}
 
-**Body:** {issue["body"][:1500]}
+**Body:** {issue["body"]}
 
-**Current Labels:** {[
+**Current Labels:** {json.dumps([
     label["name"] for label in issue["labels"]
     if label["name"].startswith("product::")
-]}
+], separators=(',', ':'))}
 
 **Repository:** {issue_data["org"]}/{issue_data["repo"]}
 
-**Recent Comments:** {comment_summary or "No comments"}
+**Comments:** {comment_text or "No comments"}
 {image_instruction}
 
 Recommend the most appropriate product label(s) based on the issue content.
