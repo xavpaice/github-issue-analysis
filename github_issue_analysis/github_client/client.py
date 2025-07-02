@@ -197,6 +197,7 @@ class GitHubClient:
         labels: list[str] | None = None,
         state: str = "open",
         limit: int = 10,
+        excluded_repos: list[str] | None = None,
     ) -> list[GitHubIssue]:
         """Search for issues across all repositories in an organization.
 
@@ -205,23 +206,20 @@ class GitHubClient:
             labels: List of label names to filter by
             state: Issue state (open, closed, all)
             limit: Maximum number of issues to return
+            excluded_repos: List of repository names to exclude
 
         Returns:
             List of GitHubIssue objects
         """
         self._check_rate_limit()
 
-        # Build search query for organization-wide search
-        query_parts = [f"org:{org}", "is:issue"]
+        # Import here to avoid circular import
+        from .search import build_organization_query
 
-        if state != "all":
-            query_parts.append(f"state:{state}")
-
-        if labels:
-            for label in labels:
-                query_parts.append(f"label:{label}")
-
-        query = " ".join(query_parts)
+        # Build search query for organization-wide search with exclusions
+        query = build_organization_query(
+            org=org, labels=labels, state=state, excluded_repos=excluded_repos
+        )
         console.print(f"Searching with query: {query}")
 
         try:

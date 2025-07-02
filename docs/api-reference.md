@@ -19,6 +19,8 @@ uv run github-analysis collect [OPTIONS]
 - `--token TEXT`: GitHub API token (defaults to GITHUB_TOKEN env var)
 - `--download-attachments / --no-download-attachments`: Download issue and comment attachments (default: true)
 - `--max-attachment-size INTEGER`: Maximum attachment size in MB (default: 10)
+- `--exclude-repo, -x TEXT`: Repository to exclude from organization-wide search (can be used multiple times)
+- `--exclude-repos TEXT`: Comma-separated list of repositories to exclude from organization-wide search
 
 **Collection Modes:**
 - **Single issue:** `--org ORGNAME --repo REPONAME --issue-number NUMBER`
@@ -35,6 +37,18 @@ uv run github-analysis collect --org replicated-collab --limit 20
 
 # Collect bugs from specific repository
 uv run github-analysis collect --org microsoft --repo vscode --labels bug --limit 5
+
+# Organization-wide collection excluding specific repositories
+uv run github-analysis collect --org replicated-collab --exclude-repo private-repo --limit 15
+
+# Exclude multiple repositories using multiple flags
+uv run github-analysis collect --org replicated-collab --exclude-repo private-repo --exclude-repo test-repo --limit 10
+
+# Exclude multiple repositories using comma-separated list
+uv run github-analysis collect --org replicated-collab --exclude-repos "private-repo,test-repo,archived-repo" --limit 10
+
+# Mix both exclusion approaches with additional filters
+uv run github-analysis collect --org microsoft --exclude-repo private-repo --exclude-repos "test-repo,docs-repo" --labels bug --state open --limit 20
 ```
 
 ### batch (RECOMMENDED)

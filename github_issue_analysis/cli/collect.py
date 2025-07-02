@@ -7,7 +7,7 @@ from rich.table import Table
 from ..github_client.attachments import AttachmentDownloader
 from ..github_client.client import GitHubClient
 from ..github_client.models import GitHubIssue
-from ..github_client.search import GitHubSearcher
+from ..github_client.search import GitHubSearcher, build_exclusion_list
 from ..storage.manager import StorageManager
 
 console = Console()
@@ -46,6 +46,19 @@ def collect(
     max_attachment_size: int = typer.Option(
         10, "--max-attachment-size", help="Maximum attachment size in MB"
     ),
+    exclude_repo: list[str] | None = typer.Option(
+        None,
+        "--exclude-repo",
+        "-x",
+        help="Repository to exclude from organization-wide search "
+        "(can be used multiple times)",
+    ),
+    exclude_repos: str | None = typer.Option(
+        None,
+        "--exclude-repos",
+        help="Comma-separated list of repositories to exclude "
+        "from organization-wide search",
+    ),
 ) -> None:
     """Collect GitHub issues and save them locally.
 
@@ -79,6 +92,15 @@ def collect(
         collection_mode = "repository"
         console.print(f"🔍 Collecting issues from {org}/{repo}")
 
+    # Process repository exclusions for organization-wide search
+    excluded_repositories: list[str] = []
+    if collection_mode == "organization":
+        excluded_repositories = build_exclusion_list(exclude_repo, exclude_repos)
+        if excluded_repositories:
+            console.print(
+                f"📋 Excluding repositories: {', '.join(excluded_repositories)}"
+            )
+
     # Show collection parameters
     params_table = Table(title="Collection Parameters")
     params_table.add_column("Parameter", style="cyan")
@@ -94,6 +116,8 @@ def collect(
     params_table.add_row("State", state)
     if collection_mode != "single_issue":
         params_table.add_row("Limit", str(limit))
+    if collection_mode == "organization" and excluded_repositories:
+        params_table.add_row("Excluded Repos", ", ".join(excluded_repositories))
 
     console.print(params_table)
 
@@ -114,7 +138,11 @@ def collect(
         elif collection_mode == "organization":
             # Organization-wide search
             issues = searcher.search_organization_issues(
-                org=org, labels=labels, state=state, limit=limit
+                org=org,
+                labels=labels,
+                state=state,
+                limit=limit,
+                excluded_repos=excluded_repositories,
             )
         else:
             # Repository-specific search
