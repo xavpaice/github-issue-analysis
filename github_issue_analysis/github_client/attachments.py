@@ -206,9 +206,23 @@ class AttachmentDownloader:
         """
         try:
             async with httpx.AsyncClient() as client:
+                # Determine headers - don't use Authorization for JWT-signed URLs
+                request_headers = {}
+                if "jwt=" not in attachment.original_url:
+                    # Only use Authorization header for non-JWT URLs
+                    request_headers = self.headers
+                else:
+                    # For JWT-signed URLs, use only basic headers
+                    request_headers = {
+                        "User-Agent": "github-issue-analysis/0.1.0",
+                        "Accept": "application/vnd.github.full+json",
+                    }
+
                 # First, get file info with HEAD request
                 head_response = await client.head(
-                    attachment.original_url, headers=self.headers, follow_redirects=True
+                    attachment.original_url,
+                    headers=request_headers,
+                    follow_redirects=True,
                 )
 
                 # Check file size
@@ -231,7 +245,9 @@ class AttachmentDownloader:
 
                 # Download the file
                 response = await client.get(
-                    attachment.original_url, headers=self.headers, follow_redirects=True
+                    attachment.original_url,
+                    headers=request_headers,
+                    follow_redirects=True,
                 )
                 response.raise_for_status()
 
@@ -258,6 +274,12 @@ class AttachmentDownloader:
                 f"❌ HTTP error downloading {attachment.filename}: "
                 f"{e.response.status_code} {e.response.reason_phrase}"
             )
+            console.print(f"   URL: {attachment.original_url}")
+            console.print(f"   Response: {e.response.text}")
+            try:
+                console.print(f"   Headers: {dict(e.response.headers)}")
+            except (TypeError, AttributeError):
+                console.print(f"   Headers: {e.response.headers}")
         except Exception as e:
             console.print(f"❌ Error downloading {attachment.filename}: {e}")
 
