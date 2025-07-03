@@ -115,9 +115,9 @@ def build_product_labeling_prompt() -> str:
 - **Multiple products only when**: The issue truly requires coordination between teams (rare)
 - **Ask yourself**: "Where does the bug need to be fixed?" - that's your primary product
 
-**When to Use Special Classifications:**
-- **product::unknown**: When issue lacks sufficient detail, is too vague, or you genuinely cannot determine the product from available information after considering all contextual signals
-- **Confidence threshold**: Use unknown for confidence < 0.6, prefer specific product for confidence ≥ 0.6
+**Confidence Guidelines:**
+- **When uncertain about classification**: Use a specific product with low confidence (0.3-0.5) rather than avoiding classification
+- **Apply Non-Replicated Root Causes guidance**: Even for customer/application issues, route to the appropriate Replicated team based on operation context
 - **Context weighing**: Consider environment signals, error patterns, resolution approaches, and investigation focus when determining confidence
 
 **Non-Replicated Root Causes (Critical):**
