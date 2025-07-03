@@ -290,7 +290,7 @@ class TestBatchManager:
         """Test checking status of non-existent job."""
         manager = BatchManager(str(temp_batch_dir))
 
-        with pytest.raises(ValueError, match="Batch job .* not found"):
+        with pytest.raises(ValueError, match="No batch job found matching"):
             await manager.check_job_status("nonexistent_job")
 
     @pytest.mark.asyncio
@@ -1006,7 +1006,7 @@ class TestBatchCancelRemove:
         manager = BatchManager(str(temp_batch_dir))
         job_id = str(uuid.uuid4())
 
-        with pytest.raises(ValueError, match="Batch job .* not found"):
+        with pytest.raises(ValueError, match="No batch job found matching"):
             await manager.cancel_job(job_id)
 
     @pytest.mark.asyncio
@@ -1103,7 +1103,7 @@ class TestBatchCancelRemove:
         manager = BatchManager(str(temp_batch_dir))
         job_id = str(uuid.uuid4())
 
-        with pytest.raises(ValueError, match="Batch job .* not found"):
+        with pytest.raises(ValueError, match="No batch job found matching"):
             manager.remove_job(job_id, force=True)
 
     @patch("builtins.input", return_value="n")
