@@ -89,16 +89,19 @@ class ChangeDetector:
                 # Only remove if we have high confidence it's wrong
                 self._should_remove_label(assessment, ai_result.recommended_labels)
             ):
-                changes.append(
-                    LabelChange(
-                        action="remove",
-                        label=assessment.label,
-                        reason=assessment.reasoning,
-                        confidence=self._estimate_removal_confidence(
-                            assessment, ai_result
-                        ),
-                    )
+                # Calculate removal confidence and check against threshold
+                removal_confidence = self._estimate_removal_confidence(
+                    assessment, ai_result
                 )
+                if removal_confidence >= self.min_confidence:
+                    changes.append(
+                        LabelChange(
+                            action="remove",
+                            label=assessment.label,
+                            reason=assessment.reasoning,
+                            confidence=removal_confidence,
+                        )
+                    )
 
         needs_update = len(changes) > 0
         comment_summary = (
