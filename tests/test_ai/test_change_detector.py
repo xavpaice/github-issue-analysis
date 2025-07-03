@@ -105,7 +105,9 @@ class TestChangeDetector:
         self, sample_issue: GitHubIssue, sample_ai_result: ProductLabelingResponse
     ) -> None:
         """Test detecting label removals."""
-        detector = ChangeDetector(min_confidence=0.7)  # Lower threshold so removal passes (0.9 * 0.8 = 0.72)
+        detector = ChangeDetector(
+            min_confidence=0.7
+        )  # Lower threshold so removal passes (0.9 * 0.8 = 0.72)
         plan = detector.detect_changes(
             sample_issue, sample_ai_result, "test-org", "test-repo"
         )
