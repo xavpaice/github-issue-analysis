@@ -28,16 +28,15 @@ def build_product_labeling_prompt() -> str:
 
 - **docs**: Documentation: Issues with documentation, tutorials, guides, examples, or documentation website. Look for: documentation requests, unclear guides, missing examples, doc site issues.
 
-- **vendor**: Vendor Portal & SAAS Services: The complete SAAS platform including vendor.replicated.com web interface AND underlying SAAS services. This includes: vendor portal UI/display issues, application/customer/release management, **release creation/packaging/formatting**, **channel management**, **image registry services and container pulling**, **SAAS licensing and authentication infrastructure**, **hosted registry authentication**. Key principle: If it's a hosted service provided by Replicated's SAAS platform (even if it affects infrastructure operations), it's vendor product.
+- **vendor**: Vendor Portal & SAAS Services: The complete SAAS platform including vendor.replicated.com web interface AND underlying SAAS services. This includes: vendor portal UI/display issues, **managing applications/customers/releases in the vendor portal**, **release creation/packaging/formatting**, **channel management**, **image registry services and container pulling**, **SAAS licensing and authentication infrastructure**, **hosted registry authentication**. Key principle: If it's a hosted service provided by Replicated's SAAS platform (even if it affects infrastructure operations), it's vendor product. **NOT for technical issues with customer applications themselves.**
 
 - **downloadportal**: Download Portal: Customer-facing download interface for air-gapped installations. Issues involve download.replicated.com, customer download experience, package downloads.
 
-- **compatibility-matrix**: Compatibility Matrix: Tool for testing application compatibility across Kubernetes versions. Issues involve compatibility testing, version matrices, test automation. **CRITICAL CMX Context Analysis**: When issues occur in CMX environments, focus on what the investigation is targeting:
+- **compatibility-matrix**: Compatibility Matrix (CMX): Tool for testing application compatibility across Kubernetes versions. Issues involve compatibility testing, version matrices, test automation. **CRITICAL CMX Context Analysis - CMX is an abbreviation for Compatibility Matrix**: When issues occur in CMX environments, focus on what the investigation is targeting:
   - **CMX VM infrastructure focus** → compatibility-matrix product (discussion of VM environment, VM configuration, VM networking, CMX team investigating VM problems)
   - **Product installation focus** → that product (discussion focused on installer behavior, product-specific errors, no questioning of VM environment)
   - **CMX SAAS Services** → compatibility-matrix product (CMX-related API calls, cluster provisioning, scheduling, VM management should be classified as compatibility-matrix even though they use hosted APIs)
 
-- **unknown**: Unknown Product: Use when issue content is insufficient to determine the correct product, or when the issue is too ambiguous to classify confidently. Requires detailed reasoning explaining what information is missing.
 
 **Key Decision Principles:**
 
@@ -78,11 +77,13 @@ def build_product_labeling_prompt() -> str:
 3. **What specific functionality is failing?** - Focus on the failing feature/process
 4. **Is there confirmation of the issue in later comments?** - Follow the conversation to resolution
 
-**CMX Infrastructure Signals (Critical):**
+**CMX Infrastructure Signals (Critical - CMX = Compatibility Matrix):**
+- **Title mentions "CMX VM"** → Consider compatibility-matrix product if VM infrastructure is the focus
 - **Intermittent installation issues** → suggests VM infrastructure problems, not consistent installer bugs
 - **VM command solutions** → "replicated vm create", storage adjustments, VM configuration fixes indicate CMX product
 - **Resource constraint discussions** → disk space, memory, VM sizing issues point to CMX infrastructure
 - **Solution involves VM modification** → If fix is changing VM specs/config, it's compatibility-matrix product
+- **"when using CMX" or "on CMX VM"** → Consider if this suggests VM-specific constraints vs general product issues
 
 **Symptom vs. Source (Critical):**
 - **Job/pod failures in cluster** → Often symptoms, look for WHAT job/process is failing
@@ -121,15 +122,16 @@ def build_product_labeling_prompt() -> str:
 - **Context weighing**: Consider environment signals, error patterns, resolution approaches, and investigation focus when determining confidence
 
 **Non-Replicated Root Causes (Critical):**
-- **When root cause is application/customer code issue**: Assign based on **what operation was being performed when the issue surfaced**:
+- **When root cause is application/customer code issue** (technical issues like pod crashes, cert-manager timing, application startup failures - NOT vendor portal management): Assign based on **what operation was being performed when the issue surfaced**:
   - **Issues surfaced during/after cluster upgrades** → cluster product (embedded-cluster, kurl) 
   - **Issues surfaced during/after application upgrades** → kots product
   - **Issues surfaced during/after installation** → installer product (embedded-cluster, kurl)
+    - **Consider**: If issue occurs only on CMX VM and involves VM constraints → compatibility-matrix product
   - **Issues surfaced during/after backup operations** → cluster product providing backup infrastructure:
     - kURL cluster → kurl product
     - Embedded-cluster → embedded-cluster product
 - **Reasoning**: Even if not Replicated's fault, the team that owns the triggering operation should help explain what went wrong and provide guidance
-- **Examples**: Django migration errors surfaced during cluster upgrade → product::embedded-cluster; Velero backup hook failures on kURL → product::kurl (not unknown)
+- **Examples**: Django migration errors surfaced during cluster upgrade → product::embedded-cluster; Velero backup hook failures on kURL → product::kurl
 - **Customer experience**: Customers need a Replicated team to contact even for non-Replicated issues
 
 **FOCUS:** Find the PRIMARY product where the bug needs to be fixed or feature implemented. Most issues have one root cause requiring one product team's attention.
