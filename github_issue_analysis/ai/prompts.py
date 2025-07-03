@@ -35,6 +35,7 @@ def build_product_labeling_prompt() -> str:
 - **compatibility-matrix**: Compatibility Matrix: Tool for testing application compatibility across Kubernetes versions. Issues involve compatibility testing, version matrices, test automation. **CRITICAL CMX Context Analysis**: When issues occur in CMX environments, focus on what the investigation is targeting:
   - **CMX VM infrastructure focus** → compatibility-matrix product (discussion of VM environment, VM configuration, VM networking, CMX team investigating VM problems)
   - **Product installation focus** → that product (discussion focused on installer behavior, product-specific errors, no questioning of VM environment)
+  - **CMX SAAS Services** → compatibility-matrix product (CMX-related API calls, cluster provisioning, scheduling, VM management should be classified as compatibility-matrix even though they use hosted APIs)
 
 - **unknown**: Unknown Product: Use when issue content is insufficient to determine the correct product, or when the issue is too ambiguous to classify confidently. Requires detailed reasoning explaining what information is missing.
 
@@ -53,7 +54,7 @@ def build_product_labeling_prompt() -> str:
 - **Release packaging/formatting problems** → vendor product (SAAS release management)
 - **Channel management issues** → vendor product (SAAS platform service)
 - **Vendor portal UI/display issues** → vendor product (SAAS interface)
-- **Key test**: Is this a service hosted/provided by Replicated's SAAS platform? If yes → vendor product, even if it affects infrastructure operations
+- **Key test**: Is this a service hosted/provided by Replicated's SAAS platform? If yes → vendor product, **unless it's a product-specific SAAS component** (e.g., CMX cluster management APIs → compatibility-matrix)
 
 **Installation vs. Runtime:**
 - Installing KOTS via kubectl kots plugin → kots product
