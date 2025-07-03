@@ -20,7 +20,7 @@ def build_product_labeling_prompt() -> str:
 
 - **troubleshoot**: Troubleshoot: Diagnostic and support bundle collection tool. Issues involve support bundle collection, analyzers, collectors, and diagnostic functionality. Look for: 'support-bundle' tool problems, 'troubleshoot' CLI issues, collector/analyzer development.
 
-- **kurl**: kURL: Kubeadm-based Kubernetes distribution for on-premises installations. Issues involve kubeadm cluster infrastructure, kURL installer problems, kubeadm-based cluster failures, node management, and cluster infrastructure issues. Look for: 'kurl' mentions, 'kubeadm' references, cluster infrastructure problems in kubeadm-based environments.
+- **kurl**: kURL: Kubeadm-based Kubernetes distribution for on-premises installations. Issues involve kubeadm cluster infrastructure, kURL installer problems, kubeadm-based cluster issues, node management, cluster infrastructure problems, and kURL plugin problems (Velero, Prometheus, MinIO, Rook, Contour, Flannel). Look for: 'kurl' mentions, 'kubeadm' references, cluster infrastructure problems in kubeadm-based environments, plugin-related issues.
 
 - **embedded-cluster**: Embedded Cluster: k0s-based single-node Kubernetes distribution with KOTS. Issues involve k0s cluster setup, installation, single-node deployments, k0s cluster lifecycle management, KOTS installation/upgrade within k0s-based clusters.
 
@@ -43,14 +43,16 @@ def build_product_labeling_prompt() -> str:
 
 **Error Type Diagnostics (Critical):**
 - **CrashLoopBackoff errors** → NOT registry issues; analyze the specific component that is crashing (e.g., if replicated SDK pod is crashing → SDK product)
-- **ImagePullBackoff/ImagePull errors** → vendor product (registry service issues)  
-- **"Failed to pull image" errors** → vendor product (registry service issues)
-- **Registry authentication failures** → vendor product (SAAS registry auth)
+- **ImagePullBackoff/ImagePull errors** → Check the registry domain:
+  - **Replicated registries** (registry.replicated.com, proxy.replicated.com) → vendor product (SAAS registry service)
+  - **External registries** (DockerHub, GCR, ECR, etc.) → the affected product (e.g., SDK image pull failure → SDK product)
+- **"Failed to pull image" errors** → Apply same registry domain logic as ImagePullBackoff
+- **Registry authentication failures** → vendor product (SAAS registry auth) ONLY if from Replicated domains
 - **Pod restart/crash loops** → NOT registry issues; analyze which specific component/service is failing
 
 **SAAS vs. Infrastructure (Critical):**
-- **Image registry/pulling failures** → vendor product (SAAS registry service) 
-- **Hosted registry authentication issues** → vendor product (SAAS licensing/auth)
+- **Replicated registry/pulling failures** → vendor product (SAAS registry service) 
+- **Replicated hosted registry authentication issues** → vendor product (SAAS licensing/auth)
 - **Release packaging/formatting problems** → vendor product (SAAS release management)
 - **Channel management issues** → vendor product (SAAS platform service)
 - **Vendor portal UI/display issues** → vendor product (SAAS interface)
@@ -63,6 +65,11 @@ def build_product_labeling_prompt() -> str:
 - Using KOTS after it's installed → kots product (regardless of cluster type)
 - **kotsadm specific processes/jobs** → kots product
 
+**Plugin Attribution (Critical):**
+- **kURL plugin installation/infrastructure issues** → kurl product (when the plugin itself is broken or won't install)
+- **Plugin configuration/orchestration issues** → the product doing the orchestrating (e.g., KOTS backup configuration using Velero → kots product)
+- **Key principle**: Distinguish between plugin infrastructure problems vs. how other products configure/use those plugins
+
 **Root Cause Analysis - Ask These Questions:**
 1. **Where would the bug need to be fixed?** - Code changes go in which product repo?
 2. **Which component is actually broken?** - Not just where symptoms appear
@@ -70,7 +77,7 @@ def build_product_labeling_prompt() -> str:
 4. **Is there confirmation of the issue in later comments?** - Follow the conversation to resolution
 
 **CMX Infrastructure Signals (Critical):**
-- **Intermittent installation failures** → suggests VM infrastructure issues, not consistent installer bugs
+- **Intermittent installation issues** → suggests VM infrastructure problems, not consistent installer bugs
 - **VM command solutions** → "replicated vm create", storage adjustments, VM configuration fixes indicate CMX product
 - **Resource constraint discussions** → disk space, memory, VM sizing issues point to CMX infrastructure
 - **Solution involves VM modification** → If fix is changing VM specs/config, it's compatibility-matrix product
@@ -110,6 +117,15 @@ def build_product_labeling_prompt() -> str:
 - **product::unknown**: When issue lacks sufficient detail, is too vague, or you genuinely cannot determine the product from available information after considering all contextual signals
 - **Confidence threshold**: Use unknown for confidence < 0.6, prefer specific product for confidence ≥ 0.6
 - **Context weighing**: Consider environment signals, error patterns, resolution approaches, and investigation focus when determining confidence
+
+**Non-Replicated Root Causes (Critical):**
+- **When root cause is application/customer code issue**: Assign based on **what operation was being performed when the issue surfaced**:
+  - **Issues surfaced during/after cluster upgrades** → cluster product (embedded-cluster, kurl) 
+  - **Issues surfaced during/after application upgrades** → kots product
+  - **Issues surfaced during/after installation** → installer product (embedded-cluster, kurl)
+- **Reasoning**: Even if not Replicated's fault, the team that owns the triggering operation should help explain what went wrong and provide guidance
+- **Examples**: Django migration errors surfaced during cluster upgrade → product::embedded-cluster (not kots or unknown)
+- **Customer experience**: Customers need a Replicated team to contact even for non-Replicated issues
 
 **FOCUS:** Find the PRIMARY product where the bug needs to be fixed or feature implemented. Most issues have one root cause requiring one product team's attention.
 
