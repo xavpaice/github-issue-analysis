@@ -16,9 +16,9 @@ def build_product_labeling_prompt() -> str:
 - Consider all contextual signals when making classifications - no single factor should override all others
 
 **Available Product Labels:**
-- **kots**: Kubernetes Off-The-Shelf (KOTS): Admin console for managing Kubernetes applications. The admin console IS the KOTS product. Issues involve the admin interface, application lifecycle, license validation, configuration screens, and KOTS CLI functionality. Look for: 'kotsadm' processes/jobs, admin console problems, KOTS runtime functionality, upgrade jobs with 'kots' in name, application management features.
+- **kots**: Kubernetes Off-The-Shelf (KOTS): Admin console for managing Kubernetes applications. The admin console IS the KOTS product. Issues involve the admin interface, application lifecycle, license validation, configuration screens, and KOTS CLI functionality. **KOTS owns its usage of dependencies** (troubleshoot, S3, Velero, etc.) - when these are accessed through KOTS Admin Console or kotsadm, it's a KOTS issue. Look for: 'kotsadm' processes/jobs, admin console problems, KOTS runtime functionality, upgrade jobs with 'kots' in name, application management features.
 
-- **troubleshoot**: Troubleshoot: Diagnostic and support bundle collection tool. Issues involve support bundle collection, analyzers, collectors, and diagnostic functionality. Look for: 'support-bundle' tool problems, 'troubleshoot' CLI issues, collector/analyzer development.
+- **troubleshoot**: Troubleshoot: Diagnostic and support bundle collection tool. Issues involve **direct CLI usage** or **bugs in the troubleshoot project itself**. When troubleshoot is used via KOTS Admin Console, that's a KOTS issue. Look for: direct 'support-bundle' CLI problems, 'troubleshoot' development issues, standalone collector/analyzer problems.
 
 - **kurl**: kURL: Kubeadm-based Kubernetes distribution for on-premises installations. Issues involve kubeadm cluster infrastructure, kURL installer problems, kubeadm-based cluster issues, node management, cluster infrastructure problems, and kURL plugin problems (Velero, Prometheus, MinIO, Rook, Contour, Flannel). Look for: 'kurl' mentions, 'kubeadm' references, cluster infrastructure problems in kubeadm-based environments, plugin-related issues.
 
@@ -67,7 +67,9 @@ def build_product_labeling_prompt() -> str:
 
 **Plugin Attribution (Critical):**
 - **kURL plugin installation/infrastructure issues** → kurl product (when the plugin itself is broken or won't install)
-- **Plugin configuration/orchestration issues** → the product doing the orchestrating (e.g., KOTS backup configuration using Velero → kots product)
+- **Plugin configuration/orchestration issues** → the product doing the orchestrating (e.g., KOTS backup configuration using Velero → kots product; KOTS support bundle generation → kots product)
+- **Rook/Ceph issues** → kurl product (KOTS doesn't orchestrate Rook operations)
+- **Contour issues** → kurl product (KOTS doesn't orchestrate Contour operations)
 - **Key principle**: Distinguish between plugin infrastructure problems vs. how other products configure/use those plugins
 
 **Root Cause Analysis - Ask These Questions:**
@@ -123,8 +125,11 @@ def build_product_labeling_prompt() -> str:
   - **Issues surfaced during/after cluster upgrades** → cluster product (embedded-cluster, kurl) 
   - **Issues surfaced during/after application upgrades** → kots product
   - **Issues surfaced during/after installation** → installer product (embedded-cluster, kurl)
+  - **Issues surfaced during/after backup operations** → cluster product providing backup infrastructure:
+    - kURL cluster → kurl product
+    - Embedded-cluster → embedded-cluster product
 - **Reasoning**: Even if not Replicated's fault, the team that owns the triggering operation should help explain what went wrong and provide guidance
-- **Examples**: Django migration errors surfaced during cluster upgrade → product::embedded-cluster (not kots or unknown)
+- **Examples**: Django migration errors surfaced during cluster upgrade → product::embedded-cluster; Velero backup hook failures on kURL → product::kurl (not unknown)
 - **Customer experience**: Customers need a Replicated team to contact even for non-Replicated issues
 
 **FOCUS:** Find the PRIMARY product where the bug needs to be fixed or feature implemented. Most issues have one root cause requiring one product team's attention.
@@ -157,11 +162,13 @@ def build_product_labeling_prompt() -> str:
 3. **Distinguish symptoms from sources** - Where the error appears vs. what's actually broken
 4. **Simple test**: Which product team would need to implement the fix?
 5. **Cluster Type Identification**:
-   - If issue mentions kURL, kubeadm, or kubeadm-based cluster → kurl product
-     (Note: kURL is kubeadm-based, so any kubeadm references indicate kURL)
-   - If issue mentions k0s, embedded-cluster installer → embedded-cluster product
-   - If issue is about KOTS components (kotsadm, admin console, app lifecycle) → kots product regardless of underlying cluster
-   - Some customers call kURL embedded-cluster look for an indication it's kubeadm or k0s based.
+   - **NEVER assume product from customer descriptions** - "embedded cluster", "embedded kubernetes" in descriptions are generic terms that do not indicate the actual product
+   - **Technical evidence is the ONLY reliable indicator** - analyze logs, error messages, namespaces, component names, file paths, and reference links
+   - **kURL clusters** → kurl product: **DEFINITIVE PROOF**: EKCO, kurl-proxy, kurl namespace, kubeadm references, /opt/ekco/ paths. **STRONG INDICATOR**: Contour. If any definitive proof is present, it is kURL.
+   - **embedded-cluster** → embedded-cluster product: **DEFINITIVE PROOF**: k0s references, k0s-specific components, static binary installations (isolated from host packages)
+   - **KOTS components** → kots product regardless of underlying cluster (kotsadm, admin console, app lifecycle)
+   - **Reference documentation/links** → check any URLs or documentation references in the issue for product clues
+   - **CRITICAL**: If customer says "embedded cluster" but technical evidence shows kURL indicators, classify as kURL
 
 **Common Misclassification Patterns:**
 - **Symptom location ≠ Problem source**: Errors appearing in one component may be caused by another
