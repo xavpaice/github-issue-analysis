@@ -17,8 +17,6 @@ class ProductLabel(str, Enum):
     VENDOR = "product::vendor"
     DOWNLOADPORTAL = "product::downloadportal"
     COMPATIBILITY_MATRIX = "product::compatibility-matrix"
-    # Special case
-    UNKNOWN = "product::unknown"
 
 
 class RecommendedLabel(BaseModel):
