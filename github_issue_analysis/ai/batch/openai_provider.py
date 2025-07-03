@@ -243,7 +243,6 @@ Recommend the most appropriate product label(s) based on the issue content.
                                     "product::vendor",
                                     "product::downloadportal",
                                     "product::compatibility-matrix",
-                                    "product::unknown",
                                 ],
                             },
                             "confidence": {
