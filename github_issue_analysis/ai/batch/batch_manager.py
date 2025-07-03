@@ -426,7 +426,7 @@ class BatchManager:
         batch_job.errors.extend(errors)
 
         # Save updated job
-        job_file = self.base_path / "jobs" / f"{job_id}.json"
+        job_file = self.base_path / "jobs" / f"{batch_job.job_id}.json"
         with open(job_file, "w", encoding="utf-8") as f:
             json.dump(batch_job.model_dump(), f, indent=2, default=str)
 
@@ -686,7 +686,7 @@ class BatchManager:
             raise ValueError("No batch jobs found")
 
         # If it's already a full UUID (36 chars with dashes), try exact match first
-        if len(partial_id) == 36 and partial_id.count('-') == 4:
+        if len(partial_id) == 36 and partial_id.count("-") == 4:
             job_file = jobs_dir / f"{partial_id}.json"
             if job_file.exists():
                 return partial_id
@@ -702,7 +702,7 @@ class BatchManager:
             raise ValueError(f"No batch job found matching '{partial_id}'")
 
         if len(matching_files) > 1:
-            job_list = ', '.join(matching_files[:3])
+            job_list = ", ".join(matching_files[:3])
             extra_count = len(matching_files) - 3
             extra_msg = f" and {extra_count} more" if len(matching_files) > 3 else ""
             raise ValueError(

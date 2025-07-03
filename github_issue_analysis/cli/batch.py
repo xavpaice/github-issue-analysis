@@ -193,7 +193,7 @@ async def _run_batch_submit(
 
 @app.command()
 def status(
-    job_id: str = typer.Argument(help="Batch job ID to check (supports partial IDs)")
+    job_id: str = typer.Argument(help="Batch job ID to check (supports partial IDs)"),
 ) -> None:
     """Check the status of a batch processing job."""
     try:
@@ -448,7 +448,7 @@ async def _run_batch_list() -> None:
 
 @app.command()
 def cancel(
-    job_id: str = typer.Argument(help="Batch job ID to cancel (supports partial IDs)")
+    job_id: str = typer.Argument(help="Batch job ID to cancel (supports partial IDs)"),
 ) -> None:
     """Cancel an active batch processing job."""
     try:
