@@ -8,7 +8,7 @@ Think very carefully about creating this pull request. I need you to:
 1. **Determine the current task/branch context**:
    - Check if we're in a worktree directory (trees/*)
    - Identify the task name from the current branch or directory
-   - Read the corresponding task file if $ARGUMENTS is not provided, otherwise use $ARGUMENTS as the task name
+   - Read the corresponding task file and branch name to determine the task name
 
 2. **Validate the implementation is complete**:
    - Verify all acceptance criteria in the task file are met
@@ -18,7 +18,7 @@ Think very carefully about creating this pull request. I need you to:
 3. **Run comprehensive quality checks (CRITICAL - CI MUST NOT FAIL)**:
    - Execute: `uv run ruff check --fix --unsafe-fixes && uv run black . && uv run mypy . && uv run pytest`
    - **MANDATORY**: All four commands MUST pass with zero failures/errors before proceeding
-   - If ANY tool fails, fix the code to pass the checks - NEVER bypass or skip tests
+   - If ANY tool fails, fix the code to pass the checks - NEVER bypass or skip tests even if it's not related to your changes.
    - Re-run the full command chain until ALL tools pass completely
    - This exact command chain runs in CI - if it fails locally, it WILL fail in CI
 
@@ -41,8 +41,8 @@ Think very carefully about creating this pull request. I need you to:
    - **Summary**: Concise bullets of real functionality added
    - **Testing**: Specific commands run and confirmation that ALL passed locally
    - **Manual validation**: Steps taken to confirm functionality works
-   - **CI Guarantee**: Explicit statement that all quality checks passed locally
+   - Remain concise focusing on real functionality added and tests/validation run
 
 Task for PR: $ARGUMENTS
 
-Focus on clear communication about what was delivered and how it was validated.
+Focus on clear communication about what was delivered and how it was validated, verbosity does not mean clarity.
