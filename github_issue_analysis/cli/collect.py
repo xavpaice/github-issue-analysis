@@ -10,80 +10,57 @@ from ..github_client.models import GitHubIssue
 from ..github_client.search import GitHubSearcher, build_exclusion_list
 from ..storage.manager import StorageManager
 from ..utils.date_parser import format_datetime_for_github, validate_date_parameters
+from .options import (
+    CREATED_AFTER_OPTION,
+    CREATED_BEFORE_OPTION,
+    DOWNLOAD_ATTACHMENTS_OPTION,
+    EXCLUDE_REPO_OPTION,
+    EXCLUDE_REPOS_OPTION,
+    ISSUE_NUMBER_OPTION,
+    LABELS_OPTION,
+    LAST_DAYS_OPTION,
+    LAST_MONTHS_OPTION,
+    LAST_WEEKS_OPTION,
+    LIMIT_OPTION,
+    MAX_ATTACHMENT_SIZE_OPTION,
+    ORG_OPTION,
+    REPO_OPTION,
+    STATE_OPTION,
+    TOKEN_OPTION,
+    UPDATED_AFTER_OPTION,
+    UPDATED_BEFORE_OPTION,
+)
 
 console = Console()
-app = typer.Typer(help="Collect GitHub issues and store them locally")
+app = typer.Typer(
+    help="Collect GitHub issues and store them locally",
+    context_settings={"help_option_names": ["-h", "--help"]},
+)
 
 
 @app.command()
 def collect(
-    org: str = typer.Option(..., "--org", "-o", help="GitHub organization name"),
-    repo: str | None = typer.Option(
-        None,
-        "--repo",
-        "-r",
-        help="GitHub repository name (optional for org-wide search)",
-    ),
-    issue_number: int | None = typer.Option(
-        None, "--issue-number", help="Specific issue number to collect"
-    ),
-    labels: list[str] | None = typer.Option(
-        None, "--labels", "-l", help="Filter by labels (can be used multiple times)"
-    ),
-    limit: int = typer.Option(
-        10, "--limit", help="Maximum number of issues to collect"
-    ),
-    state: str = typer.Option(
-        "closed", "--state", help="Issue state: open, closed, or all"
-    ),
-    token: str | None = typer.Option(
-        None, "--token", help="GitHub API token (defaults to GITHUB_TOKEN env var)"
-    ),
-    download_attachments: bool = typer.Option(
-        True,
-        "--download-attachments/--no-download-attachments",
-        help="Download issue and comment attachments",
-    ),
-    max_attachment_size: int = typer.Option(
-        10, "--max-attachment-size", help="Maximum attachment size in MB"
-    ),
+    org: str = ORG_OPTION,
+    repo: str | None = REPO_OPTION,
+    issue_number: int | None = ISSUE_NUMBER_OPTION,
+    labels: list[str] | None = LABELS_OPTION,
+    limit: int = LIMIT_OPTION,
+    state: str = STATE_OPTION,
+    token: str | None = TOKEN_OPTION,
+    download_attachments: bool = DOWNLOAD_ATTACHMENTS_OPTION,
+    max_attachment_size: int = MAX_ATTACHMENT_SIZE_OPTION,
     # Date filtering options - absolute dates
-    created_after: str | None = typer.Option(
-        None, "--created-after", help="Filter issues created after date (YYYY-MM-DD)"
-    ),
-    created_before: str | None = typer.Option(
-        None, "--created-before", help="Filter issues created before date (YYYY-MM-DD)"
-    ),
-    updated_after: str | None = typer.Option(
-        None, "--updated-after", help="Filter issues updated after date (YYYY-MM-DD)"
-    ),
-    updated_before: str | None = typer.Option(
-        None, "--updated-before", help="Filter issues updated before date (YYYY-MM-DD)"
-    ),
+    created_after: str | None = CREATED_AFTER_OPTION,
+    created_before: str | None = CREATED_BEFORE_OPTION,
+    updated_after: str | None = UPDATED_AFTER_OPTION,
+    updated_before: str | None = UPDATED_BEFORE_OPTION,
     # Date filtering options - relative dates (convenience)
-    last_days: int | None = typer.Option(
-        None, "--last-days", help="Filter issues from last N days"
-    ),
-    last_weeks: int | None = typer.Option(
-        None, "--last-weeks", help="Filter issues from last N weeks"
-    ),
-    last_months: int | None = typer.Option(
-        None, "--last-months", help="Filter issues from last N months"
-    ),
+    last_days: int | None = LAST_DAYS_OPTION,
+    last_weeks: int | None = LAST_WEEKS_OPTION,
+    last_months: int | None = LAST_MONTHS_OPTION,
     # Repository exclusion options (for organization-wide searches)
-    exclude_repo: list[str] | None = typer.Option(
-        None,
-        "--exclude-repo",
-        "-x",
-        help="Repository to exclude from organization-wide search "
-        "(can be used multiple times)",
-    ),
-    exclude_repos: str | None = typer.Option(
-        None,
-        "--exclude-repos",
-        help="Comma-separated list of repositories to exclude "
-        "from organization-wide search",
-    ),
+    exclude_repo: list[str] | None = EXCLUDE_REPO_OPTION,
+    exclude_repos: str | None = EXCLUDE_REPOS_OPTION,
 ) -> None:
     """Collect GitHub issues and save them locally.
 

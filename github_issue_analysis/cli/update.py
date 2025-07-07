@@ -10,33 +10,34 @@ from rich.prompt import Confirm
 from ..ai.change_detector import ChangeDetector, IssueUpdatePlan
 from ..ai.comment_generator import CommentGenerator
 from ..github_client.client import GitHubClient
+from .options import (
+    DATA_DIR_OPTION,
+    DELAY_OPTION,
+    DRY_RUN_OPTION,
+    FORCE_OPTION,
+    ISSUE_NUMBER_OPTION,
+    MAX_ISSUES_OPTION,
+    MIN_CONFIDENCE_OPTION,
+    REPO_OPTION,
+    SKIP_COMMENTS_OPTION,
+)
 
 console = Console()
 
 
 def update_labels(
     org: str | None = typer.Option(
-        None, help="Organization name (required if --repo specified)"
+        None, "--org", "-o", help="Organization name (required)"
     ),
-    repo: str | None = typer.Option(None, help="Repository name"),
-    issue_number: int | None = typer.Option(
-        None, help="Specific issue number to update"
-    ),
-    min_confidence: float = typer.Option(
-        0.8, help="Minimum confidence threshold for applying changes"
-    ),
-    dry_run: bool = typer.Option(False, help="Preview changes without applying them"),
-    skip_comments: bool = typer.Option(
-        False, help="Update labels but don't post explanatory comments"
-    ),
-    force: bool = typer.Option(False, help="Apply even low-confidence changes"),
-    max_issues: int | None = typer.Option(
-        None, help="Maximum number of issues to process"
-    ),
-    delay: float = typer.Option(0.0, help="Delay between API calls in seconds"),
-    data_dir: str | None = typer.Option(
-        None, help="Data directory path (defaults to ./data)"
-    ),
+    repo: str | None = REPO_OPTION,
+    issue_number: int | None = ISSUE_NUMBER_OPTION,
+    min_confidence: float = MIN_CONFIDENCE_OPTION,
+    dry_run: bool = DRY_RUN_OPTION,
+    skip_comments: bool = SKIP_COMMENTS_OPTION,
+    force: bool = FORCE_OPTION,
+    max_issues: int | None = MAX_ISSUES_OPTION,
+    delay: float = DELAY_OPTION,
+    data_dir: str | None = DATA_DIR_OPTION,
 ) -> None:
     """Update GitHub issue labels based on AI recommendations.
 
