@@ -331,7 +331,9 @@ uv run ruff check --fix --unsafe-fixes && uv run black . && uv run mypy . && uv 
 
 # Individual tools
 uv run ruff check --fix --unsafe-fixes  # Code quality and imports
-uv run black .                          # Code formatting
+uv run black .                          # Code formatting (automatically applies fixes - DO NOT manually edit files for formatting)
 uv run mypy .                           # Type checking
 uv run pytest                          # Run tests
 ```
+
+**IMPORTANT**: Black automatically applies formatting fixes. Agents should **NOT** manually make formatting changes. Only intervene if Black fails with actual errors (syntax errors, etc.).
