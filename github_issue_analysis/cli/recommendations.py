@@ -21,7 +21,8 @@ console = Console()
 app = typer.Typer(
     help="Manage AI recommendation review workflow. Use 'discover' to find new "
     "recommendations, 'list' to view them, 'summary' for statistics, and "
-    "'review-session' for interactive review."
+    "'review-session' for interactive review.",
+    context_settings={"help_option_names": ["-h", "--help"]},
 )
 
 

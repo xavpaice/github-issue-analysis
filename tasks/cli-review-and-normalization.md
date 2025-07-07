@@ -1,6 +1,6 @@
 # Task: CLI Review and Normalization
 
-**Status:** planning
+**Status:** complete
 
 **Description:**
 Standardize CLI option patterns across all commands to ensure consistent shorthand options and prevent future drift. Currently, shorthand options like `-o` only work on some commands, `-h` for `--help` needs verification, and the `update-labels` command lacks any shorthand options. Create a unified CLI option standard with enforcement mechanisms to maintain consistency.

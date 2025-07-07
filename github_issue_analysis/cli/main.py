@@ -8,19 +8,32 @@ from .collect import collect, status
 from .update import update_labels
 
 app = typer.Typer(
-    name="github-analysis", help="GitHub issue collection and AI analysis"
+    name="github-analysis",
+    help="GitHub issue collection and AI analysis",
+    add_completion=False,
+    context_settings={"help_option_names": ["-h", "--help"]},
 )
 console = Console()
 
-app.command()(collect)
-app.command()(status)
-app.command(name="update-labels")(update_labels)
+
+# All commands including main command support -h shorthand via context_settings
+
+
+app.command(name="collect", context_settings={"help_option_names": ["-h", "--help"]})(
+    collect
+)
+app.command(name="status", context_settings={"help_option_names": ["-h", "--help"]})(
+    status
+)
+app.command(
+    name="update-labels", context_settings={"help_option_names": ["-h", "--help"]}
+)(update_labels)
 app.add_typer(process.app, name="process")
 app.add_typer(batch.app, name="batch")
 app.add_typer(recommendations.app, name="recommendations")
 
 
-@app.command()
+@app.command(context_settings={"help_option_names": ["-h", "--help"]})
 def version() -> None:
     """Show version information."""
     from github_issue_analysis import __version__

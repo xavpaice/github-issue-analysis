@@ -11,8 +11,23 @@ from ..ai.batch.batch_manager import BatchManager
 from ..ai.capabilities import validate_thinking_configuration
 from ..ai.config import build_ai_config
 from ..recommendation.manager import RecommendationManager
+from .options import (
+    DRY_RUN_OPTION,
+    FORCE_OPTION,
+    INCLUDE_IMAGES_OPTION,
+    ISSUE_NUMBER_OPTION,
+    MODEL_OPTION,
+    ORG_OPTION,
+    REPO_OPTION,
+    REPROCESS_OPTION,
+    THINKING_BUDGET_OPTION,
+    THINKING_EFFORT_OPTION,
+)
 
-app = typer.Typer(help="Batch processing commands")
+app = typer.Typer(
+    help="Batch processing commands",
+    context_settings={"help_option_names": ["-h", "--help"]},
+)
 console = Console()
 
 
@@ -21,34 +36,15 @@ def submit(
     processor_type: str = typer.Argument(
         help="Processor type (e.g., 'product-labeling')"
     ),
-    org: str | None = typer.Option(
-        None, "--org", "-o", help="GitHub organization name"
-    ),
-    repo: str | None = typer.Option(
-        None, "--repo", "-r", help="GitHub repository name"
-    ),
-    issue_number: int | None = typer.Option(
-        None, "--issue-number", help="Specific issue number to process"
-    ),
-    model: str | None = typer.Option(
-        None, help="AI model to use (e.g., 'openai:gpt-4o-mini')"
-    ),
-    thinking_effort: str | None = typer.Option(
-        None,
-        help="Reasoning effort level for thinking models (low, medium, high)",
-    ),
-    thinking_budget: int | None = typer.Option(
-        None, help="Thinking token budget for Anthropic/Google models"
-    ),
-    include_images: bool = typer.Option(
-        True, help="Include image analysis (use --no-include-images to disable)"
-    ),
-    dry_run: bool = typer.Option(
-        False, help="Show what would be processed without submitting batch"
-    ),
-    reprocess: bool = typer.Option(
-        False, help="Force reprocessing of issues that have already been reviewed"
-    ),
+    org: str | None = ORG_OPTION,
+    repo: str | None = REPO_OPTION,
+    issue_number: int | None = ISSUE_NUMBER_OPTION,
+    model: str | None = MODEL_OPTION,
+    thinking_effort: str | None = THINKING_EFFORT_OPTION,
+    thinking_budget: int | None = THINKING_BUDGET_OPTION,
+    include_images: bool = INCLUDE_IMAGES_OPTION,
+    dry_run: bool = DRY_RUN_OPTION,
+    reprocess: bool = REPROCESS_OPTION,
 ) -> None:
     """Submit a batch processing job for cost-effective AI analysis."""
     try:
@@ -520,7 +516,7 @@ async def _run_batch_cancel(job_id: str) -> None:
 @app.command()
 def remove(
     job_id: str = typer.Argument(help="Batch job ID to remove (supports partial IDs)"),
-    force: bool = typer.Option(False, "--force", help="Skip confirmation prompts"),
+    force: bool = FORCE_OPTION,
 ) -> None:
     """Remove a batch job record and associated files."""
     try:
