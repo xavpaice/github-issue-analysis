@@ -165,21 +165,18 @@ class TestCommentGenerator:
         assert "Found 2 issue(s) that need label updates:" in summary
         assert "**Issue #123 (test-org/test-repo)**" in summary
         assert "**Issue #456 (test-org/test-repo)**" in summary
-        assert "Overall confidence: 0.88" in summary
-        assert "Overall confidence: 0.82" in summary
+        assert "Recommendation confidence: 0.88" in summary
+        assert "Recommendation confidence: 0.82" in summary
 
         # Check that reasoning is included with changes
         assert (
-            "+ product::vendor (confidence: 0.92) - Issue concerns vendor portal "
-            "functionality"
+            "+ product::vendor - Issue concerns vendor portal " "functionality"
         ) in summary
         assert (
-            "+ product::troubleshoot (confidence: 0.85) - Contains troubleshooting "
-            "request"
+            "+ product::troubleshoot - Contains troubleshooting " "request"
         ) in summary
         assert (
-            "- product::kots (confidence: 0.78) - Analysis indicates this is not "
-            "KOTS-related"
+            "- product::kots - Analysis indicates this is not " "KOTS-related"
         ) in summary
 
         # Check that GitHub comment previews are included

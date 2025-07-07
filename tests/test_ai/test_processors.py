@@ -35,11 +35,10 @@ def sample_issue_data() -> dict[str, Any]:
 def sample_kots_response() -> ProductLabelingResponse:
     """Sample ProductLabelingResponse for KOTS issue."""
     return ProductLabelingResponse(
-        confidence=0.9,
+        recommendation_confidence=0.9,
         recommended_labels=[
             RecommendedLabel(
                 label=ProductLabel.KOTS,
-                confidence=0.9,
                 reasoning="Issue clearly mentions kotsadm admin interface",
             )
         ],
@@ -72,10 +71,9 @@ async def test_product_labeling_basic(
 
         # Verify the response structure
         assert isinstance(result, ProductLabelingResponse)
-        assert result.confidence == 0.9
+        assert result.recommendation_confidence == 0.9
         assert len(result.recommended_labels) == 1
         assert result.recommended_labels[0].label == ProductLabel.KOTS
-        assert result.recommended_labels[0].confidence == 0.9
         assert "kotsadm" in result.recommended_labels[0].reasoning.lower()
 
 
@@ -86,16 +84,14 @@ async def test_multiple_product_labels() -> None:
 
     # Mock response for issue affecting both KOTS and embedded-cluster
     mock_response = ProductLabelingResponse(
-        confidence=0.85,
+        recommendation_confidence=0.85,
         recommended_labels=[
             RecommendedLabel(
                 label=ProductLabel.EMBEDDED_CLUSTER,
-                confidence=0.9,
                 reasoning="Issue involves cluster installation and k0s setup",
             ),
             RecommendedLabel(
                 label=ProductLabel.KOTS,
-                confidence=0.8,
                 reasoning="Issue also affects KOTS installation within the cluster",
             ),
         ],
@@ -340,11 +336,10 @@ class TestPydanticAIIntegration:
         # Mock the agent.run response
         mock_response = MagicMock()
         mock_response.data = ProductLabelingResponse(
-            confidence=0.95,
+            recommendation_confidence=0.95,
             recommended_labels=[
                 RecommendedLabel(
                     label=ProductLabel.KOTS,
-                    confidence=0.95,
                     reasoning="Issue involves KOTS admin console with thinking",
                 )
             ],
@@ -380,7 +375,7 @@ class TestPydanticAIIntegration:
 
         # Verify result
         assert isinstance(result, ProductLabelingResponse)
-        assert result.confidence == 0.95
+        assert result.recommendation_confidence == 0.95
         assert "thinking" in result.reasoning.lower()
 
     @pytest.mark.asyncio
@@ -395,7 +390,7 @@ class TestPydanticAIIntegration:
         # Mock successful multimodal response
         mock_response = MagicMock()
         mock_response.data = ProductLabelingResponse(
-            confidence=0.9,
+            recommendation_confidence=0.9,
             recommended_labels=[],
             current_labels_assessment=[],
             summary="Multimodal analysis with thinking",
