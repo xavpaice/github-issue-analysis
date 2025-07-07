@@ -4,6 +4,7 @@ Think very carefully about this task planning request. I need you to:
    - docs/architecture.md
    - docs/data-schemas.md  
    - docs/api-reference.md
+   - docs/cli-reference.md
    - CLAUDE.md for development patterns
 
 2. **Consider the task requirements critically**:
