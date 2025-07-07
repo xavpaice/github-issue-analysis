@@ -20,10 +20,9 @@ class ProductLabel(str, Enum):
 
 
 class RecommendedLabel(BaseModel):
-    """A recommended product label with confidence and reasoning."""
+    """A recommended product label with reasoning (no individual confidence)."""
 
     label: ProductLabel
-    confidence: float = Field(ge=0.0, le=1.0, description="Confidence score 0-1")
     reasoning: str = Field(description="Explanation for this recommendation")
 
 
@@ -56,8 +55,13 @@ class ProductLabelingResponse(BaseModel):
         description="Root cause analysis of the issue. "
         "State 'Root cause unclear' if unable to determine.",
     )
-    confidence: float = Field(
-        ge=0.0, le=1.0, description="Overall confidence in analysis"
+    root_cause_confidence: float | None = Field(
+        default=None,
+        description="Confidence in identified root cause (0-1). "
+        "Only provide if a specific root cause is defined.",
+    )
+    recommendation_confidence: float = Field(
+        description="Overall confidence in the complete label recommendation (0-1)"
     )
     recommended_labels: list[RecommendedLabel] = Field(
         description="Suggested product labels"

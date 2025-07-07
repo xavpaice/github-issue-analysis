@@ -69,11 +69,10 @@ def sample_data_dir(temp_data_dir: Path) -> Path:
 
     # Sample AI result data
     ai_result_data = {
-        "confidence": 0.9,
+        "recommendation_confidence": 0.9,
         "recommended_labels": [
             {
                 "label": "product::vendor",
-                "confidence": 0.85,
                 "reasoning": "Issue is about vendor portal functionality",
             }
         ],

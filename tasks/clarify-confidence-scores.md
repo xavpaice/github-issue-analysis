@@ -1,6 +1,6 @@
 # Task: Clarify Confidence Scores
 
-**Status:** planning
+**Status:** complete
 
 **Description:**
 Simplify and standardize the confidence scoring system to provide clear, consistent confidence metrics for AI-driven label recommendations. The current system has multiple confidence scores with unclear meanings and inconsistent usage. This task will implement a unified confidence model with at most 2 confidence scores: optional root cause confidence and required overall recommendation confidence.

@@ -50,11 +50,11 @@ def sample_issue() -> GitHubIssue:
 def sample_ai_result() -> ProductLabelingResponse:
     """Sample AI result for testing."""
     return ProductLabelingResponse(
-        confidence=0.9,
+        recommendation_confidence=0.9,
+        root_cause_confidence=0.8,
         recommended_labels=[
             RecommendedLabel(
                 label=ProductLabel.VENDOR,
-                confidence=0.85,
                 reasoning="Issue is about vendor portal functionality",
             ),
         ],
@@ -95,19 +95,17 @@ class TestChangeDetector:
             sample_issue, sample_ai_result, "test-org", "test-repo"
         )
 
-        # Should add vendor label (confidence 0.85 > 0.8)
+        # Should add vendor label (overall confidence 0.9 > 0.8)
         additions = [c for c in plan.changes if c.action == "add"]
         assert len(additions) == 1
         assert additions[0].label == "product::vendor"
-        assert additions[0].confidence == 0.85
+        assert additions[0].confidence == 0.9  # Uses overall confidence
 
     def test_detect_changes_remove_labels(
         self, sample_issue: GitHubIssue, sample_ai_result: ProductLabelingResponse
     ) -> None:
         """Test detecting label removals."""
-        detector = ChangeDetector(
-            min_confidence=0.7
-        )  # Lower threshold so removal passes (0.9 * 0.8 = 0.72)
+        detector = ChangeDetector(min_confidence=0.8)
         plan = detector.detect_changes(
             sample_issue, sample_ai_result, "test-org", "test-repo"
         )
@@ -116,29 +114,46 @@ class TestChangeDetector:
         removals = [c for c in plan.changes if c.action == "remove"]
         assert len(removals) == 1
         assert removals[0].label == "product::kots"
+        assert removals[0].confidence == 0.9  # Uses overall confidence
 
     def test_detect_changes_confidence_filtering(
         self, sample_issue: GitHubIssue, sample_ai_result: ProductLabelingResponse
     ) -> None:
         """Test that low confidence recommendations are filtered out."""
-        detector = ChangeDetector(min_confidence=0.9)  # Higher threshold
+        detector = ChangeDetector(min_confidence=0.95)  # Higher threshold
         plan = detector.detect_changes(
             sample_issue, sample_ai_result, "test-org", "test-repo"
         )
 
-        # Should not add vendor label (confidence 0.85 < 0.9)
-        additions = [c for c in plan.changes if c.action == "add"]
-        assert len(additions) == 0
+        # Should not make any changes (overall confidence 0.9 < 0.95)
+        assert len(plan.changes) == 0
+        assert not plan.needs_update
+
+    def test_low_confidence_skips_all_changes(
+        self, sample_issue: GitHubIssue, sample_ai_result: ProductLabelingResponse
+    ) -> None:
+        """Test that low overall confidence skips all changes."""
+        # Modify AI result to have low confidence
+        sample_ai_result.recommendation_confidence = 0.5
+
+        detector = ChangeDetector(min_confidence=0.8)
+        plan = detector.detect_changes(
+            sample_issue, sample_ai_result, "test-org", "test-repo"
+        )
+
+        # Should not make any changes due to low overall confidence
+        assert len(plan.changes) == 0
+        assert not plan.needs_update
+        assert plan.overall_confidence == 0.5
 
     def test_detect_changes_no_changes_needed(self, sample_issue: GitHubIssue) -> None:
         """Test when no changes are needed."""
         # AI result that matches current labels
         ai_result = ProductLabelingResponse(
-            confidence=0.9,
+            recommendation_confidence=0.9,
             recommended_labels=[
                 RecommendedLabel(
                     label=ProductLabel.KOTS,
-                    confidence=0.9,
                     reasoning="Issue is about KOTS",
                 )
             ],
@@ -195,6 +210,21 @@ class TestChangeDetector:
         )
 
         assert not detector._should_remove_label(assessment_short, recommendations)
+
+        # Should not remove when recommendation suggests keeping it
+        assessment_keep = LabelAssessment(
+            label="product::kots",
+            correct=False,
+            reasoning="This label might be incorrect",
+        )
+        recommendations_keep = [
+            RecommendedLabel(
+                label=ProductLabel.KOTS,
+                reasoning="Actually this is correct",
+            )
+        ]
+
+        assert not detector._should_remove_label(assessment_keep, recommendations_keep)
 
     def test_find_matching_files(self, temp_data_dir: Path) -> None:
         """Test finding matching issue and result files."""

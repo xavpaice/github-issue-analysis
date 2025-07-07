@@ -92,11 +92,10 @@ async def test_image_processing_improves_classification(
 
         # Mock AI response indicating image helped with classification
         mock_response = ProductLabelingResponse(
-            confidence=0.95,
+            recommendation_confidence=0.95,
             recommended_labels=[
                 RecommendedLabel(
                     label=ProductLabel.KOTS,
-                    confidence=0.95,
                     reasoning="Screenshot clearly shows KOTS admin console interface",
                 )
             ],
@@ -133,7 +132,7 @@ async def test_image_processing_improves_classification(
             )
 
             # Verify image analysis improved classification
-            assert result.confidence == 0.95
+            assert result.recommendation_confidence == 0.95
             assert len(result.images_analyzed) == 1
             assert result.images_analyzed[0].filename == "screenshot.png"
             assert "KOTS admin console" in result.images_analyzed[0].description
@@ -159,11 +158,10 @@ async def test_image_processing_disabled() -> None:
 
     # Mock response without images
     mock_response = ProductLabelingResponse(
-        confidence=0.8,
+        recommendation_confidence=0.8,
         recommended_labels=[
             RecommendedLabel(
                 label=ProductLabel.KOTS,
-                confidence=0.8,
                 reasoning="Based on text analysis only",
             )
         ],
@@ -195,16 +193,14 @@ async def test_multiple_products_with_images() -> None:
 
     # Mock response showing issue affects both products
     mock_response = ProductLabelingResponse(
-        confidence=0.9,
+        recommendation_confidence=0.9,
         recommended_labels=[
             RecommendedLabel(
                 label=ProductLabel.EMBEDDED_CLUSTER,
-                confidence=0.85,
                 reasoning="Cluster setup logs visible in screenshot",
             ),
             RecommendedLabel(
                 label=ProductLabel.KOTS,
-                confidence=0.95,
                 reasoning="KOTS admin interface shown in second screenshot",
             ),
         ],
@@ -438,7 +434,7 @@ async def test_processor_handles_image_loading_failure(
 
         # Should still work but without images
         mock_response = ProductLabelingResponse(
-            confidence=0.7,
+            recommendation_confidence=0.7,
             recommended_labels=[],
             current_labels_assessment=[],
             summary="Fallback analysis",

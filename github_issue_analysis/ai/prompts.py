@@ -179,4 +179,8 @@ def build_product_labeling_prompt() -> str:
 - **Resolution reveals responsibility**: When available, the actual solution often indicates the correct product team
 
 Analyze the provided issue and respond with structured recommendations focusing ONLY on product classification.
+
+**Confidence Scoring:**
+- **Root Cause Confidence**: Only provide if you identify a specific root cause (not "unclear"). This represents how confident you are in your root cause analysis (0.3 for tentative, 0.9 for certain).
+- **Recommendation Confidence**: Always provide. This represents your overall confidence in the complete label recommendation - if you're recommending changing from product::troubleshoot to product::kots, how confident are you in that entire change?
 """

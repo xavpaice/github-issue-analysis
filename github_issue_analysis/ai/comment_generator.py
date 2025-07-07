@@ -70,6 +70,18 @@ class CommentGenerator:
         # Add confidence level
         lines.append(f"**Confidence Level**: {plan.overall_confidence:.0%}")
 
+        # Add root cause confidence if available
+        if (
+            hasattr(plan, "ai_result")
+            and plan.ai_result
+            and hasattr(plan.ai_result, "root_cause_confidence")
+            and plan.ai_result.root_cause_confidence is not None
+        ):
+            lines.append(
+                f"**Root Cause Confidence**: "
+                f"{plan.ai_result.root_cause_confidence:.0%}"
+            )
+
         # Add image analysis context if available
         if (
             hasattr(plan, "ai_result")
@@ -103,26 +115,33 @@ class CommentGenerator:
 
         for plan in plans:
             lines.append(f"**Issue #{plan.issue_number} ({plan.org}/{plan.repo})**")
-            lines.append(f"Overall confidence: {plan.overall_confidence:.2f}")
+            lines.append(f"Recommendation confidence: {plan.overall_confidence:.2f}")
 
+            # Show root cause confidence if available
+            if (
+                hasattr(plan, "ai_result")
+                and plan.ai_result
+                and hasattr(plan.ai_result, "root_cause_confidence")
+                and plan.ai_result.root_cause_confidence is not None
+            ):
+                lines.append(
+                    f"Root cause confidence: "
+                    f"{plan.ai_result.root_cause_confidence:.2f}"
+                )
+
+            # Show changes without individual confidence scores
             additions = [c for c in plan.changes if c.action == "add"]
             removals = [c for c in plan.changes if c.action == "remove"]
 
             if additions:
                 lines.append("  Add:")
                 for change in additions:
-                    lines.append(
-                        f"    + {change.label} (confidence: {change.confidence:.2f}) - "
-                        f"{change.reason}"
-                    )
+                    lines.append(f"    + {change.label} - {change.reason}")
 
             if removals:
                 lines.append("  Remove:")
                 for change in removals:
-                    lines.append(
-                        f"    - {change.label} (confidence: {change.confidence:.2f}) - "
-                        f"{change.reason}"
-                    )
+                    lines.append(f"    - {change.label} - {change.reason}")
 
             # Add GitHub comment preview
             comment = self.generate_update_comment(plan)

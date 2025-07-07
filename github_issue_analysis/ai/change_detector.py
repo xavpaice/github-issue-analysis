@@ -67,41 +67,47 @@ class ChangeDetector:
         current_labels = {label.name for label in issue.labels}
         changes: list[LabelChange] = []
 
+        # Use unified confidence filtering
+        if ai_result.recommendation_confidence < self.min_confidence:
+            # Skip all changes if overall confidence is too low
+            return IssueUpdatePlan(
+                org=org,
+                repo=repo,
+                issue_number=issue.number,
+                changes=[],
+                overall_confidence=ai_result.recommendation_confidence,
+                needs_update=False,
+                comment_summary="",
+                ai_result=ai_result,
+            )
+
         # Process recommended additions
         for recommendation in ai_result.recommended_labels:
-            if recommendation.confidence >= self.min_confidence:
-                if recommendation.label.value not in current_labels:
-                    changes.append(
-                        LabelChange(
-                            action="add",
-                            label=recommendation.label.value,
-                            reason=recommendation.reasoning,
-                            confidence=recommendation.confidence,
-                        )
+            if recommendation.label.value not in current_labels:
+                changes.append(
+                    LabelChange(
+                        action="add",
+                        label=recommendation.label.value,
+                        reason=recommendation.reasoning,
+                        confidence=ai_result.recommendation_confidence,
                     )
+                )
 
         # Process recommended removals based on assessment
         for assessment in ai_result.current_labels_assessment:
             if (
                 not assessment.correct
                 and assessment.label in current_labels
-                and
-                # Only remove if we have high confidence it's wrong
-                self._should_remove_label(assessment, ai_result.recommended_labels)
+                and self._should_remove_label(assessment, ai_result.recommended_labels)
             ):
-                # Calculate removal confidence and check against threshold
-                removal_confidence = self._estimate_removal_confidence(
-                    assessment, ai_result
-                )
-                if removal_confidence >= self.min_confidence:
-                    changes.append(
-                        LabelChange(
-                            action="remove",
-                            label=assessment.label,
-                            reason=assessment.reasoning,
-                            confidence=removal_confidence,
-                        )
+                changes.append(
+                    LabelChange(
+                        action="remove",
+                        label=assessment.label,
+                        reason=assessment.reasoning,
+                        confidence=ai_result.recommendation_confidence,
                     )
+                )
 
         needs_update = len(changes) > 0
         comment_summary = (
@@ -113,7 +119,7 @@ class ChangeDetector:
             repo=repo,
             issue_number=issue.number,
             changes=changes,
-            overall_confidence=ai_result.confidence,
+            overall_confidence=ai_result.recommendation_confidence,
             needs_update=needs_update,
             comment_summary=comment_summary,
             ai_result=ai_result,
@@ -127,30 +133,16 @@ class ChangeDetector:
 
         We only remove labels if:
         1. The assessment says it's incorrect
-        2. No high-confidence recommendation suggests keeping it
+        2. No recommendation suggests keeping it
         3. The assessment reasoning is specific enough
         """
-        # Check if any high-confidence recommendation suggests this label
+        # Check if any recommendation suggests this label
         for rec in recommendations:
-            if (
-                rec.label.value == assessment.label
-                and rec.confidence >= self.min_confidence
-            ):
+            if rec.label.value == assessment.label:
                 return False
 
         # Only remove if the reasoning is substantial (not just uncertain)
         return len(assessment.reasoning.strip()) > 20
-
-    def _estimate_removal_confidence(
-        self, assessment: LabelAssessment, ai_result: ProductLabelingResponse
-    ) -> float:
-        """Estimate confidence for removing a label.
-
-        Base it on overall AI confidence but cap it lower since removal
-        is more risky than addition.
-        """
-        base_confidence = ai_result.confidence * 0.8  # Be more conservative
-        return min(base_confidence, 0.9)  # Cap at 0.9 for removals
 
     def _generate_comment_summary(
         self, changes: list[LabelChange], ai_result: ProductLabelingResponse
