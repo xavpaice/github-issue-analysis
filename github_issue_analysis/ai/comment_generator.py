@@ -114,7 +114,8 @@ class CommentGenerator:
         lines.append("")
 
         for plan in plans:
-            lines.append(f"**Issue #{plan.issue_number} ({plan.org}/{plan.repo})**")
+            issue_url = f"{plan.org}/{plan.repo}/issues/{plan.issue_number}"
+            lines.append(f"**Issue #{plan.issue_number} ({issue_url})**")
             lines.append(f"Recommendation confidence: {plan.overall_confidence:.2f}")
 
             # Show root cause confidence if available

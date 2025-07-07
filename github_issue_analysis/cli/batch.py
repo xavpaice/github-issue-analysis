@@ -1,6 +1,7 @@
 """Batch processing commands for cost-effective AI analysis."""
 
 import asyncio
+from pathlib import Path
 
 import typer
 from rich.console import Console
@@ -9,6 +10,7 @@ from rich.table import Table
 from ..ai.batch.batch_manager import BatchManager
 from ..ai.capabilities import validate_thinking_configuration
 from ..ai.config import build_ai_config
+from ..recommendation.manager import RecommendationManager
 
 app = typer.Typer(help="Batch processing commands")
 console = Console()
@@ -44,6 +46,9 @@ def submit(
     dry_run: bool = typer.Option(
         False, help="Show what would be processed without submitting batch"
     ),
+    reprocess: bool = typer.Option(
+        False, help="Force reprocessing of issues that have already been reviewed"
+    ),
 ) -> None:
     """Submit a batch processing job for cost-effective AI analysis."""
     try:
@@ -62,6 +67,7 @@ def submit(
                 thinking_budget,
                 include_images,
                 dry_run,
+                reprocess,
             )
         )
     except ValueError as e:
@@ -82,6 +88,7 @@ async def _run_batch_submit(
     thinking_budget: int | None,
     include_images: bool,
     dry_run: bool,
+    reprocess: bool,
 ) -> None:
     """Run batch submission."""
 
@@ -122,6 +129,39 @@ async def _run_batch_submit(
     except Exception as e:
         console.print(f"[red]Error finding issues: {e}[/red]")
         return
+
+    # Filter issues based on recommendation status
+    if not reprocess:
+        recommendation_manager = RecommendationManager(Path("data"))
+        filtered_issues = []
+        skipped_count = 0
+
+        for issue_data in issues:
+            issue_org = issue_data["org"]
+            issue_repo = issue_data["repo"]
+            issue_num = issue_data["issue"]["number"]
+
+            if recommendation_manager.should_reprocess_issue(
+                issue_org, issue_repo, issue_num, force_reprocess=False
+            ):
+                filtered_issues.append(issue_data)
+            else:
+                skipped_count += 1
+
+        if skipped_count > 0:
+            console.print(
+                f"[yellow]Filtered out {skipped_count} already-reviewed issues "
+                "(use --reprocess to include them)[/yellow]"
+            )
+
+        issues = filtered_issues
+
+        if not issues:
+            console.print(
+                "[yellow]No issues to process after filtering. "
+                "Use --reprocess to include reviewed issues.[/yellow]"
+            )
+            return
 
     # Show what would be processed
     console.print(f"[blue]Found {len(issues)} issue(s) to process[/blue]")
@@ -173,6 +213,7 @@ async def _run_batch_submit(
             repo=repo,
             issue_number=issue_number,
             model_config=ai_config,
+            issues=issues,  # Pass pre-filtered issues
         )
 
         console.print("[green]✓ Batch job submitted successfully![/green]")

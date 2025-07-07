@@ -2,6 +2,7 @@
 
 import asyncio
 import json
+import os
 from datetime import datetime
 from pathlib import Path
 
@@ -11,6 +12,7 @@ from rich.console import Console
 from ..ai.capabilities import validate_thinking_configuration
 from ..ai.config import build_ai_config
 from ..ai.processors import ProductLabelingProcessor
+from ..recommendation.manager import RecommendationManager
 
 app = typer.Typer(help="AI processing commands")
 console = Console()
@@ -43,6 +45,9 @@ def product_labeling(
     dry_run: bool = typer.Option(
         False, help="Show what would be processed without running AI"
     ),
+    reprocess: bool = typer.Option(
+        False, help="Force reprocessing of issues that have already been reviewed"
+    ),
 ) -> None:
     """Analyze GitHub issues for product labeling recommendations with optional
     image processing."""
@@ -61,6 +66,7 @@ def product_labeling(
                 thinking_budget,
                 include_images,
                 dry_run,
+                reprocess,
             )
         )
     except ValueError as e:
@@ -77,11 +83,14 @@ async def _run_product_labeling(
     thinking_budget: int | None,
     include_images: bool,
     dry_run: bool,
+    reprocess: bool,
 ) -> None:
     """Run product labeling analysis."""
 
     # Find issue files to process
-    data_dir = Path("data/issues")
+    # Allow override via environment variable for testing
+    base_data_dir = Path(os.environ.get("GITHUB_ANALYSIS_DATA_DIR", "data"))
+    data_dir = base_data_dir / "issues"
     if not data_dir.exists():
         console.print(
             "[red]No issues directory found. Run collect command first.[/red]"
@@ -161,17 +170,36 @@ async def _run_product_labeling(
         f"[blue]Image processing: {'enabled' if include_images else 'disabled'}[/blue]"
     )
 
+    # Initialize recommendation manager for filtering
+    recommendation_manager = RecommendationManager(base_data_dir)
+
     # Process each issue
-    results_dir = Path("data/results")
+    results_dir = base_data_dir / "results"
     results_dir.mkdir(exist_ok=True)
 
+    skipped_count = 0
     for file_path in issue_files:
         try:
-            console.print(f"Processing {file_path.name}...")
-
-            # Load issue data
+            # Load issue data to check if we should process it
             with open(file_path) as f:
                 issue_data = json.load(f)
+
+            # Check if issue should be reprocessed
+            issue_org = issue_data["org"]
+            issue_repo = issue_data["repo"]
+            issue_num = issue_data["issue"]["number"]
+
+            if not recommendation_manager.should_reprocess_issue(
+                issue_org, issue_repo, issue_num, reprocess
+            ):
+                console.print(
+                    f"[yellow]Skipping {file_path.name} - already reviewed "
+                    "(use --reprocess to override)[/yellow]"
+                )
+                skipped_count += 1
+                continue
+
+            console.print(f"Processing {file_path.name}...")
 
             # Check for images if enabled
             if include_images:
@@ -219,6 +247,15 @@ async def _run_product_labeling(
         except Exception as e:
             console.print(f"[red]✗ Failed to process {file_path.name}: {e}[/red]")
             continue
+
+    # Show summary if any were skipped
+    if skipped_count > 0:
+        total_count = len(issue_files)
+        processed_count = total_count - skipped_count
+        console.print(
+            f"\n[blue]Summary: Processed {processed_count}/{total_count} issues "
+            f"({skipped_count} skipped due to existing reviews)[/blue]"
+        )
 
 
 if __name__ == "__main__":

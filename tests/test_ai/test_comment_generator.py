@@ -163,8 +163,8 @@ class TestCommentGenerator:
 
         # Check basic structure
         assert "Found 2 issue(s) that need label updates:" in summary
-        assert "**Issue #123 (test-org/test-repo)**" in summary
-        assert "**Issue #456 (test-org/test-repo)**" in summary
+        assert "**Issue #123 (test-org/test-repo/issues/123)**" in summary
+        assert "**Issue #456 (test-org/test-repo/issues/456)**" in summary
         assert "Recommendation confidence: 0.88" in summary
         assert "Recommendation confidence: 0.82" in summary
 

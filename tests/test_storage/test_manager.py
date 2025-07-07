@@ -260,7 +260,7 @@ class TestStorageManager:
         # Mock file operations to raise an exception
         original_open = open
 
-        def mock_open(*args, **kwargs):  # type: ignore[no-untyped-def]
+        def mock_open(*args, **kwargs):
             if "w" in str(args[1]):
                 raise OSError("Disk full")
             return original_open(*args, **kwargs)

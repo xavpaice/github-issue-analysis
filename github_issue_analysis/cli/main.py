@@ -3,7 +3,7 @@
 import typer
 from rich.console import Console
 
-from . import batch, process
+from . import batch, process, recommendations
 from .collect import collect, status
 from .update import update_labels
 
@@ -17,6 +17,7 @@ app.command()(status)
 app.command(name="update-labels")(update_labels)
 app.add_typer(process.app, name="process")
 app.add_typer(batch.app, name="batch")
+app.add_typer(recommendations.app, name="recommendations")
 
 
 @app.command()
