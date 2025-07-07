@@ -327,7 +327,7 @@ uv run github-analysis process product-labeling --model o4-mini --thinking-effor
 uv sync --all-extras
 
 # Code quality (run all four - required before commit)
-uv run ruff check --fix --unsafe-fixes && uv run black . && uv run mypy . && uv run pytest
+uv run black . && uv run ruff check --fix --unsafe-fixes && uv run mypy . && uv run pytest
 
 # Individual tools
 uv run ruff check --fix --unsafe-fixes  # Code quality and imports
