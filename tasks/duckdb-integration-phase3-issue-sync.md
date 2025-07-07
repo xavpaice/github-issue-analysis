@@ -1015,7 +1015,7 @@ uv run github-analysis query sql "SELECT sync_type, COUNT(*) FROM sync_history G
 uv run pytest tests/test_sync/ -v
 
 # 13. Quality checks
-uv run ruff check --fix --unsafe-fixes && uv run black . && uv run mypy . && uv run pytest
+uv run black . && uv run ruff check --fix --unsafe-fixes && uv run mypy . && uv run pytest
 ```
 
 ## Acceptance Criteria

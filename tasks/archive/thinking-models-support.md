@@ -146,7 +146,7 @@ uv run github-analysis process product-labeling \
 # Should work exactly as before
 
 # Run all tests
-uv run ruff check --fix --unsafe-fixes && uv run black . && uv run mypy . && uv run pytest
+uv run black . && uv run ruff check --fix --unsafe-fixes && uv run mypy . && uv run pytest
 ```
 
 **Files to Create/Modify:**

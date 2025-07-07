@@ -239,7 +239,7 @@ uv run github-analysis collect --org replicated-collab --repo pixee-replicated -
 - Maintain strict type checking with mypy
 - Follow existing code patterns and conventions
 - Ensure proper error messages help users troubleshoot issues
-- All quality checks must pass: `uv run ruff check --fix && uv run black . && uv run mypy . && uv run pytest`
+- All quality checks must pass: `uv run black . && uv run ruff check --fix && uv run mypy . && uv run pytest`
 
 ## Dependencies
 

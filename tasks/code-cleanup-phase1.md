@@ -130,7 +130,7 @@ def _handle_rate_limit_retry(self, func_name: str, *args, **kwargs):
 - [ ] `cli/collect.py:collect()` function reduced to < 50 lines with helper functions
 - [ ] `cli/process.py:_run_product_labeling()` function reduced to < 50 lines with helper functions
 - [ ] All existing tests pass
-- [ ] Code quality checks pass: `uv run ruff check --fix --unsafe-fixes && uv run black . && uv run mypy . && uv run pytest`
+- [ ] Code quality checks pass: `uv run black . && uv run ruff check --fix --unsafe-fixes && uv run mypy . && uv run pytest`
 - [ ] No new linting suppressions added
 - [ ] Function complexity reduced (verified by tools like `radon` if available)
 
