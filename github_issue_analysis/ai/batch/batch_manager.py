@@ -105,8 +105,9 @@ class BatchManager:
         repo: str | None = None,
         issue_number: int | None = None,
         model_config: AIModelConfig | None = None,
+        issues: list[dict[str, Any]] | None = None,
     ) -> BatchJob:
-        """Create batch job using standard filtering options.
+        """Create batch job using standard filtering options or pre-filtered issues.
 
         Args:
             processor_type: Type of processor (e.g., 'product-labeling')
@@ -114,6 +115,7 @@ class BatchManager:
             repo: GitHub repository name (optional)
             issue_number: Specific issue number (optional)
             model_config: AI model configuration
+            issues: Pre-filtered list of issues (optional)
 
         Returns:
             Created batch job
@@ -123,8 +125,9 @@ class BatchManager:
 
             model_config = build_ai_config()
 
-        # Find issues to process
-        issues = self.find_issues(org, repo, issue_number)
+        # Use provided issues or find them
+        if issues is None:
+            issues = self.find_issues(org, repo, issue_number)
 
         if not issues:
             if issue_number:

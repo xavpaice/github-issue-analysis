@@ -55,3 +55,8 @@ markers = [
 python_version = "3.12"
 strict = true
 
+[[tool.mypy.overrides]]
+module = "tests.*"
+disallow_untyped_defs = false
+check_untyped_defs = true
+
