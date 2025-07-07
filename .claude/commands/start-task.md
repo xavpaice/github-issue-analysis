@@ -13,6 +13,7 @@ Think very carefully about starting this task. I need you to:
    - Implementing comprehensive tests
    - Adding proper type annotations
    - Following the quality standards in CLAUDE.md
+   - Document your progress in the task as you go
 
 4. **Use the todo system** to track your progress through the implementation
 
