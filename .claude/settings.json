@@ -32,5 +32,18 @@
       "WebFetch(domain:docs.github.com)",
       "WebFetch(domain:github.com)"
     ]
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/python_quality_check.sh"
+          }
+        ]
+      }
+    ]
   }
 }
