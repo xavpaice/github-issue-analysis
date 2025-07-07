@@ -16,7 +16,7 @@ The current CLAUDE.md documentation does NOT mention that Black automatically ap
 - [ ] Ensure consistent messaging across all documentation
 
 **Specific Commands to Use:**
-- **Quality Check Command:** `uv run ruff check --fix --unsafe-fixes && uv run black . && uv run mypy . && uv run pytest`
+- **Quality Check Command:** `uv run black . && uv run ruff check --fix --unsafe-fixes && uv run mypy . && uv run pytest`
 - **Individual Black Command:** `uv run black .` (automatically applies fixes)
 - **Check-only (for verification):** `uv run black --check .` (only when explicitly needed for validation)
 

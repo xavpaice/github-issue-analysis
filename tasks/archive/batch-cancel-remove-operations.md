@@ -182,7 +182,7 @@ uv run github-analysis batch cancel nonexistent-job
 uv run github-analysis batch remove nonexistent-job
 
 # Run all tests
-uv run ruff check --fix --unsafe-fixes && uv run black . && uv run mypy . && uv run pytest
+uv run black . && uv run ruff check --fix --unsafe-fixes && uv run mypy . && uv run pytest
 ```
 
 ## Agent Notes

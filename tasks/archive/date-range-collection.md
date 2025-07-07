@@ -23,7 +23,7 @@ Enable GitHub issue collection based on date ranges (e.g., "collect all issues i
 - [ ] **Update documentation files with date filtering examples and usage**
 - [ ] Tests for date parsing, validation, and API integration
 - [ ] All existing functionality remains unchanged
-- [ ] Quality checks pass: `uv run ruff check --fix --unsafe-fixes && uv run black . && uv run mypy . && uv run pytest`
+- [ ] Quality checks pass: `uv run black . && uv run ruff check --fix --unsafe-fixes && uv run mypy . && uv run pytest`
 
 **Implementation Plan:**
 
@@ -187,7 +187,7 @@ uv run github-analysis collect --org replicated-collab --repo pixee-replicated -
 ### Quality Assurance
 ```bash
 # 11. Run all quality checks
-uv run ruff check --fix --unsafe-fixes && uv run black . && uv run mypy . && uv run pytest
+uv run black . && uv run ruff check --fix --unsafe-fixes && uv run mypy . && uv run pytest
 
 # 12. Test help documentation
 uv run github-analysis collect --help

@@ -1267,7 +1267,7 @@ uv run pytest tests/test_recommendation/ -v
 uv run pytest tests/test_cli/test_recommendations.py -v
 
 # 10. Code quality checks
-uv run ruff check --fix --unsafe-fixes && uv run black . && uv run mypy . && uv run pytest
+uv run black . && uv run ruff check --fix --unsafe-fixes && uv run mypy . && uv run pytest
 ```
 
 ## Acceptance Criteria (Phase 1)

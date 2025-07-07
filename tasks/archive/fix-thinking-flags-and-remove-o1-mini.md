@@ -172,7 +172,7 @@ Compatible flags for this model: --thinking-budget (Anthropic reasoning control)
 
 3. **Run Quality Checks**:
    ```bash
-   uv run ruff check --fix --unsafe-fixes && uv run black . && uv run mypy . && uv run pytest
+   uv run black . && uv run ruff check --fix --unsafe-fixes && uv run mypy . && uv run pytest
    ```
 
 4. **Test Actual Thinking**:

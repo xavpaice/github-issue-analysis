@@ -857,7 +857,7 @@ uv run github-analysis query sql "SELECT org, repo, number FROM issues i LEFT JO
 uv run pytest tests/test_ai/test_pipeline.py -v
 
 # 12. Quality checks
-uv run ruff check --fix --unsafe-fixes && uv run black . && uv run mypy . && uv run pytest
+uv run black . && uv run ruff check --fix --unsafe-fixes && uv run mypy . && uv run pytest
 ```
 
 ## Acceptance Criteria

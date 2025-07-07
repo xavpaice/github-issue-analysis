@@ -238,7 +238,7 @@ def generate_dry_run_summary(self, plans: list[IssueUpdatePlan]) -> str:
 
 ```bash
 # 1. First run quality checks to ensure code compiles
-uv run ruff check --fix --unsafe-fixes && uv run black . && uv run mypy . && uv run pytest
+uv run black . && uv run ruff check --fix --unsafe-fixes && uv run mypy . && uv run pytest
 
 # 2. Collect fresh test data (no existing data in new branch)
 uv run github-analysis collect --org replicated-collab --repo pixee-replicated --limit 3
