@@ -25,10 +25,12 @@ uv run ruff check --fix --unsafe-fixes && uv run black . && uv run mypy . && uv 
 ```
 
 All four tools must pass:
-- **Ruff**: Code quality, imports, style violations
-- **Black**: Code formatting consistency  
+- **Ruff**: Code quality, imports, style violations (automatically applies fixes)
+- **Black**: Code formatting consistency (automatically applies fixes - **DO NOT** manually edit files for formatting)
 - **MyPy**: Type checking and type annotations
 - **Pytest**: All tests must pass
+
+**IMPORTANT**: Black automatically applies formatting fixes. Agents should **NOT** manually make formatting changes. Only intervene if Black fails with actual errors (syntax errors, etc.).
 
 **Runtime Requirements:**
 - Never use `python` directly - Always use `uv run python` or `uv run <command>`

@@ -1,6 +1,6 @@
 # Task: Adjust Black Usage for Auto-Corrections
 
-**Status:** planning
+**Status:** complete
 
 **Description:**
 Update documentation to clarify that Black automatically applies formatting fixes. Currently the documentation only says "Black: Code formatting consistency" without mentioning that `uv run black .` automatically applies fixes. This causes agents to manually make formatting changes instead of letting Black handle them automatically.
