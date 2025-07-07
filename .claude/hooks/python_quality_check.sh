@@ -35,9 +35,10 @@ cd "$file_dir" || exit 0
 echo "Running black on $file_path..." >&2
 uv run black "$file_name"
 
-# Run ruff check with auto-fix
+# Run ruff check with auto-fix but skip unused import removal (F401)
+# This prevents the hook from removing imports that agents are still working on
 echo "Running ruff on $file_path..." >&2
-uv run ruff check --fix --unsafe-fixes "$file_name"
+uv run ruff check --fix --unsafe-fixes --ignore F401 "$file_name"
 
 # Run mypy (type checking) - this should not auto-fix, just report
 echo "Running mypy on $file_path..." >&2

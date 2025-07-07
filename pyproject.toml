@@ -54,6 +54,7 @@ markers = [
 [tool.mypy]
 python_version = "3.12"
 strict = true
+exclude = ["trees/"]
 
 [[tool.mypy.overrides]]
 module = "tests.*"
