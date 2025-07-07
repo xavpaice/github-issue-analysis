@@ -16,7 +16,7 @@ Think very carefully about creating this pull request. I need you to:
    - Ensure proper error handling and type annotations are in place
 
 3. **Run comprehensive quality checks (CRITICAL - CI MUST NOT FAIL)**:
-   - Execute: `uv run ruff check --fix --unsafe-fixes && uv run black . && uv run mypy . && uv run pytest`
+   - Execute: `uv run black . && uv run ruff check --fix --unsafe-fixes && uv run mypy . && uv run pytest`
    - **MANDATORY**: All four commands MUST pass with zero failures/errors before proceeding
    - If ANY tool fails, fix the code to pass the checks - NEVER bypass or skip tests even if it's not related to your changes.
    - Re-run the full command chain until ALL tools pass completely
