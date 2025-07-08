@@ -277,11 +277,14 @@ def _display_recommendations_table(
     for rec in recommendations:
         confidence_display = f"{(rec.review_confidence or rec.original_confidence):.2f}"
 
-        # Format current labels
+        # Format current product labels only
+        current_product_labels = [
+            label for label in rec.current_labels if label.startswith("product::")
+        ]
         current_labels_display = (
-            ", ".join(rec.current_labels[:2]) if rec.current_labels else "none"
+            ", ".join(current_product_labels[:2]) if current_product_labels else "none"
         )
-        if len(rec.current_labels) > 2:
+        if len(current_product_labels) > 2:
             current_labels_display += "..."
 
         # Format recommended labels
@@ -294,7 +297,7 @@ def _display_recommendations_table(
             reviewed_display = rec.reviewed_at.strftime("%m/%d")
 
         table.add_row(
-            f"{rec.org}/{rec.repo}/issues/{rec.issue_number}",
+            f"{rec.repo}/issues/{rec.issue_number}",
             current_labels_display,
             recommended_labels_display,
             confidence_display,

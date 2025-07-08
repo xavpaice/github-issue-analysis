@@ -404,8 +404,8 @@ class TestRecommendationWorkflow:
                 app,
                 ["recommendations", "list", "--org", "org1", "--data-dir", temp_dir],
             )
-            assert "org1/repo1" in result.output
-            assert "org1/repo2" in result.output
+            assert "repo1" in result.output
+            assert "repo2" in result.output
             assert "org2" not in result.output
 
             # List with confidence filter
