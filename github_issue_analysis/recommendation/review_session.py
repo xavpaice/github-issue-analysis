@@ -179,12 +179,25 @@ By Confidence:
         current_labels_str = (
             ", ".join(rec.current_labels) if rec.current_labels else "none"
         )
+
+        # Build root cause section if available
+        root_cause_section = ""
+        if rec.root_cause_analysis:
+            confidence_str = (
+                f" (confidence: {rec.root_cause_confidence:.2f})"
+                if rec.root_cause_confidence
+                else ""
+            )
+            root_cause_section = f"""
+[bold]Root Cause Analysis:[/bold]{confidence_str}
+{rec.root_cause_analysis}
+"""
+
         details = f"""
 [bold]Issue:[/bold] {rec.org}/{rec.repo}/issues/{rec.issue_number}
 [bold]Current Labels:[/bold] {current_labels_str}
 [bold]Confidence:[/bold] {rec.original_confidence:.2f} ({rec.confidence_tier})
-[bold]Primary Product:[/bold] {rec.primary_product or 'unknown'}
-
+[bold]Primary Product:[/bold] {rec.primary_product or 'unknown'}{root_cause_section}
 [bold]AI Reasoning:[/bold]
 {rec.ai_reasoning}
 """

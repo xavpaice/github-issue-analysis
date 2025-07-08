@@ -143,6 +143,12 @@ class RecommendationManager:
             processor_name="product-labeling",
             original_confidence=ai_analysis.recommendation_confidence,
             ai_reasoning=ai_analysis.reasoning,
+            root_cause_analysis=(
+                ai_analysis.root_cause_analysis
+                if ai_analysis.root_cause_analysis != "Root cause unclear"
+                else None
+            ),
+            root_cause_confidence=ai_analysis.root_cause_confidence,
             recommended_labels=recommended_labels,
             labels_to_remove=labels_to_remove,
             current_labels=current_labels,

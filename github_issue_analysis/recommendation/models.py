@@ -40,6 +40,8 @@ class RecommendationMetadata(BaseModel):
     # AI analysis details
     original_confidence: float
     ai_reasoning: str
+    root_cause_analysis: str | None = None  # Root cause analysis from AI
+    root_cause_confidence: float | None = None  # Confidence in root cause (0-1)
     recommended_labels: list[str]
     labels_to_remove: list[str]
     current_labels: list[str] = []  # Current labels from GitHub issue
