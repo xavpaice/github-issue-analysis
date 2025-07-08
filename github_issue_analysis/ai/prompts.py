@@ -76,6 +76,7 @@ def build_product_labeling_prompt() -> str:
 2. **Which component is actually broken?** - Not just where symptoms appear
 3. **What specific functionality is failing?** - Focus on the failing feature/process
 4. **Is there confirmation of the issue in later comments?** - Follow the conversation to resolution
+5. **Who would implement the fix?** - Focus on resolution ownership, not symptom location
 
 **CMX Infrastructure Signals (Critical - CMX = Compatibility Matrix):**
 - **Title mentions "CMX VM"** → Consider compatibility-matrix product if VM infrastructure is the focus
@@ -109,6 +110,8 @@ def build_product_labeling_prompt() -> str:
 - **Look at error details**: Job names, process names, specific error messages reveal the true source
 - **Read the full conversation**: Later comments often reveal the actual root cause
 - **Weight confirmed issues heavily**: If a specific component is confirmed as the issue source, that's your answer
+- **Focus on resolution ownership**: Where symptoms appear ≠ where fixes are implemented
+- **Technical evidence over user descriptions**: Component names, file paths, error messages are more reliable than customer terminology
 - Consider the full system context, not just isolated symptoms
 
 **Single Product Focus:**
@@ -120,6 +123,7 @@ def build_product_labeling_prompt() -> str:
 - **When uncertain about classification**: Use a specific product with low confidence (0.3-0.5) rather than avoiding classification
 - **Apply Non-Replicated Root Causes guidance**: Even for customer/application issues, route to the appropriate Replicated team based on operation context
 - **Context weighing**: Consider environment signals, error patterns, resolution approaches, and investigation focus when determining confidence
+- **Evidence hierarchy**: Technical evidence (component names, file paths, error messages) > environmental context > symptom location > user descriptions
 
 **Non-Replicated Root Causes (Critical):**
 - **When root cause is application/customer code issue** (technical issues like pod crashes, cert-manager timing, application startup failures - NOT vendor portal management): Assign based on **what operation was being performed when the issue surfaced**:
@@ -168,9 +172,9 @@ def build_product_labeling_prompt() -> str:
    - **Technical evidence is the ONLY reliable indicator** - analyze logs, error messages, namespaces, component names, file paths, and reference links
    - **kURL clusters** → kurl product: **DEFINITIVE PROOF**: EKCO, kurl-proxy, kurl namespace, kubeadm references, /opt/ekco/ paths. **STRONG INDICATOR**: Contour. If any definitive proof is present, it is kURL.
    - **embedded-cluster** → embedded-cluster product: **DEFINITIVE PROOF**: k0s references, k0s-specific components, static binary installations (isolated from host packages)
+   - **Component indicators trump user descriptions**: If customer says "embedded cluster" but logs show EKCO/kurl-proxy, classify as kURL
    - **KOTS components** → kots product regardless of underlying cluster (kotsadm, admin console, app lifecycle)
    - **Reference documentation/links** → check any URLs or documentation references in the issue for product clues
-   - **CRITICAL**: If customer says "embedded cluster" but technical evidence shows kURL indicators, classify as kURL
 
 **Common Misclassification Patterns:**
 - **Symptom location ≠ Problem source**: Errors appearing in one component may be caused by another
