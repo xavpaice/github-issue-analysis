@@ -7,6 +7,8 @@ from pathlib import Path
 from typing import Literal
 
 from ..github_client.models import GitHubIssue, StoredIssue
+from ..recommendation.models import RecommendationMetadata, RecommendationStatus
+from ..recommendation.status_tracker import StatusTracker
 from .models import LabelAssessment, ProductLabelingResponse, RecommendedLabel
 
 
@@ -38,13 +40,24 @@ class ChangeDetector:
     """Detects needed label changes by comparing current labels with
     AI recommendations."""
 
-    def __init__(self, min_confidence: float = 0.8):
+    def __init__(
+        self,
+        min_confidence: float = 0.8,
+        ignore_status: bool = False,
+        data_dir: Path | None = None,
+    ):
         """Initialize the change detector.
 
         Args:
             min_confidence: Minimum confidence threshold for applying changes
+            ignore_status: If True, process all recommendations regardless of status
+            data_dir: Base data directory for status tracking
         """
         self.min_confidence = min_confidence
+        self.ignore_status = ignore_status
+        self.status_tracker = (
+            StatusTracker(data_dir / "recommendation_status") if data_dir else None
+        )
 
     def detect_changes(
         self,
@@ -184,6 +197,19 @@ class ChangeDetector:
                 issue_data = json.load(f)
             stored_issue = StoredIssue(**issue_data)
 
+            # Check recommendation status if status tracking is enabled
+            if not self.ignore_status and self.status_tracker:
+                recommendation = self.status_tracker.get_recommendation(
+                    stored_issue.org, stored_issue.repo, stored_issue.issue.number
+                )
+
+                # Skip if recommendation doesn't exist or is not approved
+                if (
+                    not recommendation
+                    or recommendation.status != RecommendationStatus.APPROVED
+                ):
+                    return None
+
             # Load AI results
             with open(results_file) as f:
                 ai_data = json.load(f)
@@ -273,3 +299,90 @@ class ChangeDetector:
                         matches.append((issue_file, result_file))
 
         return matches
+
+    def create_plan_from_recommendation(
+        self, recommendation: RecommendationMetadata
+    ) -> IssueUpdatePlan | None:
+        """Create an update plan directly from recommendation metadata.
+
+        This method allows creating plans without needing the original
+        issue/result files.
+
+        Args:
+            recommendation: The recommendation metadata containing all necessary info
+
+        Returns:
+            IssueUpdatePlan if changes needed, None otherwise
+        """
+        # Skip if not approved (unless ignoring status)
+        if (
+            not self.ignore_status
+            and recommendation.status != RecommendationStatus.APPROVED
+        ):
+            return None
+
+        # Skip if confidence is too low
+        effective_confidence = (
+            recommendation.review_confidence or recommendation.original_confidence
+        )
+        if effective_confidence < self.min_confidence:
+            return None
+
+        # Build label changes
+        changes: list[LabelChange] = []
+        current_labels = set(recommendation.current_labels)
+
+        # Add recommended labels that aren't already present
+        for label in recommendation.recommended_labels:
+            if label not in current_labels:
+                changes.append(
+                    LabelChange(
+                        action="add",
+                        label=label,
+                        reason=f"AI recommendation (conf: {effective_confidence:.2f})",
+                        confidence=effective_confidence,
+                    )
+                )
+
+        # Remove labels that are in labels_to_remove and currently present
+        for label in recommendation.labels_to_remove:
+            if label in current_labels:
+                changes.append(
+                    LabelChange(
+                        action="remove",
+                        label=label,
+                        reason=f"AI marked incorrect ({effective_confidence:.2f})",
+                        confidence=effective_confidence,
+                    )
+                )
+
+        # If no changes needed, return None
+        if not changes:
+            return None
+
+        # Generate comment summary
+        additions = [c for c in changes if c.action == "add"]
+        removals = [c for c in changes if c.action == "remove"]
+
+        summary_parts = []
+        if additions:
+            summary_parts.append(f"Adding {len(additions)} label(s)")
+        if removals:
+            summary_parts.append(f"Removing {len(removals)} label(s)")
+
+        comment_summary = " and ".join(summary_parts)
+        if recommendation.ai_reasoning:
+            comment_summary += (
+                f" based on analysis: {recommendation.ai_reasoning[:100]}..."
+            )
+
+        return IssueUpdatePlan(
+            org=recommendation.org,
+            repo=recommendation.repo,
+            issue_number=recommendation.issue_number,
+            changes=changes,
+            overall_confidence=effective_confidence,
+            needs_update=True,
+            comment_summary=comment_summary,
+            ai_result=None,  # Not available when working from status files
+        )

@@ -37,6 +37,8 @@ def sample_data_dir(temp_data_dir: Path) -> Path:
     issues_dir.mkdir(parents=True, exist_ok=True)
     results_dir = temp_data_dir / "results"
     results_dir.mkdir(parents=True, exist_ok=True)
+    status_dir = temp_data_dir / "recommendation_status"
+    status_dir.mkdir(parents=True, exist_ok=True)
 
     # Sample issue data
     issue_data = {
@@ -94,12 +96,41 @@ def sample_data_dir(temp_data_dir: Path) -> Path:
         "image_impact": "",
     }
 
+    # Sample recommendation status data (APPROVED)
+    from datetime import datetime
+
+    status_data = {
+        "org": "test-org",
+        "repo": "test-repo",
+        "issue_number": 123,
+        "processor_name": "product-labeling",
+        "original_confidence": 0.9,
+        "ai_reasoning": "Based on analysis of the issue content",
+        "root_cause_analysis": None,
+        "root_cause_confidence": None,
+        "recommended_labels": ["product::vendor"],
+        "labels_to_remove": ["product::kots"],
+        "current_labels": ["bug", "product::kots"],
+        "status": "approved",
+        "status_updated_at": datetime.now().isoformat(),
+        "reviewed_by": None,
+        "reviewed_at": None,
+        "review_confidence": None,
+        "review_notes": None,
+        "modified_labels": None,
+        "ai_result_file": "test-org_test-repo_issue_123_product-labeling.json",
+        "issue_file": "test-org_test-repo_issue_123.json",
+    }
+
     # Write test files using flat structure
     (issues_dir / "test-org_test-repo_issue_123.json").write_text(
         json.dumps(issue_data)
     )
     (results_dir / "test-org_test-repo_issue_123_product-labeling.json").write_text(
         json.dumps(ai_result_data)
+    )
+    (status_dir / "test-org_test-repo_issue_123_status.json").write_text(
+        json.dumps(status_data)
     )
 
     return temp_data_dir
@@ -429,3 +460,148 @@ class TestUpdateLabelsCommand:
 
         # Command should still work, just won't post comments
         assert result.exit_code == 0
+
+    def test_update_labels_status_filtering_default(
+        self, sample_data_dir: Path
+    ) -> None:
+        """Test that status filtering is enabled by default."""
+        with patch.dict("os.environ", {"GITHUB_TOKEN": "fake-token"}):
+            result = runner.invoke(
+                app,
+                [
+                    "update-labels",
+                    "--org",
+                    "test-org",
+                    "--repo",
+                    "test-repo",
+                    "--dry-run",
+                    "--data-dir",
+                    str(sample_data_dir),
+                ],
+            )
+
+        # Should show approved recommendations
+        assert result.exit_code == 0
+        assert "Only processing APPROVED recommendations" in result.stdout
+        assert "product::vendor" in result.stdout
+
+    def test_update_labels_ignore_status_flag(self, sample_data_dir: Path) -> None:
+        """Test --ignore-status flag."""
+        with patch.dict("os.environ", {"GITHUB_TOKEN": "fake-token"}):
+            result = runner.invoke(
+                app,
+                [
+                    "update-labels",
+                    "--org",
+                    "test-org",
+                    "--repo",
+                    "test-repo",
+                    "--ignore-status",
+                    "--dry-run",
+                    "--data-dir",
+                    str(sample_data_dir),
+                ],
+            )
+
+        # Should show status filtering disabled
+        assert result.exit_code == 0
+        assert "Status filtering disabled" in result.stdout
+        assert "product::vendor" in result.stdout
+
+    def test_update_labels_no_approved_recommendations(
+        self, temp_data_dir: Path
+    ) -> None:
+        """Test when no approved recommendations exist."""
+        # Create test data without approved status
+        issues_dir = temp_data_dir / "issues"
+        issues_dir.mkdir(parents=True, exist_ok=True)
+        results_dir = temp_data_dir / "results"
+        results_dir.mkdir(parents=True, exist_ok=True)
+        status_dir = temp_data_dir / "recommendation_status"
+        status_dir.mkdir(parents=True, exist_ok=True)
+
+        # Create issue and result files
+        issue_data = {
+            "org": "test-org",
+            "repo": "test-repo",
+            "issue": {
+                "number": 123,
+                "title": "Test issue",
+                "body": "Test issue body",
+                "state": "open",
+                "labels": [{"name": "bug", "color": "d73a4a", "description": "Bug"}],
+                "user": {"login": "testuser", "id": 1},
+                "comments": [],
+                "created_at": "2023-01-01T00:00:00Z",
+                "updated_at": "2023-01-01T00:00:00Z",
+            },
+            "metadata": {},
+        }
+
+        ai_result_data = {
+            "recommendation_confidence": 0.9,
+            "recommended_labels": [{"label": "product::vendor", "reasoning": "Test"}],
+            "current_labels_assessment": [
+                {"label": "bug", "correct": True, "reasoning": "Test"}
+            ],
+            "summary": "Test",
+            "reasoning": "Test",
+            "images_analyzed": [],
+            "image_impact": "",
+        }
+
+        # Create status with PENDING (not approved)
+        from datetime import datetime
+
+        status_data = {
+            "org": "test-org",
+            "repo": "test-repo",
+            "issue_number": 123,
+            "processor_name": "product-labeling",
+            "original_confidence": 0.9,
+            "ai_reasoning": "Test",
+            "root_cause_analysis": None,
+            "root_cause_confidence": None,
+            "recommended_labels": ["product::vendor"],
+            "labels_to_remove": [],
+            "current_labels": ["bug"],
+            "status": "pending",  # NOT approved
+            "status_updated_at": datetime.now().isoformat(),
+            "reviewed_by": None,
+            "reviewed_at": None,
+            "review_confidence": None,
+            "review_notes": None,
+            "modified_labels": None,
+            "ai_result_file": "test-org_test-repo_issue_123_product-labeling.json",
+            "issue_file": "test-org_test-repo_issue_123.json",
+        }
+
+        # Write files
+        (issues_dir / "test-org_test-repo_issue_123.json").write_text(
+            json.dumps(issue_data)
+        )
+        (results_dir / "test-org_test-repo_issue_123_product-labeling.json").write_text(
+            json.dumps(ai_result_data)
+        )
+        (status_dir / "test-org_test-repo_issue_123_status.json").write_text(
+            json.dumps(status_data)
+        )
+
+        with patch.dict("os.environ", {"GITHUB_TOKEN": "fake-token"}):
+            result = runner.invoke(
+                app,
+                [
+                    "update-labels",
+                    "--org",
+                    "test-org",
+                    "--repo",
+                    "test-repo",
+                    "--dry-run",
+                    "--data-dir",
+                    str(temp_data_dir),
+                ],
+            )
+
+        # Should show no changes because recommendation is not approved
+        assert result.exit_code == 0
+        assert "No label changes needed" in result.stdout
