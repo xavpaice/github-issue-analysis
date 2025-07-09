@@ -10,11 +10,13 @@ from rich.prompt import Confirm
 from ..ai.change_detector import ChangeDetector, IssueUpdatePlan
 from ..ai.comment_generator import CommentGenerator
 from ..github_client.client import GitHubClient
+from ..recommendation.status_tracker import StatusTracker
 from .options import (
     DATA_DIR_OPTION,
     DELAY_OPTION,
     DRY_RUN_OPTION,
     FORCE_OPTION,
+    IGNORE_STATUS_OPTION,
     ISSUE_NUMBER_OPTION,
     MAX_ISSUES_OPTION,
     MIN_CONFIDENCE_OPTION,
@@ -38,12 +40,16 @@ def update_labels(
     max_issues: int | None = MAX_ISSUES_OPTION,
     delay: float = DELAY_OPTION,
     data_dir: str | None = DATA_DIR_OPTION,
+    ignore_status: bool = IGNORE_STATUS_OPTION,
 ) -> None:
     """Update GitHub issue labels based on AI recommendations.
 
     This command analyzes AI recommendations and applies label changes to GitHub issues.
     It can process a single issue, all issues in a repository, or all issues across
     an organization (if no repo specified).
+
+    By default, only processes recommendations with APPROVED status. Use --ignore-status
+    to process all recommendations regardless of approval status.
 
     The --dry-run mode shows you exactly what changes will be made, including:
     - Which labels will be added/removed with confidence scores and reasoning
@@ -55,13 +61,13 @@ def update_labels(
         uv run github-analysis update-labels --org myorg --repo myrepo \
             --issue-number 123 --dry-run
 
-        # Update all issues for a repository with high confidence
+        # Update all approved recommendations for a repository
         uv run github-analysis update-labels --org myorg --repo myrepo \
             --min-confidence 0.9
 
-        # Update specific issue with custom confidence
+        # Update specific issue ignoring approval status
         uv run github-analysis update-labels --org myorg --repo myrepo \
-            --issue-number 123 --min-confidence 0.75
+            --issue-number 123 --ignore-status
     """
     # Validate arguments
     if repo and not org:
@@ -95,6 +101,18 @@ def update_labels(
             "regardless of confidence[/yellow]"
         )
 
+    # Status filtering info
+    if ignore_status:
+        console.print(
+            "⚠️  [yellow]Status filtering disabled - processing all "
+            "recommendations[/yellow]"
+        )
+    else:
+        console.print(
+            "🔒 [blue]Only processing APPROVED recommendations "
+            "(use --ignore-status to override)[/blue]"
+        )
+
     console.print(
         f"🔍 [blue]Analyzing label changes with confidence threshold: "
         f"{min_confidence}[/blue]"
@@ -102,33 +120,53 @@ def update_labels(
 
     try:
         # Initialize components
-        detector = ChangeDetector(min_confidence=min_confidence)
+        detector = ChangeDetector(
+            min_confidence=min_confidence,
+            ignore_status=ignore_status,
+            data_dir=base_data_dir,
+        )
         generator = CommentGenerator()
 
-        # Find files to process
-        file_pairs = detector.find_matching_files(
-            base_data_dir, org, repo, issue_number
-        )
-
-        if not file_pairs:
+        # Use recommendation system as the authoritative source
+        if not detector.status_tracker:
             console.print(
-                f"❌ [red]No matching issue/result files found for {org}"
-                + (f"/{repo}" if repo else "")
-                + (f" issue #{issue_number}" if issue_number else "")
-                + "[/red]"
+                "❌ [red]No recommendation status tracker available. "
+                "Run 'recommendations discover' first.[/red]"
             )
             raise typer.Exit(1)
 
-        console.print(
-            f"📁 [green]Found {len(file_pairs)} file pair(s) to process[/green]"
+        # Get recommendations from status tracker
+        from ..recommendation.models import RecommendationFilter
+
+        filter_criteria = RecommendationFilter(
+            org=org,
+            repo=repo,
         )
 
-        # Detect changes
         plans: list[IssueUpdatePlan] = []
-        for issue_file, result_file in file_pairs:
-            plan = detector.load_and_detect_for_file(issue_file, result_file)
-            if plan:
-                plans.append(plan)
+
+        if issue_number and repo:
+            # For single issue, get directly
+            recommendation = detector.status_tracker.get_recommendation(
+                org, repo, issue_number
+            )
+            if recommendation:
+                plan = detector.create_plan_from_recommendation(recommendation)
+                if plan:
+                    plans.append(plan)
+        else:
+            # For multiple issues, query with filter
+            recommendations = detector.status_tracker.query_recommendations(
+                filter_criteria
+            )
+            for recommendation in recommendations:
+                plan = detector.create_plan_from_recommendation(recommendation)
+                if plan:
+                    plans.append(plan)
+
+        console.print(
+            f"📁 [green]Found {len(plans)} recommendation(s) to process[/green]"
+        )
 
         # Apply max_issues limit
         if max_issues and len(plans) > max_issues:
@@ -163,7 +201,7 @@ def update_labels(
 
         # Apply changes
         successful, failed = _apply_label_changes(
-            plans, generator, skip_comments, delay
+            plans, generator, skip_comments, delay, detector.status_tracker
         )
 
         # Show execution summary
@@ -187,6 +225,7 @@ def _apply_label_changes(
     generator: CommentGenerator,
     skip_comments: bool,
     delay: float,
+    status_tracker: StatusTracker | None = None,
 ) -> tuple[list[IssueUpdatePlan], list[tuple[IssueUpdatePlan, str]]]:
     """Apply label changes to GitHub issues.
 
@@ -195,6 +234,7 @@ def _apply_label_changes(
         generator: Comment generator for explanatory comments
         skip_comments: Whether to skip posting comments
         delay: Delay between API calls
+        status_tracker: Optional status tracker to update recommendation status
 
     Returns:
         Tuple of (successful_plans, failed_plans_with_errors)
@@ -251,6 +291,20 @@ def _apply_label_changes(
                 console.print(
                     f"  ✅ [green]Updated {len(plan.changes)} label(s)[/green]"
                 )
+
+                # Update recommendation status to APPLIED
+                if status_tracker:
+                    recommendation = status_tracker.get_recommendation(
+                        plan.org, plan.repo, plan.issue_number
+                    )
+                    if recommendation:
+                        from datetime import datetime
+
+                        from ..recommendation.models import RecommendationStatus
+
+                        recommendation.status = RecommendationStatus.APPLIED
+                        recommendation.status_updated_at = datetime.now()
+                        status_tracker.save_recommendation(recommendation)
             else:
                 console.print("  ⚠️  [yellow]No actual changes needed[/yellow]")
                 successful.append(plan)
@@ -263,6 +317,20 @@ def _apply_label_changes(
             error_msg = str(e)
             failed.append((plan, error_msg))
             console.print(f"  ❌ [red]Failed: {error_msg}[/red]")
+
+            # Update recommendation status to FAILED
+            if status_tracker:
+                recommendation = status_tracker.get_recommendation(
+                    plan.org, plan.repo, plan.issue_number
+                )
+                if recommendation:
+                    from datetime import datetime
+
+                    from ..recommendation.models import RecommendationStatus
+
+                    recommendation.status = RecommendationStatus.FAILED
+                    recommendation.status_updated_at = datetime.now()
+                    status_tracker.save_recommendation(recommendation)
             continue
 
     return successful, failed

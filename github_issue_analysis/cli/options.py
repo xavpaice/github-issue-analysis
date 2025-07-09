@@ -96,6 +96,12 @@ MIN_CONFIDENCE_OPTION = typer.Option(
     0.8, "--min-confidence", help="Minimum confidence threshold"
 )
 
+IGNORE_STATUS_OPTION = typer.Option(
+    False,
+    "--ignore-status",
+    help="Process all recommendations regardless of approval status",
+)
+
 # Attachment options
 DOWNLOAD_ATTACHMENTS_OPTION = typer.Option(
     True,

@@ -147,10 +147,14 @@ Admin console for managing Kubernetes applications. The admin console IS the KOT
 - Image registry services and container pulling
 - SAAS licensing and authentication infrastructure
 - Hosted registry authentication
+- Airgap bundle creation and building processes
+- Release building and packaging operations
 
 **Registry Domain Logic**:
 - Replicated registries (registry.replicated.com, proxy.replicated.com) → vendor product
 - External registries (DockerHub, GCR, ECR) → affected product
+
+**Important**: CMX-related API calls and operations are NOT vendor product responsibility, even when using vendor API endpoints. Classify CMX operations as compatibility-matrix product.
 
 ### downloadportal
 **Download Portal: Customer-facing download interface**
@@ -165,17 +169,27 @@ Admin console for managing Kubernetes applications. The admin console IS the KOT
 ### compatibility-matrix
 **Compatibility Matrix (CMX): Application compatibility testing**
 
-**Scope**: Testing application compatibility across Kubernetes versions and various VM configurations
+**Scope**: Testing application compatibility across Kubernetes versions and various VM configurations, INCLUDING hosted SaaS components
 
 **Key Indicators**:
 - Compatibility testing issues
 - Version matrix problems
 - Test automation failures
+- Any problems with CMX-related APIs
+- API endpoints containing "compatibility" or "matrix" or "cmx"
+- "CMX clusters", "test clusters", "CMX VMs" references
+- Automated testing contexts involving cluster operations
+- API calls related to cluster management in testing/compatibility contexts
 
 **CMX Environment Analysis**:
 - VM infrastructure focus → compatibility-matrix product
 - Product installation focus → that specific product
 - CMX SAAS services → compatibility-matrix product
+- CMX API interactions (api.replicated.com/cmx, api.replicated.com/compatibility) → compatibility-matrix product
+- CMX cluster operations (even if using vendor API endpoints) → compatibility-matrix product
+- Testing automation using CMX infrastructure → compatibility-matrix product
+
+**Important**: CMX is entirely hosted by Replicated and has SaaS components. Use compatibility-matrix as the more specific product classification over vendor for CMX-related issues. When CMX context is present (CMX clusters, test clusters, CMX VMs, compatibility testing), classify API issues as compatibility-matrix rather than vendor.
 
 ## Critical Decision Frameworks
 
@@ -270,6 +284,13 @@ When root cause is application/customer code issue, assign based on operation co
 5. Is there confirmation in later comments?
 
 Focus on finding the PRIMARY product where the bug needs to be fixed. Most issues have one root cause requiring one product team's attention.
+
+### Multiple Product Responsibility
+In rare cases, issues may legitimately affect multiple products simultaneously:
+- CVE vulnerabilities affecting multiple products should retain all affected product labels
+- Cross-product integration issues may require multiple team involvement
+- Only remove labels when the issue is definitively NOT the responsibility of that product
+- If an issue was resolved during the case, that doesn't remove the product's responsibility for the original problem
 
 Analyze the provided issue and respond with structured recommendations focusing ONLY on product classification.
 """
