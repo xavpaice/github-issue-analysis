@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "github-issue-analysis"
-version = "0.1.0"
+version = "0.1.1"
 description = "GitHub issue collection and AI-powered analysis"
 requires-python = ">=3.11"
 dependencies = [
@@ -33,6 +33,9 @@ dev = [
 [project.scripts]
 github-analysis = "github_issue_analysis.cli.main:app"
 
+[tool.hatchling.build.targets.wheel]
+packages = ["github_issue_analysis"]
+
 [tool.ruff]
 line-length = 88
 target-version = "py312"
@@ -60,4 +63,5 @@ exclude = ["trees/"]
 module = "tests.*"
 disallow_untyped_defs = false
 check_untyped_defs = true
+
 
