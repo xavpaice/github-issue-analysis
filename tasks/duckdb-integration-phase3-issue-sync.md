@@ -967,8 +967,8 @@ class TestUpdateStrategy:
 uv run github-analysis status
 
 # 2. Collect some test issues (mix of open/closed)
-uv run github-analysis collect --org microsoft --repo vscode --limit 5
-uv run github-analysis collect --org replicated-collab --repo pixee-replicated --limit 3
+# Ask user to provide test organization and repository for validation
+# Example: uv run github-analysis collect --org USER_PROVIDED_ORG --repo USER_PROVIDED_REPO --limit 5
 ```
 
 ### **Core Feature Testing: Non-Closed Issues**
@@ -991,7 +991,8 @@ uv run github-analysis update stale --days 1 --limit 2 --dry-run
 uv run github-analysis update stale --days 1 --limit 2
 
 # 7. Test repository updates
-uv run github-analysis update repo microsoft vscode --limit 2 --dry-run
+# Ask user to provide test organization and repository for validation
+# Example: uv run github-analysis update repo USER_PROVIDED_ORG USER_PROVIDED_REPO --limit 2 --dry-run
 
 # 8. Test smart update strategy
 uv run github-analysis update smart --limit 5 --dry-run

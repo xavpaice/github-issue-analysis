@@ -37,7 +37,7 @@ uv run github-analysis batch submit product-labeling --sql "SELECT * FROM issues
 uv run github-analysis batch submit product-labeling --missing-analysis
 
 # Batch process specific repository
-uv run github-analysis batch submit product-labeling --org replicated --repo kots
+uv run github-analysis batch submit product-labeling --org USER_PROVIDED_ORG --repo USER_PROVIDED_REPO
 
 # Show batch job history from database
 uv run github-analysis batch history

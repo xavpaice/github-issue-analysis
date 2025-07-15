@@ -178,7 +178,8 @@ Compatible flags for this model: --thinking-budget (Anthropic reasoning control)
 4. **Test Actual Thinking**:
    ```bash
    # Test with a thinking-capable model (system should detect compatibility)
-   uv run github-analysis process product-labeling --org replicated-collab --repo pixee-replicated --issue-number 71 --model openai:o4-mini --thinking-effort medium
+   # Ask user to provide test organization and repository for validation
+# Example: uv run github-analysis process product-labeling --org USER_PROVIDED_ORG --repo USER_PROVIDED_REPO --issue-number 71 --model openai:o4-mini --thinking-effort medium
    ```
 
 ## Success Metrics

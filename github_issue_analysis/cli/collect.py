@@ -83,10 +83,10 @@ def collect(
         github-analysis collect --org myorg --repo myrepo --labels bug --last-days 30
 
     Basic examples:
-        github-analysis collect --org replicated-collab --repo pixee-replicated \\
-            --issue-number 71
-        github-analysis collect --org replicated-collab --limit 20
-        github-analysis collect --org microsoft --repo vscode --labels bug --limit 5
+        github-analysis collect --org YOUR_ORG --repo YOUR_REPO \\
+            --issue-number 123
+        github-analysis collect --org YOUR_ORG --limit 20
+        github-analysis collect --org YOUR_ORG --repo YOUR_REPO --labels bug --limit 5
     """
     # Date parameter validation
     try:

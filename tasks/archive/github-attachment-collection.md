@@ -54,7 +54,7 @@ class AttachmentMetadata(BaseModel):
 
 **Storage Structure:**
 ```
-data/attachments/microsoft_vscode_issue_12345/
+data/attachments/ORG_REPO_issue_NUMBER/
 ├── screenshot.png
 ├── error_log.txt  
 └── attachment_metadata.json
@@ -148,10 +148,11 @@ Add options to collect command:
 2. **Manual Testing Required** - Run real validation tests with GitHub issue #71:
    ```bash
    # After single-issue collection merges, test with:
-   uv run github-analysis collect --org replicated-collab --repo pixee-replicated --issue-number 71 --download-attachments
+   # Ask user to provide test organization, repository, and issue number for validation
+# Example: uv run github-analysis collect --org USER_PROVIDED_ORG --repo USER_PROVIDED_REPO --issue-number USER_PROVIDED_ISSUE_NUMBER --download-attachments
    ```
 3. **Validation Checklist** (once single-issue collection is available):
-   - [ ] Test with replicated-collab/pixee-replicated issue #71 (has all attachment types)
+   - [ ] Test with USER_PROVIDED_ORG/USER_PROVIDED_REPO issue #71 (has all attachment types)
    - [ ] Verify attachment directories created in `data/attachments/`
    - [ ] Check attachment metadata JSON files exist and are valid  
    - [ ] Test with `--no-download-attachments` flag
@@ -187,7 +188,8 @@ Add options to collect command:
 **Test with Real Data:**
 ```bash
 # Test with issue #71 which has multiple attachment types
-uv run github-analysis collect --org replicated-collab --repo pixee-replicated --issue-number 71 --download-attachments
+# Ask user to provide test organization, repository, and issue number for validation
+# Example: uv run github-analysis collect --org USER_PROVIDED_ORG --repo USER_PROVIDED_REPO --issue-number USER_PROVIDED_ISSUE_NUMBER --download-attachments
 
 # Expected attachments in issue #71:
 # - Images: ![Image](https://github.com/user-attachments/assets/...)
@@ -197,7 +199,7 @@ uv run github-analysis collect --org replicated-collab --repo pixee-replicated -
 ```
 
 **Validation:**
-- Test with replicated-collab/pixee-replicated issue #71 (has all attachment types)
+- Test with USER_PROVIDED_ORG/USER_PROVIDED_REPO issue #71 (has all attachment types)
 - Verify attachment directories created in `data/attachments/`
 - Check attachment metadata JSON files exist and are valid
 - Test with --no-download-attachments flag

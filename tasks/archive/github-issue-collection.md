@@ -37,7 +37,7 @@ Implement basic GitHub issue collection using the GitHub REST API. Focus on sear
 
 **CLI Interface:**
 ```bash
-uv run github-analysis collect --org microsoft --repo vscode --labels bug --limit 5
+uv run github-analysis collect --org USER_PROVIDED_ORG --repo USER_PROVIDED_REPO --labels bug --limit 5
 ```
 
 **Pydantic Models Needed:**
@@ -77,7 +77,7 @@ class StoredIssue(BaseModel):
 ```
 
 **Search Query Format:**
-Build GitHub search queries like: `repo:microsoft/vscode is:issue label:bug created:>2024-01-01`
+Build GitHub search queries like: `repo:USER_PROVIDED_ORG/USER_PROVIDED_REPO is:issue label:bug created:>2024-01-01`
 
 **Rate Limiting:**
 - Check `X-RateLimit-Remaining` and `X-RateLimit-Reset` headers
@@ -85,7 +85,7 @@ Build GitHub search queries like: `repo:microsoft/vscode is:issue label:bug crea
 - Handle 403 rate limit responses with exponential backoff
 
 **File Storage:**
-- Save as: `data/issues/microsoft_vscode_issue_12345.json`
+- Save as: `data/issues/USER_PROVIDED_ORG_USER_PROVIDED_REPO_issue_12345.json`
 - Use `StoredIssue` model for JSON structure
 - Include metadata: collection timestamp, API version
 
@@ -138,7 +138,7 @@ Build GitHub search queries like: `repo:microsoft/vscode is:issue label:bug crea
 
 **Validation:**
 ✅ CLI commands work correctly:
-- `uv run github-analysis collect --org microsoft --repo vscode --limit 3` (requires GITHUB_TOKEN)
+- `uv run github-analysis collect --org USER_PROVIDED_ORG --repo USER_PROVIDED_REPO --limit 3` (requires GITHUB_TOKEN)
 - `uv run github-analysis status` (shows storage statistics)
 - `uv run github-analysis --help` (shows all commands)
 

@@ -123,11 +123,11 @@ AI_THINKING_SUMMARY=detailed
 # Test thinking model configurations
 uv run github-analysis process product-labeling \
   --model openai:o1-mini --thinking-effort high \
-  --org replicated-collab --repo pixee-replicated --issue-number 71
+  --org USER_PROVIDED_ORG --repo USER_PROVIDED_REPO --issue-number USER_PROVIDED_ISSUE_NUMBER
 
 uv run github-analysis process product-labeling \
   --model anthropic:claude-3-5-sonnet-latest --thinking-budget 2048 \
-  --org replicated-collab --repo pixee-replicated --issue-number 71
+  --org USER_PROVIDED_ORG --repo USER_PROVIDED_REPO --issue-number USER_PROVIDED_ISSUE_NUMBER
 
 # Test validation errors
 uv run github-analysis process product-labeling \
@@ -138,11 +138,11 @@ uv run github-analysis process product-labeling \
 export AI_THINKING_EFFORT=medium
 uv run github-analysis process product-labeling \
   --model openai:o1-mini \
-  --org replicated-collab --repo pixee-replicated --issue-number 71
+  --org USER_PROVIDED_ORG --repo USER_PROVIDED_REPO --issue-number USER_PROVIDED_ISSUE_NUMBER
 
 # Test backward compatibility
 uv run github-analysis process product-labeling \
-  --org replicated-collab --repo pixee-replicated --issue-number 71
+  --org USER_PROVIDED_ORG --repo USER_PROVIDED_REPO --issue-number USER_PROVIDED_ISSUE_NUMBER
 # Should work exactly as before
 
 # Run all tests

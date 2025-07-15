@@ -162,9 +162,15 @@ GITHUB_TOKEN=$GITHUB_PERSONAL_ACCESS_TOKEN gh pr create --title "Title" --body "
 GITHUB_TOKEN=$GITHUB_PERSONAL_ACCESS_TOKEN gh repo view
 
 # Testing the CLI tool (use GITHUB_TOKEN for test repo access)
-uv run github-analysis collect --org replicated-collab --repo pixee-replicated --issue-number 71
+uv run github-analysis collect --org YOUR_ORG --repo YOUR_REPO --issue-number 123
 ```
 
 **Why Two Tokens:**
 - `GITHUB_TOKEN`: Has access to test repositories but limited GitHub API permissions
 - `GITHUB_PERSONAL_ACCESS_TOKEN`: Has full GitHub API permissions for repository operations
+
+## Important Security Notes
+
+**Never write files to the root directory. Use `/tmp/` for any temporary/analysis files.**
+
+This prevents accidental commits of customer data or temporary analysis files.

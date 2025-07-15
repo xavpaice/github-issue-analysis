@@ -92,61 +92,63 @@ class TestBuildGitHubQuery:
 
     def test_basic_query(self) -> None:
         """Test building basic query."""
-        query = build_github_query("microsoft", "vscode")
-        expected = "repo:microsoft/vscode is:issue state:open"
+        query = build_github_query("test-org", "test-repo")
+        expected = "repo:test-org/test-repo is:issue state:open"
         assert query == expected
 
     def test_query_with_labels(self) -> None:
         """Test query with labels."""
-        query = build_github_query("microsoft", "vscode", labels=["bug", "enhancement"])
+        query = build_github_query(
+            "test-org", "test-repo", labels=["bug", "enhancement"]
+        )
         expected = (
-            "repo:microsoft/vscode is:issue state:open label:bug label:enhancement"
+            "repo:test-org/test-repo is:issue state:open label:bug label:enhancement"
         )
         assert query == expected
 
     def test_query_with_state_all(self) -> None:
         """Test query with state 'all'."""
-        query = build_github_query("microsoft", "vscode", state="all")
-        expected = "repo:microsoft/vscode is:issue"
+        query = build_github_query("test-org", "test-repo", state="all")
+        expected = "repo:test-org/test-repo is:issue"
         assert query == expected
 
     def test_query_with_closed_state(self) -> None:
         """Test query with closed state."""
-        query = build_github_query("microsoft", "vscode", state="closed")
-        expected = "repo:microsoft/vscode is:issue state:closed"
+        query = build_github_query("test-org", "test-repo", state="closed")
+        expected = "repo:test-org/test-repo is:issue state:closed"
         assert query == expected
 
     def test_query_with_created_after(self) -> None:
         """Test query with created_after filter."""
-        query = build_github_query("microsoft", "vscode", created_after="2024-01-01")
-        expected = "repo:microsoft/vscode is:issue state:open created:>2024-01-01"
+        query = build_github_query("test-org", "test-repo", created_after="2024-01-01")
+        expected = "repo:test-org/test-repo is:issue state:open created:>2024-01-01"
         assert query == expected
 
     def test_complex_query(self) -> None:
         """Test complex query with all parameters."""
         query = build_github_query(
-            org="microsoft",
-            repo="vscode",
+            org="test-org",
+            repo="test-repo",
             labels=["bug", "priority:high"],
             state="closed",
             created_after="2024-01-01",
         )
         expected = (
-            "repo:microsoft/vscode is:issue state:closed label:bug "
+            "repo:test-org/test-repo is:issue state:closed label:bug "
             "label:priority:high created:>2024-01-01"
         )
         assert query == expected
 
     def test_query_with_empty_labels(self) -> None:
         """Test query with empty labels list."""
-        query = build_github_query("microsoft", "vscode", labels=[])
-        expected = "repo:microsoft/vscode is:issue state:open"
+        query = build_github_query("test-org", "test-repo", labels=[])
+        expected = "repo:test-org/test-repo is:issue state:open"
         assert query == expected
 
     def test_query_with_single_label(self) -> None:
         """Test query with single label."""
-        query = build_github_query("microsoft", "vscode", labels=["bug"])
-        expected = "repo:microsoft/vscode is:issue state:open label:bug"
+        query = build_github_query("test-org", "test-repo", labels=["bug"])
+        expected = "repo:test-org/test-repo is:issue state:open label:bug"
         assert query == expected
 
     def test_search_organization_issues_with_exclusions(self) -> None:

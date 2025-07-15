@@ -22,13 +22,16 @@ Enhance the existing `collect` command to support flexible issue collection patt
 2. **Command Syntax Patterns**
    ```bash
    # Single issue collection (new)
-   uv run github-analysis collect --org replicated-collab --repo pixee-replicated --issue-number 71
+   # Ask user to provide test organization, repository, and issue number for validation
+# Example: uv run github-analysis collect --org USER_PROVIDED_ORG --repo USER_PROVIDED_REPO --issue-number USER_PROVIDED_ISSUE_NUMBER
    
    # Organization-wide search (new) - search all repos in org
-   uv run github-analysis collect --org replicated-collab --limit 20
+   # Ask user to provide test organization for validation
+# Example: uv run github-analysis collect --org USER_PROVIDED_ORG --limit 20
    
    # Repository-specific bulk collection (existing, enhanced)
-   uv run github-analysis collect --org replicated-collab --repo pixee-replicated --limit 10
+   # Ask user to provide test organization and repository for validation
+# Example: uv run github-analysis collect --org USER_PROVIDED_ORG --repo USER_PROVIDED_REPO --limit 10
    ```
 
 3. **Collection Mode Logic**
@@ -86,7 +89,7 @@ Enhance the existing `collect` command to support flexible issue collection patt
 ### Phase 4: Testing & Validation
 1. **Unit tests**: Mock all GitHub API calls, test parameter validation
 2. **Integration tests**: Test with mocked responses, verify storage consistency  
-3. **Manual validation**: Test real API calls with replicated-collab repo using GITHUB_TOKEN
+3. **Manual validation**: Test real API calls with USER_PROVIDED_ORG repo using GITHUB_TOKEN
 
 ### Current CLI Structure Analysis
 - Line 18: `repo` parameter currently required (`...`) - needs to be optional
@@ -97,7 +100,7 @@ Enhance the existing `collect` command to support flexible issue collection patt
 ## Testing Specification
 
 ### Automated Tests (pytest)
-**Note: These tests use mocked GitHub API responses since the replicated-collab repo is only accessible on dev machine**
+**Note: These tests use mocked GitHub API responses since the USER_PROVIDED_ORG repo is only accessible on dev machine**
 
 #### Unit Tests
 - [ ] Test CLI parameter parsing with `--issue-number`
@@ -112,15 +115,16 @@ Enhance the existing `collect` command to support flexible issue collection patt
 - [ ] Mock tests for non-existent issues/repos/orgs
 
 ### Manual Validation (dev machine only)
-**Note: These tests require actual GitHub API access to replicated-collab repo via GITHUB_TOKEN**
+**Note: These tests require actual GitHub API access to USER_PROVIDED_ORG repo via GITHUB_TOKEN**
 
 **Test Case 1: Single Issue Collection**
 ```bash
 # Test with the specific issue mentioned
-uv run github-analysis collect --org replicated-collab --repo pixee-replicated --issue-number 71
+# Ask user to provide test organization, repository, and issue number for validation
+# Example: uv run github-analysis collect --org USER_PROVIDED_ORG --repo USER_PROVIDED_REPO --issue-number USER_PROVIDED_ISSUE_NUMBER
 
 # Expected: Successfully collect issue #71 "Weird Behavior with RunPods"
-# Verify: File created at data/issues/replicated-collab_pixee-replicated_issue_71.json
+# Verify: File created at data/issues/ORG_REPO_issue_NUMBER.json
 # Verify: Issue has 20 comments and "closed" state
 # Verify: Collection completes in <10 seconds
 ```
@@ -128,9 +132,10 @@ uv run github-analysis collect --org replicated-collab --repo pixee-replicated -
 **Test Case 2: Organization-Wide Collection**
 ```bash
 # Test organization-wide search
-uv run github-analysis collect --org replicated-collab --limit 10
+# Ask user to provide test organization for validation
+# Example: uv run github-analysis collect --org USER_PROVIDED_ORG --limit 10
 
-# Expected: Collects 10 closed issues from any repo in replicated-collab org
+# Expected: Collects 10 closed issues from any repo in USER_PROVIDED_ORG org
 # Verify: Issues from multiple repositories are collected
 # Verify: All collected issues have "state": "closed" by default
 # Verify: File names include different repository names
@@ -139,17 +144,19 @@ uv run github-analysis collect --org replicated-collab --limit 10
 **Test Case 3: Repository-Specific Collection (Enhanced)**
 ```bash
 # Test repository collection uses closed by default
-uv run github-analysis collect --org replicated-collab --repo pixee-replicated --limit 5
+# Ask user to provide test organization and repository for validation
+# Example: uv run github-analysis collect --org USER_PROVIDED_ORG --repo USER_PROVIDED_REPO --limit 5
 
-# Expected: Collects 5 closed issues from pixee-replicated repo only
+# Expected: Collects 5 closed issues from provided repo only
 # Verify: All collected issues have "state": "closed"
-# Verify: All issues are from pixee-replicated repository
+# Verify: All issues are from provided repository
 ```
 
 **Test Case 4: Error Handling**
 ```bash
 # Test non-existent issue
-uv run github-analysis collect --org replicated-collab --repo pixee-replicated --issue-number 99999
+# Ask user to provide test organization and repository for validation
+# Example: uv run github-analysis collect --org USER_PROVIDED_ORG --repo USER_PROVIDED_REPO --issue-number 99999
 
 # Expected: Clear error message about issue not found
 # Verify: No file created, proper exit code
@@ -163,7 +170,8 @@ uv run github-analysis collect --issue-number 71
 **Test Case 5: Backward Compatibility**
 ```bash
 # Test existing bulk collection still works with explicit state
-uv run github-analysis collect --org replicated-collab --repo pixee-replicated --state open --limit 3
+# Ask user to provide test organization and repository for validation
+# Example: uv run github-analysis collect --org USER_PROVIDED_ORG --repo USER_PROVIDED_REPO --state open --limit 3
 
 # Expected: Collects 3 open issues (overriding new default)
 # Verify: All collected issues have "state": "open"
@@ -185,7 +193,7 @@ uv run github-analysis collect --org replicated-collab --repo pixee-replicated -
 #### Manual Validation Criteria (dev machine)
 1. **Functionality**
    - Single issue collection retrieves exact issue #71 with all 20 comments
-   - Organization-wide search returns issues from multiple repos in replicated-collab
+   - Organization-wide search returns issues from multiple repos in USER_PROVIDED_ORG
    - Repository-specific search works with new closed default
    - Default state change to "closed" works across all modes
 
@@ -215,8 +223,8 @@ uv run github-analysis collect --org replicated-collab --repo pixee-replicated -
 
 ### Manual Validation (dev machine with GITHUB_TOKEN)
 - [ ] Can collect single issue by number: `--issue-number 71` (requires --org and --repo)
-- [ ] Can collect organization-wide issues: `--org replicated-collab` (without --repo)
-- [ ] Can collect repository-specific issues: `--org replicated-collab --repo pixee-replicated`
+- [ ] Can collect organization-wide issues: `--org USER_PROVIDED_ORG` (without --repo)
+- [ ] Can collect repository-specific issues: `--org USER_PROVIDED_ORG --repo USER_PROVIDED_REPO`
 - [ ] Default state is "closed" for all collection modes
 - [ ] Issue #71 successfully collected with all 20 comments
 - [ ] Organization-wide search returns issues from multiple repositories
@@ -232,7 +240,7 @@ uv run github-analysis collect --org replicated-collab --repo pixee-replicated -
 ### Testing Approach
 - **pytest**: Uses mocked responses only (no real GitHub API calls)
 - **Manual validation**: Uses real GitHub API with GITHUB_TOKEN on dev machine
-- **Target repo**: replicated-collab/pixee-replicated (only accessible on dev machine)
+- **Target repo**: USER_PROVIDED_ORG/USER_PROVIDED_REPO (only accessible on dev machine)
 - **Primary test issue**: #71 "Weird Behavior with RunPods" (20 comments, closed state)
 
 ### Development Guidelines

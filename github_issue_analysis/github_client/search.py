@@ -229,9 +229,9 @@ def build_github_query(
 
     Example:
         >>> build_github_query(
-        ...     "microsoft", "vscode", ["bug"], "open", "2024-01-01", "2024-12-31"
+        ...     "test-org", "test-repo", ["bug"], "open", "2024-01-01", "2024-12-31"
         ... )
-        "repo:microsoft/vscode is:issue state:open label:bug " \\
+        "repo:test-org/test-repo is:issue state:open label:bug " \\
         "created:>2024-01-01 created:<2024-12-31"
     """
     query_parts = [f"repo:{org}/{repo}", "is:issue"]
@@ -280,8 +280,8 @@ def build_github_organization_query(
         GitHub search query string
 
     Example:
-        >>> build_github_organization_query("microsoft", ["bug"], "open", "2024-01-01")
-        "org:microsoft is:issue state:open label:bug created:>2024-01-01"
+        >>> build_github_organization_query("test-org", ["bug"], "open", "2024-01-01")
+        "org:test-org is:issue state:open label:bug created:>2024-01-01"
     """
     query_parts = [f"org:{org}", "is:issue"]
 

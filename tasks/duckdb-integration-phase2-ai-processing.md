@@ -815,7 +815,8 @@ class TestAIProcessingPipeline:
 uv run github-analysis status  # Should show database enabled
 
 # 2. Collect some test data
-uv run github-analysis collect --org replicated-collab --repo pixee-replicated --limit 3
+# Ask user to provide test organization and repository for validation
+# Example: uv run github-analysis collect --org USER_PROVIDED_ORG --repo USER_PROVIDED_REPO --limit 3
 
 # 3. Run some AI processing to have existing results
 # (This assumes AI processing is available from previous tasks)

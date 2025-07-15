@@ -41,28 +41,32 @@ Currently, organization-wide collection (`--org orgname`) includes all repositor
 **Usage Examples:**
 ```bash
 # Exclude single repository
-uv run github-analysis collect --org replicated-collab --exclude-repo private-repo
+# Ask user to provide test organization for validation
+# Example: uv run github-analysis collect --org USER_PROVIDED_ORG --exclude-repo private-repo
 
 # Exclude multiple repositories (multiple flags)
-uv run github-analysis collect --org replicated-collab --exclude-repo private-repo --exclude-repo test-repo
+# Ask user to provide test organization for validation
+# Example: uv run github-analysis collect --org USER_PROVIDED_ORG --exclude-repo private-repo --exclude-repo test-repo
 
 # Exclude multiple repositories (comma-separated)
-uv run github-analysis collect --org replicated-collab --exclude-repos "private-repo,test-repo,archived-repo"
+# Ask user to provide test organization for validation
+# Example: uv run github-analysis collect --org USER_PROVIDED_ORG --exclude-repos "private-repo,test-repo,archived-repo"
 
 # Mix both approaches
-uv run github-analysis collect --org replicated-collab --exclude-repo private-repo --exclude-repos "test-repo,archived-repo"
+# Ask user to provide test organization for validation
+# Example: uv run github-analysis collect --org USER_PROVIDED_ORG --exclude-repo private-repo --exclude-repos "test-repo,archived-repo"
 ```
 
 ### 2. GitHub Search Query Modification
 
 **Current Query:**
 ```
-org:replicated-collab is:issue state:closed
+org:USER_PROVIDED_ORG is:issue state:closed
 ```
 
 **New Query with Exclusions:**
 ```
-org:replicated-collab is:issue state:closed -repo:replicated-collab/private-repo -repo:replicated-collab/test-repo
+org:USER_PROVIDED_ORG is:issue state:closed -repo:USER_PROVIDED_ORG/private-repo -repo:USER_PROVIDED_ORG/test-repo
 ```
 
 **GitHub Search Syntax:**
@@ -158,11 +162,11 @@ def build_organization_query(
 
 **Console Output:**
 ```
-🔍 Collecting issues from organization replicated-collab
+🔍 Collecting issues from organization USER_PROVIDED_ORG
 📋 Excluding repositories: private-repo, test-repo, archived-repo
 🔑 Initializing GitHub client...
 🔎 Searching for issues...
-Search query: org:replicated-collab is:issue state:closed -repo:replicated-collab/private-repo -repo:replicated-collab/test-repo -repo:replicated-collab/archived-repo
+Search query: org:USER_PROVIDED_ORG is:issue state:closed -repo:USER_PROVIDED_ORG/private-repo -repo:USER_PROVIDED_ORG/test-repo -repo:USER_PROVIDED_ORG/archived-repo
 ✅ Found 25 issues
 ```
 
@@ -278,19 +282,24 @@ Follow existing test patterns in the codebase:
 
 ```bash
 # Test basic exclusion functionality
-uv run github-analysis collect --org replicated-collab --exclude-repo private-repo --limit 5
+# Ask user to provide test organization for validation
+# Example: uv run github-analysis collect --org USER_PROVIDED_ORG --exclude-repo private-repo --limit 5
 
 # Test multiple exclusions
-uv run github-analysis collect --org replicated-collab --exclude-repos "repo1,repo2,repo3" --limit 5
+# Ask user to provide test organization for validation
+# Example: uv run github-analysis collect --org USER_PROVIDED_ORG --exclude-repos "repo1,repo2,repo3" --limit 5
 
 # Test with existing filters
-uv run github-analysis collect --org replicated-collab --exclude-repo private-repo --labels bug --state closed --limit 10
+# Ask user to provide test organization for validation
+# Example: uv run github-analysis collect --org USER_PROVIDED_ORG --exclude-repo private-repo --labels bug --state closed --limit 10
 
 # Verify query building in logs
-uv run github-analysis collect --org replicated-collab --exclude-repos "test-repo,archived-repo" --limit 1
+# Ask user to provide test organization for validation
+# Example: uv run github-analysis collect --org USER_PROVIDED_ORG --exclude-repos "test-repo,archived-repo" --limit 1
 
 # Test error handling
-uv run github-analysis collect --org replicated-collab --exclude-repo "invalid repo name" --limit 1
+# Ask user to provide test organization for validation
+# Example: uv run github-analysis collect --org USER_PROVIDED_ORG --exclude-repo "invalid repo name" --limit 1
 ```
 
 ## Automated Test Commands (No API Keys Required)

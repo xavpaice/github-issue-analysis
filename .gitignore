@@ -69,3 +69,22 @@ htmlcov/
 .mypy_cache/
 .dmypy.json
 dmypy.json
+
+# Temporary files protection
+/tmp/
+*.tmp
+*.temp
+*.bak
+
+# Customer data protection patterns
+*customer*
+*client*
+*private*
+*confidential*
+analysis-*.md
+report-*.md
+notes-*.txt
+
+# Specific test data patterns
+*replicated-collab*
+*pixee-replicated*

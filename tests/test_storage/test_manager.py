@@ -53,14 +53,14 @@ class TestStorageManager:
 
     def test_generate_filename(self, temp_storage: StorageManager) -> None:
         """Test filename generation."""
-        filename = temp_storage._generate_filename("microsoft", "vscode", 123)
-        expected = "microsoft_vscode_issue_123.json"
+        filename = temp_storage._generate_filename("test-org", "test-repo", 123)
+        expected = "test-org_test-repo_issue_123.json"
         assert filename == expected
 
     def test_get_file_path(self, temp_storage: StorageManager) -> None:
         """Test file path generation."""
-        file_path = temp_storage._get_file_path("microsoft", "vscode", 123)
-        expected_name = "microsoft_vscode_issue_123.json"
+        file_path = temp_storage._get_file_path("test-org", "test-repo", 123)
+        expected_name = "test-org_test-repo_issue_123.json"
         assert file_path.name == expected_name
         assert file_path.parent == temp_storage.base_path
 

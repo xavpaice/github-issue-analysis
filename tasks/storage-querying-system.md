@@ -69,7 +69,7 @@ class StorageManager:
 
 **List Command:**
 ```bash
-uv run github-analysis list --org microsoft --repo vscode
+uv run github-analysis list --org USER_PROVIDED_ORG --repo USER_PROVIDED_REPO
 uv run github-analysis list --labels bug,enhancement --state open
 uv run github-analysis list --created-after 2024-01-01 --count-only
 uv run github-analysis list --title-contains "crash" --limit 10
@@ -78,7 +78,7 @@ uv run github-analysis list --title-contains "crash" --limit 10
 **Stats Command:**
 ```bash  
 uv run github-analysis stats
-uv run github-analysis stats --org microsoft
+uv run github-analysis stats --org USER_PROVIDED_ORG
 ```
 
 **Clean Command:**
@@ -172,8 +172,8 @@ def validate_all_issues() -> Dict[str, List[str]]:
 [Document your query design decisions, performance optimizations, and CLI interface choices]
 
 **Validation:**
-- Ensure issues collected first: `uv run github-analysis collect --org microsoft --repo vscode --limit 10`
-- Test listing: `uv run github-analysis list --org microsoft --repo vscode`
+- Ensure issues collected first: `uv run github-analysis collect --org USER_PROVIDED_ORG --repo USER_PROVIDED_REPO --limit 10`
+- Test listing: `uv run github-analysis list --org USER_PROVIDED_ORG --repo USER_PROVIDED_REPO`
 - Test filtering: `uv run github-analysis list --labels bug --state open --limit 5`
 - Test stats: `uv run github-analysis stats`
 - Test count-only: `uv run github-analysis list --count-only`

@@ -14,74 +14,78 @@ class TestBuildGithubQuery:
 
     def test_basic_query(self) -> None:
         """Test building basic repository query."""
-        result = build_github_query("microsoft", "vscode")
-        expected = "repo:microsoft/vscode is:issue state:open"
+        result = build_github_query("test-org", "test-repo")
+        expected = "repo:test-org/test-repo is:issue state:open"
         assert result == expected
 
     def test_query_with_labels(self) -> None:
         """Test building query with labels."""
-        result = build_github_query("microsoft", "vscode", labels=["bug", "feature"])
-        expected = "repo:microsoft/vscode is:issue state:open label:bug label:feature"
+        result = build_github_query("test-org", "test-repo", labels=["bug", "feature"])
+        expected = "repo:test-org/test-repo is:issue state:open label:bug label:feature"
         assert result == expected
 
     def test_query_with_state(self) -> None:
         """Test building query with different states."""
-        result = build_github_query("microsoft", "vscode", state="closed")
-        expected = "repo:microsoft/vscode is:issue state:closed"
+        result = build_github_query("test-org", "test-repo", state="closed")
+        expected = "repo:test-org/test-repo is:issue state:closed"
         assert result == expected
 
-        result = build_github_query("microsoft", "vscode", state="all")
-        expected = "repo:microsoft/vscode is:issue"
+        result = build_github_query("test-org", "test-repo", state="all")
+        expected = "repo:test-org/test-repo is:issue"
         assert result == expected
 
     def test_query_with_created_after(self) -> None:
         """Test building query with created_after date."""
-        result = build_github_query("microsoft", "vscode", created_after="2024-01-01")
-        expected = "repo:microsoft/vscode is:issue state:open created:>2024-01-01"
+        result = build_github_query("test-org", "test-repo", created_after="2024-01-01")
+        expected = "repo:test-org/test-repo is:issue state:open created:>2024-01-01"
         assert result == expected
 
     def test_query_with_created_before(self) -> None:
         """Test building query with created_before date."""
-        result = build_github_query("microsoft", "vscode", created_before="2024-12-31")
-        expected = "repo:microsoft/vscode is:issue state:open created:<2024-12-31"
+        result = build_github_query(
+            "test-org", "test-repo", created_before="2024-12-31"
+        )
+        expected = "repo:test-org/test-repo is:issue state:open created:<2024-12-31"
         assert result == expected
 
     def test_query_with_created_date_range(self) -> None:
         """Test building query with created date range."""
         result = build_github_query(
-            "microsoft",
-            "vscode",
+            "test-org",
+            "test-repo",
             created_after="2024-01-01",
             created_before="2024-12-31",
         )
         expected = (
-            "repo:microsoft/vscode is:issue state:open "
+            "repo:test-org/test-repo is:issue state:open "
             "created:>2024-01-01 created:<2024-12-31"
         )
         assert result == expected
 
     def test_query_with_updated_after(self) -> None:
         """Test building query with updated_after date."""
-        result = build_github_query("microsoft", "vscode", updated_after="2024-06-01")
-        expected = "repo:microsoft/vscode is:issue state:open updated:>2024-06-01"
+        result = build_github_query("test-org", "test-repo", updated_after="2024-06-01")
+        expected = "repo:test-org/test-repo is:issue state:open updated:>2024-06-01"
         assert result == expected
 
     def test_query_with_updated_before(self) -> None:
         """Test building query with updated_before date."""
-        result = build_github_query("microsoft", "vscode", updated_before="2024-06-30")
-        expected = "repo:microsoft/vscode is:issue state:open updated:<2024-06-30"
+        result = build_github_query(
+            "test-org", "test-repo", updated_before="2024-06-30"
+        )
+        expected = "repo:test-org/test-repo is:issue state:open updated:<2024-06-30"
         assert result == expected
 
     def test_query_with_updated_date_range(self) -> None:
         """Test building query with updated date range."""
         result = build_github_query(
-            "microsoft",
-            "vscode",
+            "test-org",
+            "test-repo",
             updated_after="2024-06-01",
             updated_before="2024-06-30",
         )
         expected = (
-            "repo:microsoft/vscode is:issue state:open "
+            "repo:test-org/test-repo is:issue state:open "
             "updated:>2024-06-01 updated:<2024-06-30"
         )
         assert result == expected
@@ -89,8 +93,8 @@ class TestBuildGithubQuery:
     def test_query_with_all_date_filters(self) -> None:
         """Test building query with all date filter combinations."""
         result = build_github_query(
-            "microsoft",
-            "vscode",
+            "test-org",
+            "test-repo",
             labels=["bug"],
             state="closed",
             created_after="2024-01-01",
@@ -99,7 +103,7 @@ class TestBuildGithubQuery:
             updated_before="2024-06-30",
         )
         expected = (
-            "repo:microsoft/vscode is:issue state:closed label:bug "
+            "repo:test-org/test-repo is:issue state:closed label:bug "
             "created:>2024-01-01 created:<2024-12-31 "
             "updated:>2024-06-01 updated:<2024-06-30"
         )
@@ -108,14 +112,14 @@ class TestBuildGithubQuery:
     def test_query_with_none_dates(self) -> None:
         """Test building query with None date values."""
         result = build_github_query(
-            "microsoft",
-            "vscode",
+            "test-org",
+            "test-repo",
             created_after=None,
             created_before=None,
             updated_after=None,
             updated_before=None,
         )
-        expected = "repo:microsoft/vscode is:issue state:open"
+        expected = "repo:test-org/test-repo is:issue state:open"
         assert result == expected
 
 
@@ -124,38 +128,36 @@ class TestBuildGithubOrganizationQuery:
 
     def test_basic_organization_query(self) -> None:
         """Test building basic organization query."""
-        result = build_github_organization_query("microsoft")
-        expected = "org:microsoft is:issue state:open"
+        result = build_github_organization_query("test-org")
+        expected = "org:test-org is:issue state:open"
         assert result == expected
 
     def test_organization_query_with_labels(self) -> None:
         """Test building organization query with labels."""
-        result = build_github_organization_query("microsoft", labels=["bug", "feature"])
-        expected = "org:microsoft is:issue state:open label:bug label:feature"
+        result = build_github_organization_query("test-org", labels=["bug", "feature"])
+        expected = "org:test-org is:issue state:open label:bug label:feature"
         assert result == expected
 
     def test_organization_query_with_state(self) -> None:
         """Test building organization query with different states."""
-        result = build_github_organization_query("microsoft", state="closed")
-        expected = "org:microsoft is:issue state:closed"
+        result = build_github_organization_query("test-org", state="closed")
+        expected = "org:test-org is:issue state:closed"
         assert result == expected
 
-        result = build_github_organization_query("microsoft", state="all")
-        expected = "org:microsoft is:issue"
+        result = build_github_organization_query("test-org", state="all")
+        expected = "org:test-org is:issue"
         assert result == expected
 
     def test_organization_query_with_created_after(self) -> None:
         """Test building organization query with created_after date."""
-        result = build_github_organization_query(
-            "microsoft", created_after="2024-01-01"
-        )
-        expected = "org:microsoft is:issue state:open created:>2024-01-01"
+        result = build_github_organization_query("test-org", created_after="2024-01-01")
+        expected = "org:test-org is:issue state:open created:>2024-01-01"
         assert result == expected
 
     def test_organization_query_with_all_date_filters(self) -> None:
         """Test building organization query with all date filter combinations."""
         result = build_github_organization_query(
-            "microsoft",
+            "test-org",
             labels=["bug"],
             state="closed",
             created_after="2024-01-01",
@@ -164,7 +166,7 @@ class TestBuildGithubOrganizationQuery:
             updated_before="2024-06-30",
         )
         expected = (
-            "org:microsoft is:issue state:closed label:bug "
+            "org:test-org is:issue state:closed label:bug "
             "created:>2024-01-01 created:<2024-12-31 "
             "updated:>2024-06-01 updated:<2024-06-30"
         )
@@ -188,8 +190,8 @@ class TestGitHubSearcher:
 
         # Call the method with date parameters
         self.searcher.search_repository_issues(
-            org="microsoft",
-            repo="vscode",
+            org="test-org",
+            repo="test-repo",
             labels=["bug"],
             state="open",
             limit=10,
@@ -201,8 +203,8 @@ class TestGitHubSearcher:
 
         # Verify client was called with all parameters
         self.mock_client.search_issues.assert_called_once_with(
-            org="microsoft",
-            repo="vscode",
+            org="test-org",
+            repo="test-repo",
             labels=["bug"],
             state="open",
             limit=10,
@@ -221,7 +223,7 @@ class TestGitHubSearcher:
 
         # Call the method with date parameters
         self.searcher.search_organization_issues(
-            org="microsoft",
+            org="test-org",
             labels=["bug"],
             state="closed",
             limit=20,
@@ -231,7 +233,7 @@ class TestGitHubSearcher:
 
         # Verify client was called with all parameters
         self.mock_client.search_organization_issues.assert_called_once_with(
-            org="microsoft",
+            org="test-org",
             labels=["bug"],
             state="closed",
             limit=20,
@@ -251,13 +253,13 @@ class TestGitHubSearcher:
 
         # Call the method without date parameters
         self.searcher.search_repository_issues(
-            org="microsoft", repo="vscode", labels=["feature"], state="all", limit=5
+            org="test-org", repo="test-repo", labels=["feature"], state="all", limit=5
         )
 
         # Verify client was called with None for date parameters
         self.mock_client.search_issues.assert_called_once_with(
-            org="microsoft",
-            repo="vscode",
+            org="test-org",
+            repo="test-repo",
             labels=["feature"],
             state="all",
             limit=5,
@@ -276,12 +278,12 @@ class TestGitHubSearcher:
 
         # Call the method without date parameters
         self.searcher.search_organization_issues(
-            org="microsoft", labels=None, state="open", limit=15
+            org="test-org", labels=None, state="open", limit=15
         )
 
         # Verify client was called with None for date parameters
         self.mock_client.search_organization_issues.assert_called_once_with(
-            org="microsoft",
+            org="test-org",
             labels=None,
             state="open",
             limit=15,
