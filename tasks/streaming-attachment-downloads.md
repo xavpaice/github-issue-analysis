@@ -20,13 +20,14 @@ GitHub attachment downloads are failing with HTTP 400 Bad Request errors during 
 
 **Exact Command That Triggered the Failures:**
 ```bash
-uv run github-analysis collect --org replicated-collab --repo swaggerhub-kots --limit 20
+# Ask user to provide test organization and repository for validation
+# Example: uv run github-analysis collect --org USER_PROVIDED_ORG --repo USER_PROVIDED_REPO --limit 20
 ```
 
 **System Context:**
 - Date/Time: 2025-07-03 18:32:xx (CST)
 - GitHub API rate limit: 4065 requests remaining
-- Repository: replicated-collab/swaggerhub-kots
+- Repository: Ask user to provide test organization/repository at runtime
 - Issues collected: #471, #470, #468, #467, #464, #463, #462, #461, #459, #458, #456, #455, #454, #453, #452, #450, #449, #448, #447, #446
 
 **Expected Reproduction Steps:**

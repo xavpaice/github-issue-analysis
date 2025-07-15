@@ -151,19 +151,24 @@ is:issue created:>2024-01-01 updated:<2024-12-31  # Combined filters
 ### Setup and Basic Testing
 ```bash
 # 1. Test absolute date filtering
-uv run github-analysis collect --org replicated-collab --repo pixee-replicated --created-after 2024-01-01 --limit 5
+# Ask user to provide test organization and repository for validation
+# Example: uv run github-analysis collect --org USER_PROVIDED_ORG --repo USER_PROVIDED_REPO --created-after 2024-01-01 --limit 5
 
 # 2. Test relative dates
-uv run github-analysis collect --org replicated-collab --repo pixee-replicated --last-months 3 --limit 5
+# Ask user to provide test organization and repository for validation
+# Example: uv run github-analysis collect --org USER_PROVIDED_ORG --repo USER_PROVIDED_REPO --last-months 3 --limit 5
 
 # 3. Test date ranges
-uv run github-analysis collect --org replicated-collab --repo pixee-replicated --created-after 2024-01-01 --created-before 2024-06-30 --limit 5
+# Ask user to provide test organization and repository for validation
+# Example: uv run github-analysis collect --org USER_PROVIDED_ORG --repo USER_PROVIDED_REPO --created-after 2024-01-01 --created-before 2024-06-30 --limit 5
 
 # 4. Test updated date filtering
-uv run github-analysis collect --org replicated-collab --repo pixee-replicated --updated-after 2024-01-01 --limit 5
+# Ask user to provide test organization and repository for validation
+# Example: uv run github-analysis collect --org USER_PROVIDED_ORG --repo USER_PROVIDED_REPO --updated-after 2024-01-01 --limit 5
 
 # 5. Combine with existing filters
-uv run github-analysis collect --org replicated-collab --repo pixee-replicated --labels bug --last-weeks 4 --limit 5
+# Ask user to provide test organization and repository for validation
+# Example: uv run github-analysis collect --org USER_PROVIDED_ORG --repo USER_PROVIDED_REPO --labels bug --last-weeks 4 --limit 5
 ```
 
 ### Edge Case Testing
@@ -178,10 +183,12 @@ uv run github-analysis collect --org test --created-after 2024-12-31 --created-b
 uv run github-analysis collect --org test --created-after 2024-01-01 --last-months 6
 
 # 9. Test organization-wide with dates
-uv run github-analysis collect --org replicated-collab --last-months 1 --limit 10
+# Ask user to provide test organization for validation
+# Example: uv run github-analysis collect --org USER_PROVIDED_ORG --last-months 1 --limit 10
 
 # 10. Verify existing functionality unchanged
-uv run github-analysis collect --org replicated-collab --repo pixee-replicated --issue-number 71
+# Ask user to provide test organization, repository, and issue number for validation
+# Example: uv run github-analysis collect --org USER_PROVIDED_ORG --repo USER_PROVIDED_REPO --issue-number USER_PROVIDED_ISSUE_NUMBER
 ```
 
 ### Quality Assurance

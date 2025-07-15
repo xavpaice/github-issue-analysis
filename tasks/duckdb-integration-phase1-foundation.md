@@ -748,7 +748,8 @@ uv add duckdb
 uv run github-analysis status
 
 # 3. Collect some sample data if needed
-uv run github-analysis collect --org microsoft --repo vscode --limit 5
+# Ask user to provide test organization and repository for validation
+# Example: uv run github-analysis collect --org USER_PROVIDED_ORG --repo USER_PROVIDED_REPO --limit 5
 ```
 
 ### **Database Functionality**
@@ -805,8 +806,9 @@ uv run pytest tests/test_cli/test_query.py -v
 uv run ruff check --fix && uv run black . && uv run mypy .
 
 # 15. Integration test
-uv run github-analysis collect --org replicated-collab --repo pixee-replicated --issue-number 71
-uv run github-analysis query sql "SELECT title, state FROM issues WHERE repo = 'pixee-replicated'"
+# Ask user to provide test organization, repository, and issue number for validation
+# Example: uv run github-analysis collect --org USER_PROVIDED_ORG --repo USER_PROVIDED_REPO --issue-number USER_PROVIDED_ISSUE_NUMBER
+# Example: uv run github-analysis query sql "SELECT title, state FROM issues WHERE repo = 'USER_PROVIDED_REPO'"
 ```
 
 ## Acceptance Criteria

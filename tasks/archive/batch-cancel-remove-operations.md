@@ -162,7 +162,7 @@ def remove_job(self, job_id: str, force: bool = False) -> bool:
 
 ```bash
 # Setup: Create a test batch job
-uv run github-analysis batch submit product-labeling --org replicated-collab --repo pixee-replicated --issue-number 71 --dry-run
+uv run github-analysis batch submit product-labeling --org USER_PROVIDED_ORG --repo USER_PROVIDED_REPO --issue-number USER_PROVIDED_ISSUE_NUMBER --dry-run
 
 # Test cancellation
 uv run github-analysis batch cancel <job-id>

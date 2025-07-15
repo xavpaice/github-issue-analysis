@@ -306,19 +306,23 @@ def submit(
 ### **Setup and Splitting Logic**
 ```bash
 # 1. Test splitting preview for small collections
-uv run github-analysis batch submit product-labeling --org replicated-collab --dry-run --limit 10
+# Ask user to provide test organization for validation
+# Example: uv run github-analysis batch submit product-labeling --org USER_PROVIDED_ORG --dry-run --limit 10
 
-# 2. Test splitting preview for large collections  
-uv run github-analysis batch submit product-labeling --org replicated-collab --dry-run --limit 100
+# 2. Test splitting preview for large collections
+# Ask user to provide test organization for validation  
+# Example: uv run github-analysis batch submit product-labeling --org USER_PROVIDED_ORG --dry-run --limit 100
 ```
 
 ### **Automatic Splitting**
 ```bash
 # 3. Test small batch (no splitting required)
-uv run github-analysis batch submit product-labeling --org replicated-collab --limit 20
+# Ask user to provide test organization for validation
+# Example: uv run github-analysis batch submit product-labeling --org USER_PROVIDED_ORG --limit 20
 
 # 4. Test large batch (auto-splitting into 30-issue chunks)
-uv run github-analysis batch submit product-labeling --org replicated-collab --limit 80
+# Ask user to provide test organization for validation
+# Example: uv run github-analysis batch submit product-labeling --org USER_PROVIDED_ORG --limit 80
 
 # 5. Verify group creation and tracking
 uv run github-analysis batch list --groups

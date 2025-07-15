@@ -13,13 +13,13 @@ Collect GitHub issues and analyze them with AI to improve issue labeling and cat
 
 2. **Collect Issues**
    ```bash
-   uv run github-analysis collect --org microsoft --repo vscode --labels bug --limit 5
+   uv run github-analysis collect --org YOUR_ORG --repo YOUR_REPO --labels bug --limit 5
    ```
 
 3. **Process with AI (Batch Processing - Recommended)**
    ```bash
    # Submit batch job (50% cheaper than individual processing)
-   uv run github-analysis batch submit product-labeling --org microsoft --repo vscode
+   uv run github-analysis batch submit product-labeling --org YOUR_ORG --repo YOUR_REPO
    
    # Check status
    uv run github-analysis batch list
@@ -31,10 +31,10 @@ Collect GitHub issues and analyze them with AI to improve issue labeling and cat
 4. **Update Labels** (with GitHub write token)
    ```bash
    # Preview changes first
-   uv run github-analysis update-labels --org microsoft --repo vscode --dry-run
+   uv run github-analysis update-labels --org YOUR_ORG --repo YOUR_REPO --dry-run
    
    # Apply changes
-   uv run github-analysis update-labels --org microsoft --repo vscode
+   uv run github-analysis update-labels --org YOUR_ORG --repo YOUR_REPO
    ```
 
 ## For AI Agents

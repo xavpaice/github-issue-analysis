@@ -133,16 +133,16 @@ uv run python -c "from github_issue_analysis.cli.options import ORG_OPTION, REPO
 **Phase 2 - Updated Commands:**
 ```bash
 # Test collect command with shorthand options
-uv run github-analysis collect -o replicated-collab -r pixee-replicated -i 71 --dry-run
+uv run github-analysis collect -o USER_PROVIDED_ORG -r USER_PROVIDED_REPO -i USER_PROVIDED_ISSUE_NUMBER --dry-run
 
 # Test batch command with shorthand options  
-uv run github-analysis batch submit product-labeling -o replicated-collab -r pixee-replicated --dry-run
+uv run github-analysis batch submit product-labeling -o USER_PROVIDED_ORG -r USER_PROVIDED_REPO --dry-run
 
 # Test process command with shorthand options
-uv run github-analysis process product-labeling -o replicated-collab -r pixee-replicated -i 71 --dry-run
+uv run github-analysis process product-labeling -o USER_PROVIDED_ORG -r USER_PROVIDED_REPO -i USER_PROVIDED_ISSUE_NUMBER --dry-run
 
 # Test update-labels with NEW shorthand options (most important)
-uv run github-analysis update-labels -o replicated-collab -r pixee-replicated -i 71 -d
+uv run github-analysis update-labels -o USER_PROVIDED_ORG -r USER_PROVIDED_REPO -i USER_PROVIDED_ISSUE_NUMBER -d
 
 # Test help shorthand works
 uv run github-analysis collect -h

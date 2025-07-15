@@ -30,25 +30,25 @@ uv run github-analysis collect [OPTIONS]
 **Examples:**
 ```bash
 # Collect single issue
-uv run github-analysis collect --org replicated-collab --repo pixee-replicated --issue-number 71
+uv run github-analysis collect --org example-org --repo example-repo --issue-number 71
 
 # Collect from entire organization (20 most recent closed issues)
-uv run github-analysis collect --org replicated-collab --limit 20
+uv run github-analysis collect --org example-org --limit 20
 
 # Collect bugs from specific repository
-uv run github-analysis collect --org microsoft --repo vscode --labels bug --limit 5
+uv run github-analysis collect --org example-org --repo example-repo --labels bug --limit 5
 
 # Organization-wide collection excluding specific repositories
-uv run github-analysis collect --org replicated-collab --exclude-repo private-repo --limit 15
+uv run github-analysis collect --org example-org --exclude-repo private-repo --limit 15
 
 # Exclude multiple repositories using multiple flags
-uv run github-analysis collect --org replicated-collab --exclude-repo private-repo --exclude-repo test-repo --limit 10
+uv run github-analysis collect --org example-org --exclude-repo private-repo --exclude-repo test-repo --limit 10
 
 # Exclude multiple repositories using comma-separated list
-uv run github-analysis collect --org replicated-collab --exclude-repos "private-repo,test-repo,archived-repo" --limit 10
+uv run github-analysis collect --org example-org --exclude-repos "private-repo,test-repo,archived-repo" --limit 10
 
 # Mix both exclusion approaches with additional filters
-uv run github-analysis collect --org microsoft --exclude-repo private-repo --exclude-repos "test-repo,docs-repo" --labels bug --state open --limit 20
+uv run github-analysis collect --org example-org --exclude-repo private-repo --exclude-repos "test-repo,docs-repo" --labels bug --state open --limit 20
 ```
 
 ### batch (RECOMMENDED)

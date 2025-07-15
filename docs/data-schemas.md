@@ -6,8 +6,8 @@ Issues are stored as JSON files in `data/issues/` with filename format: `org_rep
 
 ```json
 {
-  "org": "microsoft",
-  "repo": "vscode",
+  "org": "example-org",
+  "repo": "example-repo",
   "issue_number": 12345,
   "title": "Editor fails to highlight syntax",
   "body": "Full issue description...",
@@ -37,16 +37,16 @@ Issues are stored as JSON files in `data/issues/` with filename format: `org_rep
   "updated_at": "2024-01-01T15:00:00Z",
   "attachments": [
     {
-      "url": "https://github.com/microsoft/vscode/files/123456/error.log",
+      "url": "https://github.com/example-org/example-repo/files/123456/error.log",
       "filename": "error.log",
-      "local_path": "data/attachments/microsoft_vscode_issue_12345/error.log",
+      "local_path": "data/attachments/example-org_example-repo_issue_12345/error.log",
       "content_type": "text/plain",
       "size": 2048
     },
     {
       "url": "https://user-images.githubusercontent.com/123/screenshot.png",
       "filename": "screenshot.png", 
-      "local_path": "data/attachments/microsoft_vscode_issue_12345/screenshot.png",
+      "local_path": "data/attachments/example-org_example-repo_issue_12345/screenshot.png",
       "content_type": "image/png",
       "size": 51200
     }
@@ -67,10 +67,10 @@ Results are stored in `data/results/` with filename format: `org_repo_issue_<num
 ```json
 {
   "issue_reference": {
-    "org": "microsoft",
-    "repo": "vscode", 
+    "org": "example-org",
+    "repo": "example-repo", 
     "issue_number": 12345,
-    "file_path": "data/issues/microsoft_vscode_issue_12345.json"
+    "file_path": "data/issues/example-org_example-repo_issue_12345.json"
   },
   "processor": {
     "name": "product-labeling",
@@ -141,14 +141,14 @@ Attachment metadata stored in each issue's attachment directory as `attachment_m
 ```json
 {
   "issue_reference": {
-    "org": "microsoft",
-    "repo": "vscode",
+    "org": "example-org",
+    "repo": "example-repo",
     "issue_number": 12345
   },
   "downloaded_at": "2024-01-01T20:30:00Z",
   "attachments": [
     {
-      "original_url": "https://github.com/microsoft/vscode/files/123456/error.log",
+      "original_url": "https://github.com/example-org/example-repo/files/123456/error.log",
       "filename": "error.log",
       "local_filename": "error.log",
       "content_type": "text/plain",

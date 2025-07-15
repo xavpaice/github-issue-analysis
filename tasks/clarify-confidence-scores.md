@@ -241,22 +241,25 @@ def generate_dry_run_summary(self, plans: list[IssueUpdatePlan]) -> str:
 uv run black . && uv run ruff check --fix --unsafe-fixes && uv run mypy . && uv run pytest
 
 # 2. Collect fresh test data (no existing data in new branch)
-uv run github-analysis collect --org replicated-collab --repo pixee-replicated --limit 3
+# Ask user to provide test organization and repository for validation
+# Example: uv run github-analysis collect --org USER_PROVIDED_ORG --repo USER_PROVIDED_REPO --limit 3
 
 # 3. Test AI processing with real issue (MUST actually run to generate results for testing)
-uv run github-analysis process product-labeling --org replicated-collab --repo pixee-replicated --issue-number 71
+# Ask user to provide test organization and repository for validation
+# Example: uv run github-analysis process product-labeling --org USER_PROVIDED_ORG --repo USER_PROVIDED_REPO --issue-number 71
 
 # 4. Test confidence filtering with different thresholds (ALWAYS use --dry-run)
-uv run github-analysis update-labels --org replicated-collab --repo pixee-replicated --min-confidence 0.9 --dry-run
-uv run github-analysis update-labels --org replicated-collab --repo pixee-replicated --min-confidence 0.5 --dry-run
-uv run github-analysis update-labels --org replicated-collab --repo pixee-replicated --min-confidence 0.8 --dry-run
+# Example: uv run github-analysis update-labels --org USER_PROVIDED_ORG --repo USER_PROVIDED_REPO --min-confidence 0.9 --dry-run
+# Example: uv run github-analysis update-labels --org USER_PROVIDED_ORG --repo USER_PROVIDED_REPO --min-confidence 0.5 --dry-run
+# Example: uv run github-analysis update-labels --org USER_PROVIDED_ORG --repo USER_PROVIDED_REPO --min-confidence 0.8 --dry-run
 
 # 5. Test full processing pipeline with all collected issues
-uv run github-analysis process product-labeling --org replicated-collab --repo pixee-replicated
-uv run github-analysis update-labels --org replicated-collab --repo pixee-replicated --dry-run
+# Ask user to provide test organization and repository for validation
+# Example: uv run github-analysis process product-labeling --org USER_PROVIDED_ORG --repo USER_PROVIDED_REPO
+# Example: uv run github-analysis update-labels --org USER_PROVIDED_ORG --repo USER_PROVIDED_REPO --dry-run
 
 # 6. Verify JSON output structure manually
-cat data/results/replicated-collab_pixee-replicated_issue_71_product-labeling.json | jq '.analysis | keys'
+# Example: cat data/results/ORG_REPO_issue_NUMBER_product-labeling.json | jq '.analysis | keys'
 # Should show: ["recommendation_confidence", "root_cause_confidence", "recommended_labels", ...]
 # Should NOT show individual confidence in recommended_labels
 ```

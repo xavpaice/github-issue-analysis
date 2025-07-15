@@ -1,6 +1,6 @@
 # Task: Open Source Repository Sanitization
 
-**Status:** ready
+**Status:** complete
 
 **Description:**
 Sanitize the GitHub issue analysis repository for open source release by removing customer references from documentation and task templates, implementing protections against future customer data exposure, and ensuring all examples prompt users for runtime input rather than hardcoding customer information.
@@ -53,7 +53,7 @@ Sanitize the GitHub issue analysis repository for open source release by removin
 ### Files Requiring Updates (18 total committed files with customer references)
 
 **Priority 1 - User-Facing Documentation (6 files):**
-- `CLAUDE.md` (line 165: replicated-collab/pixee-replicated example)
+- `CLAUDE.md` (line 165: customer-specific example)
 - `README.md` (lines 16, 22, 34, 37: microsoft/vscode examples)  
 - `docs/api-reference.md` (multiple customer examples)
 - `docs/data-schemas.md` (microsoft/vscode in JSON schemas)
@@ -61,13 +61,14 @@ Sanitize the GitHub issue analysis repository for open source release by removin
 - `model_comparison_summary.md` (real customer analysis data)
 
 **Priority 2 - Task Templates (12 files in tasks/ and tasks/archive/):**
-- All task files containing replicated-collab references need to instruct agents to ask users for test repositories at runtime
+- All task files containing customer references need to instruct agents to ask users for test repositories at runtime
 
 ### Replacement Patterns
 
 **Instead of hardcoded examples like:**
 ```bash
-uv run github-analysis collect --org replicated-collab --repo pixee-replicated --issue-number 71
+# Ask user to provide test organization, repository, and issue number for validation
+# Example: uv run github-analysis collect --org USER_PROVIDED_ORG --repo USER_PROVIDED_REPO --issue-number USER_PROVIDED_ISSUE_NUMBER
 ```
 
 **Use runtime prompts like:**
@@ -122,13 +123,13 @@ All sub-agents must use consistent replacement patterns:
 Task: "Sanitize core documentation files for open source release. Update the following files to replace all customer references with generic runtime prompts:
 
 Files to update:
-- CLAUDE.md (line 165: replicated-collab/pixee-replicated example)
+- CLAUDE.md (line 165: USER_PROVIDED_ORG/USER_PROVIDED_REPO example)
 - README.md (lines 16, 22, 34, 37: microsoft/vscode examples)  
 - github_issue_analysis/cli/collect.py (lines 86-88: docstring examples)
 
 Replacement patterns:
-- Replace 'replicated-collab' → 'YOUR_ORG' 
-- Replace 'pixee-replicated' → 'YOUR_REPO'
+- Replace 'USER_PROVIDED_ORG' → 'YOUR_ORG' 
+- Replace customer repository references → 'YOUR_REPO'
 - Replace 'microsoft' → 'YOUR_ORG'
 - Replace 'vscode' → 'YOUR_REPO'
 - Use issue number 123 instead of 71
@@ -148,7 +149,7 @@ Files to update:
 
 Replacement patterns:
 - Replace all 'microsoft/vscode' → 'example-org/example-repo'
-- Replace 'replicated-collab' → 'example-org'
+- Replace 'USER_PROVIDED_ORG' → 'example-org'
 - Update JSON schema examples to use generic data
 - For model_comparison_summary.md: either anonymize customer data or recommend moving to secure location
 
@@ -175,7 +176,7 @@ WARNING: This permanently rewrites git history. Ensure you're working in a fresh
 ```
 Task: "Update all task template files to remove customer references and instruct future agents to ask users for test repositories at runtime.
 
-Files to update: All files in tasks/ and tasks/archive/ directories containing 'replicated-collab' references (12 files total based on analysis)
+Files to update: All files in tasks/ and tasks/archive/ directories containing 'USER_PROVIDED_ORG' references (12 files total based on analysis)
 
 Required changes:
 1. Replace hardcoded customer examples with instructions like: 'Ask user to provide test organization and repository for validation'
@@ -213,16 +214,16 @@ Focus on protecting against future customer data exposure while preserving legit
 ### Pre-Sanitization Validation
 ```bash
 # Find remaining customer references (should return specific files before sanitization)
-git ls-tree -r HEAD --name-only | xargs grep -l "replicated-collab\|pixee-replicated\|microsoft.*vscode"
+git ls-tree -r HEAD --name-only | xargs grep -l "USER_PROVIDED_ORG\|pixee-replicated\|microsoft.*vscode"
 
 # Count total files with customer references  
-git ls-tree -r HEAD --name-only | xargs grep -l "replicated-collab" | wc -l
+git ls-tree -r HEAD --name-only | xargs grep -l "USER_PROVIDED_ORG" | wc -l
 ```
 
 ### Post-Sanitization Validation  
 ```bash
 # Should return no results after sanitization
-git ls-tree -r HEAD --name-only | xargs grep -l "replicated-collab\|pixee-replicated" || echo "Clean!"
+git ls-tree -r HEAD --name-only | xargs grep -l "USER_PROVIDED_ORG\|pixee-replicated" || echo "Clean!"
 
 # Test CLI with generic examples
 uv run github-analysis collect --help | grep -E "(YOUR_ORG|example-org)"
@@ -231,7 +232,7 @@ uv run github-analysis collect --help | grep -E "(YOUR_ORG|example-org)"
 uv run black . && uv run ruff check --fix --unsafe-fixes && uv run mypy . && uv run pytest
 
 # Test pre-commit hooks (if implemented)
-echo "replicated-collab test" > test_file.md && git add test_file.md && git commit -m "test" 
+echo "USER_PROVIDED_ORG test" > test_file.md && git add test_file.md && git commit -m "test" 
 # Should fail with customer data detection
 git reset HEAD^ && rm test_file.md
 ```
@@ -242,7 +243,7 @@ git reset HEAD^ && rm test_file.md
 grep -r "YOUR_ORG\|example-org" docs/ CLAUDE.md README.md
 
 # Confirm no hardcoded customer examples remain
-grep -r "replicated-collab\|pixee\|microsoft.*vscode" docs/ CLAUDE.md README.md || echo "Clean documentation!"
+grep -r "USER_PROVIDED_ORG\|pixee\|microsoft.*vscode" docs/ CLAUDE.md README.md || echo "Clean documentation!"
 ```
 
 ## Risk Assessment and Mitigation

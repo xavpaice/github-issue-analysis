@@ -351,7 +351,7 @@ class TestAttachmentRegexPatterns:
         from github_issue_analysis.github_client.attachments import GITHUB_FILE_PATTERN
 
         valid_urls = [
-            "https://github.com/microsoft/vscode/files/12345/error.log",
+            "https://github.com/test-org/test-repo/files/12345/error.log",
             "https://github.com/org-name/repo-name/files/67890/file.txt",
             "https://github.com/user/repo/files/111/file.with.dots.json",
         ]
