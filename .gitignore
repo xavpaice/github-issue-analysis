@@ -76,14 +76,6 @@ dmypy.json
 *.temp
 *.bak
 
-# Customer data protection patterns
-*customer*
-*client*
-*private*
-*confidential*
-analysis-*.md
-report-*.md
-notes-*.txt
 
 # Specific test data patterns
 *replicated-collab*
