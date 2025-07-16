@@ -363,14 +363,14 @@ PydanticAI handles model-specific validation and will provide clear error messag
 # Setup
 uv sync --all-extras
 
-# Code quality (run all four - required before commit)
-uv run black . && uv run ruff check --fix --unsafe-fixes && uv run mypy . && uv run pytest
+# Code quality (run all steps - required before commit)
+uv run ruff format . && uv run ruff check --fix --unsafe-fixes && uv run mypy . && uv run pytest
 
 # Individual tools
+uv run ruff format .                    # Code formatting (automatically applies fixes - DO NOT manually edit files for formatting)
 uv run ruff check --fix --unsafe-fixes  # Code quality and imports
-uv run black .                          # Code formatting (automatically applies fixes - DO NOT manually edit files for formatting)
 uv run mypy .                           # Type checking
 uv run pytest                          # Run tests
 ```
 
-**IMPORTANT**: Black automatically applies formatting fixes. Agents should **NOT** manually make formatting changes. Only intervene if Black fails with actual errors (syntax errors, etc.).
+**IMPORTANT**: Ruff format automatically applies formatting fixes. Agents should **NOT** manually make formatting changes. Only intervene if ruff fails with actual errors (syntax errors, etc.).

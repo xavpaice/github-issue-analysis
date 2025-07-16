@@ -257,7 +257,7 @@ def _apply_label_changes(
         try:
             console.print(
                 f"🏷️  [blue]Processing issue #{plan.issue_number} "
-                f"({i+1}/{len(plans)})[/blue]"
+                f"({i + 1}/{len(plans)})[/blue]"
             )
 
             # Calculate new label set

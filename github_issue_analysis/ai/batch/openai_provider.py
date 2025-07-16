@@ -202,10 +202,16 @@ Analyze this GitHub issue for product labeling:
 
 **Body:** {issue["body"]}
 
-**Current Labels:** {json.dumps([
-    label["name"] for label in issue["labels"]
-    if label["name"].startswith("product::")
-], separators=(',', ':'))}
+**Current Labels:** {
+            json.dumps(
+                [
+                    label["name"]
+                    for label in issue["labels"]
+                    if label["name"].startswith("product::")
+                ],
+                separators=(",", ":"),
+            )
+        }
 
 **Repository:** {issue_data["org"]}/{issue_data["repo"]}
 

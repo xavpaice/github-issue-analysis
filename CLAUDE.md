@@ -21,18 +21,18 @@ Always use `uv add/remove` instead of `pip install/uninstall` to maintain depend
 
 **Quality Checks (Required Before Every Commit):**
 ```bash
-uv run black . && uv run ruff check --fix --unsafe-fixes && uv run mypy . && uv run pytest
+uv run ruff format . && uv run ruff check --fix --unsafe-fixes && uv run mypy . && uv run pytest
 ```
 
-All four tools must pass:
-- **Black**: Code formatting consistency (automatically applies fixes - **ALWAYS USE BLACK, NEVER MANUALLY FIX FORMATTING**)
-- **Ruff**: Code quality, imports, style violations (automatically applies fixes)
+All four steps must pass:
+- **Ruff Format**: Code formatting consistency (automatically applies fixes - **NEVER MANUALLY FIX FORMATTING**)
+- **Ruff Check**: Code quality, imports, style violations (automatically applies fixes)
 - **MyPy**: Type checking and type annotations
 - **Pytest**: All tests must pass
 
-**CRITICAL**: Black automatically fixes ALL formatting issues when you run it. NEVER manually edit files for formatting issues - ALWAYS run `uv run black .` first. Black will automatically fix line length, spacing, quotes, etc. This ensures agents never see E501 line length errors that Black can resolve automatically.
+**CRITICAL**: Ruff format automatically fixes ALL formatting issues when you run it. NEVER manually edit files for formatting issues - ALWAYS run `uv run ruff format .` first. Ruff format will automatically fix line length, spacing, quotes, etc. This ensures agents never see formatting errors.
 
-**IMPORTANT**: When you see formatting errors from ruff, run `uv run black .` first - it will fix them automatically!
+**IMPORTANT**: Always run `uv run ruff format .` first, then `uv run ruff check --fix` - this ensures consistent formatting and style!
 
 **Runtime Requirements:**
 - Never use `python` directly - Always use `uv run python` or `uv run <command>`
@@ -104,7 +104,7 @@ When implementing features, consult these docs for detailed specifications:
 3. Change directory: `cd trees/task-name`
 4. Install dependencies: `uv sync --all-extras`
 5. Implement feature with full test coverage following existing patterns
-6. Run quality checks: `uv run black . && uv run ruff check --fix --unsafe-fixes && uv run mypy . && uv run pytest`
+6. Run quality checks: `uv run ruff format . && uv run ruff check --fix --unsafe-fixes && uv run mypy . && uv run pytest`
 7. Commit changes and push branch (follow git commit requirements above)
 8. Create pull request with detailed description and test plan
 9. Mark task status as "complete" in `tasks/task-name.md`

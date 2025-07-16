@@ -105,9 +105,9 @@ By Product:
 {chr(10).join(f"  {product}: {count}" for product, count in by_product.items())}
 
 By Confidence:
-  High (≥0.9): {by_confidence['high']}
-  Medium (0.7-0.9): {by_confidence['medium']}
-  Low (<0.7): {by_confidence['low']}
+  High (≥0.9): {by_confidence["high"]}
+  Medium (0.7-0.9): {by_confidence["medium"]}
+  Low (<0.7): {by_confidence["low"]}
 """
         console.print(Panel(overview))
 
@@ -197,7 +197,7 @@ By Confidence:
 [bold]Issue:[/bold] {rec.org}/{rec.repo}/issues/{rec.issue_number}
 [bold]Current Labels:[/bold] {current_labels_str}
 [bold]Confidence:[/bold] {rec.original_confidence:.2f} ({rec.confidence_tier})
-[bold]Primary Product:[/bold] {rec.primary_product or 'unknown'}{root_cause_section}
+[bold]Primary Product:[/bold] {rec.primary_product or "unknown"}{root_cause_section}
 [bold]AI Reasoning:[/bold]
 {rec.ai_reasoning}
 """

@@ -27,15 +27,15 @@ class TestOptionConsistency:
         for cmd in commands_to_test:
             result = self.runner.invoke(app, cmd)
             # Help should exit with code 0 and contain help text
-            assert (
-                result.exit_code == 0
-            ), f"Command {' '.join(cmd)} failed: {result.stdout}"
-            assert (
-                "Usage:" in result.stdout
-            ), f"No help text in {' '.join(cmd)}: {result.stdout}"
-            assert (
-                "--help" in result.stdout
-            ), f"No --help option shown for {' '.join(cmd)}"
+            assert result.exit_code == 0, (
+                f"Command {' '.join(cmd)} failed: {result.stdout}"
+            )
+            assert "Usage:" in result.stdout, (
+                f"No help text in {' '.join(cmd)}: {result.stdout}"
+            )
+            assert "--help" in result.stdout, (
+                f"No --help option shown for {' '.join(cmd)}"
+            )
             assert "-h" in result.stdout, f"No -h shorthand shown for {' '.join(cmd)}"
 
     def test_main_command_help_works(self):
@@ -92,9 +92,9 @@ class TestOptionConsistency:
         for cmd in commands_with_issue_number:
             result = self.runner.invoke(app, cmd)
             assert result.exit_code == 0, f"Command {' '.join(cmd)} failed"
-            assert (
-                "--issue-number" in result.stdout
-            ), f"No --issue-number option in {' '.join(cmd)}"
+            assert "--issue-number" in result.stdout, (
+                f"No --issue-number option in {' '.join(cmd)}"
+            )
             assert "-i" in result.stdout, f"No -i shorthand in {' '.join(cmd)}"
 
     def test_dry_run_shorthand_consistency(self):
@@ -108,9 +108,9 @@ class TestOptionConsistency:
         for cmd in commands_with_dry_run:
             result = self.runner.invoke(app, cmd)
             assert result.exit_code == 0, f"Command {' '.join(cmd)} failed"
-            assert (
-                "--dry-run" in result.stdout
-            ), f"No --dry-run option in {' '.join(cmd)}"
+            assert "--dry-run" in result.stdout, (
+                f"No --dry-run option in {' '.join(cmd)}"
+            )
             assert "-d" in result.stdout, f"No -d shorthand in {' '.join(cmd)}"
 
     def test_force_shorthand_consistency(self):
@@ -196,9 +196,9 @@ class TestOptionConsistency:
         for short, long in expected_mappings.items():
             if long in result.stdout:
                 # If the long option exists, the short option should too
-                assert (
-                    short in result.stdout
-                ), f"Command collect has {long} but not {short}"
+                assert short in result.stdout, (
+                    f"Command collect has {long} but not {short}"
+                )
 
     def test_no_conflicting_shorthand_options(self):
         """Test that no command has conflicting shorthand options."""
@@ -219,9 +219,9 @@ class TestOptionConsistency:
             short_options = re.findall(r"-([a-zA-Z])\s", result.stdout)
 
             # Should not have duplicates
-            assert len(short_options) == len(
-                set(short_options)
-            ), f"Duplicate shorthand options in {' '.join(cmd)}: {short_options}"
+            assert len(short_options) == len(set(short_options)), (
+                f"Duplicate shorthand options in {' '.join(cmd)}: {short_options}"
+            )
 
     def test_update_labels_has_required_shorthand_options(self):
         """Test that update-labels command has all the required shorthand options."""
@@ -239,6 +239,6 @@ class TestOptionConsistency:
 
         for short, long in required_shorthands:
             assert long in result.stdout, f"update-labels missing {long} option"
-            assert (
-                short in result.stdout
-            ), f"update-labels missing {short} shorthand for {long}"
+            assert short in result.stdout, (
+                f"update-labels missing {short} shorthand for {long}"
+            )

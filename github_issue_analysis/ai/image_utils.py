@@ -47,7 +47,8 @@ def load_downloaded_images(
             # Check if image is too large (most models have 5MB limits)
             if img_size_mb > 5:
                 print(
-                    f"WARNING: Image {local_path.name} is {img_size_mb:.2f}MB, may be too large for some models"
+                    f"WARNING: Image {local_path.name} is {img_size_mb:.2f}MB, "
+                    "may be too large for some models"
                 )
 
             image_contents.append(
