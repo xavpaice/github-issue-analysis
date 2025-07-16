@@ -7,54 +7,73 @@
 - **Completed**: 2025-07-16
 
 ## Overview
-Create a new simplified agent interface using direct PydanticAI usage. This is the foundation layer that subsequent phases will build upon.
+Simplify the AI module architecture to use PydanticAI more directly, removing unnecessary abstractions and wrappers.
 
 ## Scope
-- Create `ai/agents.py` with PydanticAI wrapper functions
-- Add model validation helpers in minimal `ai/config.py`
-- Comprehensive testing of new agent interface
-- Keep all existing code untouched (backward compatibility)
+- Remove `ProductLabelingProcessor` wrapper class
+- Create `ai/analysis.py` with consolidated analysis logic
+- Simplify `ai/agents.py` to direct agent definitions
+- Move prompts to constants instead of functions
+- Remove unnecessary config complexity
+- Update CLI with generic `--setting` flag for model configuration
+- Add `show-settings` command to display available settings
 
 ## Acceptance Criteria
-- [x] `create_product_labeling_agent()` function works with all model types
-- [x] Model string validation handles edge cases
-- [x] Provider-specific settings (OpenAI, Anthropic) work correctly
-- [x] Thinking effort and temperature parameters supported
-- [x] Full unit test coverage for new functions
-- [x] All existing functionality unchanged
+- [x] Direct agent usage without unnecessary wrappers
+- [x] Consolidated analysis logic in one place
+- [x] Generic `--setting` flag for all model configurations
+- [x] Runtime model selection with `--model` flag
+- [x] `show-settings` command displays available settings
+- [x] All tests updated and passing
 - [x] Quality checks pass (black, ruff, mypy, pytest)
+- [x] Documentation updated to reflect new architecture
 
 ## Implementation Details
 
-### Files to Create
+### Files Created
 ```
-src/github_analysis/ai/agents.py       # Main agent creation functions
-tests/test_ai/test_agents.py           # Comprehensive test suite
-```
-
-### Files to Modify
-```
-src/github_analysis/ai/config.py       # Reduce to minimal helpers only
-src/github_analysis/ai/__init__.py     # Update exports if needed
+github_issue_analysis/ai/analysis.py        # Core analysis logic
+github_issue_analysis/ai/batch/config_compat.py  # Minimal batch compatibility
 ```
 
-### Core Functions Needed
+### Files Modified
+```
+github_issue_analysis/ai/agents.py          # Simplified to direct agent definitions
+github_issue_analysis/ai/prompts.py         # Changed to constants
+github_issue_analysis/cli/process.py        # Added generic settings and show-settings
+github_issue_analysis/ai/__init__.py        # Updated exports
+```
+
+### Files Removed
+```
+github_issue_analysis/ai/processors.py      # Removed unnecessary wrapper
+github_issue_analysis/ai/config.py          # Removed complex config
+```
+
+### Core Components
 ```python
-# ai/agents.py
-def create_product_labeling_agent(
-    model: str,
-    thinking_effort: str | None = None,
-    temperature: float = 0.0,
-    retry_count: int = 2
-) -> Agent[None, ProductLabelingResponse]:
-    """Create a PydanticAI agent with the specified configuration."""
+# ai/agents.py - Direct agent definition
+product_labeling_agent = Agent(
+    output_type=ProductLabelingResponse,
+    instructions=PRODUCT_LABELING_PROMPT,
+    retries=2,
+)
 
-# ai/config.py (minimal helpers)
-def validate_model_string(model: str) -> tuple[str, str]:
-    """Validate and parse model string format."""
+# ai/analysis.py - Core functions
+async def analyze_issue(
+    agent: Agent[None, Any],
+    issue_data: dict[str, Any],
+    include_images: bool = True,
+    model: str | None = None,
+    model_settings: dict[str, Any] | None = None,
+) -> Any:
+    """Analyze a GitHub issue using the provided agent."""
 
-def supports_thinking(model: str) -> bool:
-    """Check if model supports thinking/reasoning."""
+def prepare_issue_for_analysis(
+    issue_data: dict[str, Any], 
+    include_images: bool = True
+) -> list[str | ImageUrl]:
+    """Prepare issue data for AI analysis."""
 ```
 
 ### Testing Requirements
@@ -99,19 +118,21 @@ uv run black . && uv run ruff check --fix --unsafe-fixes && uv run mypy . && uv 
 
 ## Implementation Notes
 
-### Discoveries
+### Key Simplifications Made
 
-**PydanticAI Integration:**
-- PydanticAI was already fully integrated in the codebase with sophisticated Agent-based architecture
-- Existing `ProductLabelingProcessor` uses lazy-loaded agents with comprehensive configuration support
-- PydanticAI's Agent class supports provider-specific model_settings for thinking models
-- The existing architecture already provides excellent patterns for agent creation and configuration
+**Architecture Changes:**
+- Removed `ProductLabelingProcessor` wrapper - agents are used directly
+- Consolidated prompt formatting and analysis logic into `analysis.py`
+- Changed prompts from functions to constants for simplicity
+- Removed complex config validation - let PydanticAI handle it
+- Moved batch compatibility config to batch module only
 
-**Model Configuration Architecture:**
-- Robust configuration hierarchy: AISettings → AIModelConfig → ThinkingConfig → Provider-specific settings
-- Comprehensive thinking model support for OpenAI (reasoning_effort), Anthropic (thinking budget), Google (thinking_config), and Groq (thinking_format)
-- Model capabilities are detected using provider patterns rather than PydanticAI queries
-- Temperature validation and bounds checking already implemented
+**CLI Improvements:**
+- Added generic `--setting` flag that accepts key=value pairs
+- Runtime model selection with `--model` flag
+- New `show-settings` command displays available ModelSettings
+- Removed hardcoded thinking parameters in favor of generic settings
+- CLI commands manually map to specific agents (not dynamic)
 
 **Existing Code Quality:**
 - Sophisticated error handling and validation throughout the AI module

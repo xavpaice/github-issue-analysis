@@ -1,14 +1,12 @@
 """
 Human-editable prompt templates for AI processing.
-Edit the prompt below to modify AI behavior.
+Edit the prompts below to modify AI behavior.
 """
 
 # ruff: noqa
 
-
-def build_product_labeling_prompt() -> str:
-    """Build the product labeling system prompt."""
-    return """You are an expert at analyzing GitHub issues to recommend appropriate PRODUCT labels.
+# Product labeling prompt - direct string constant
+PRODUCT_LABELING_PROMPT = """You are an expert at analyzing GitHub issues to recommend appropriate PRODUCT labels.
 
 ## Objective
 Analyze GitHub issues and recommend ONE primary product label based on where the bug needs to be fixed or feature implemented. Focus on root causes, not symptoms.
@@ -294,3 +292,6 @@ In rare cases, issues may legitimately affect multiple products simultaneously:
 
 Analyze the provided issue and respond with structured recommendations focusing ONLY on product classification.
 """
+
+# Future prompts can be added here:
+# ISSUE_CLASSIFICATION_PROMPT = """..."""

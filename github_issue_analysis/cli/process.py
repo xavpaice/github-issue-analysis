@@ -8,11 +8,12 @@ from pathlib import Path
 from typing import Any
 
 import typer
+from pydantic_ai.settings import ModelSettings
 from rich.console import Console
+from rich.table import Table
 
-from ..ai.agents import create_product_labeling_agent
-
-# No imports needed - let PydanticAI handle validation
+from ..ai.agents import product_labeling_agent
+from ..ai.analysis import analyze_issue
 from ..recommendation.manager import RecommendationManager
 
 app = typer.Typer(
@@ -20,6 +21,64 @@ app = typer.Typer(
     context_settings={"help_option_names": ["-h", "--help"]},
 )
 console = Console()
+
+
+@app.command()
+def show_settings() -> None:
+    """Display available model settings that can be configured."""
+    # Use Pydantic's introspection on ModelSettings
+    table = Table(title="Available Model Settings")
+    table.add_column("Setting", style="cyan")
+    table.add_column("Type", style="green")
+    table.add_column("Description", style="yellow")
+
+    # Try to get field info from ModelSettings dynamically
+    try:
+        # Check if ModelSettings has schema method (Pydantic v2)
+        if hasattr(ModelSettings, "model_json_schema"):
+            schema = ModelSettings.model_json_schema()
+            properties = schema.get("properties", {})
+            for field_name, field_info in properties.items():
+                field_type = field_info.get("type", "Any")
+                if "anyOf" in field_info:
+                    types = [
+                        t.get("type", "") for t in field_info["anyOf"] if "type" in t
+                    ]
+                    field_type = " | ".join(types) if types else "Any"
+                description = field_info.get("description", "No description available")
+                table.add_row(field_name, field_type, description)
+        else:
+            # Fallback message if we can't introspect
+            console.print(
+                "[yellow]Unable to introspect ModelSettings dynamically.[/yellow]"
+            )
+            console.print(
+                "Common settings: temperature, max_tokens, "
+                "reasoning_effort, top_p, timeout, seed"
+            )
+            return
+    except Exception as e:
+        console.print(f"[yellow]Error introspecting ModelSettings: {e}[/yellow]")
+        console.print(
+            "Common settings: temperature, max_tokens, "
+            "reasoning_effort, top_p, timeout, seed"
+        )
+        return
+
+    console.print(table)
+
+    # Add usage example
+    console.print("\n[bold]Usage Example:[/bold]")
+    console.print(
+        "github-analysis process product-labeling --setting temperature=0.5 "
+        "--setting reasoning_effort=high"
+    )
+
+    # Add model-specific notes
+    console.print("\n[bold]Notes:[/bold]")
+    console.print("• Not all settings are supported by all models")
+    console.print("• PydanticAI will validate settings when you run the command")
+    console.print("• Invalid settings will result in clear error messages")
 
 
 @app.command()
@@ -46,34 +105,16 @@ def product_labeling(
         rich_help_panel="Target Selection",
     ),
     model: str = typer.Option(
-        "openai:gpt-4o",
+        "openai:o4-mini",
         "--model",
         "-m",
-        help="AI model in format provider:name (e.g., openai:gpt-4o)",
+        help="AI model to use",
         rich_help_panel="AI Configuration",
     ),
-    thinking_effort: str | None = typer.Option(
-        None,
-        "--thinking-effort",
-        help="Reasoning effort level: low, medium, high (for thinking models)",
-        rich_help_panel="AI Configuration",
-    ),
-    temperature: float = typer.Option(
-        0.0,
-        "--temperature",
-        help="Model temperature (0.0-2.0)",
-        rich_help_panel="AI Configuration",
-    ),
-    retry_count: int = typer.Option(
-        2,
-        "--retry-count",
-        help="Number of retries on failure",
-        rich_help_panel="AI Configuration",
-    ),
-    thinking_budget: int | None = typer.Option(
-        None,
-        "--thinking-budget",
-        help="Thinking token budget for models (legacy option)",
+    settings: list[str] = typer.Option(
+        [],
+        "--setting",
+        help="Model settings as key=value (e.g., --setting temperature=0.7)",
         rich_help_panel="AI Configuration",
     ),
     include_images: bool = typer.Option(
@@ -111,19 +152,35 @@ def product_labeling(
         # Process all issues in a repository
         github-analysis process product-labeling --org myorg --repo myrepo
 
-        # Use a thinking model with high effort
-        github-analysis process product-labeling --org myorg --repo myrepo \\
-            --model openai:o4-mini --thinking-effort high
+        # Process all issues in an organization
+        github-analysis process product-labeling --org myorg
 
         # Preview changes without processing
         github-analysis process product-labeling --org myorg --repo myrepo --dry-run
     """
     try:
-        # Basic model format check
-        if model and ":" not in model:
-            raise typer.BadParameter(
-                f"Invalid model format '{model}'. Expected format: provider:model"
-            )
+
+        # Parse settings into dict
+        model_settings = {}
+        for setting in settings:
+            if "=" not in setting:
+                console.print(
+                    f"[red]❌ Invalid setting format '{setting}'. "
+                    "Use key=value format.[/red]"
+                )
+                raise typer.Exit(1)
+            key, value = setting.split("=", 1)
+            # Try to parse as number if possible
+            parsed_value: Any = value
+            try:
+                num_value = float(value)
+                if num_value.is_integer():
+                    parsed_value = int(num_value)
+                else:
+                    parsed_value = num_value
+            except ValueError:
+                pass  # Keep as string
+            model_settings[key] = parsed_value
 
         asyncio.run(
             _run_product_labeling(
@@ -131,10 +188,7 @@ def product_labeling(
                 repo,
                 issue_number,
                 model,
-                thinking_effort,
-                thinking_budget,
-                temperature,
-                retry_count,
+                model_settings,
                 include_images,
                 dry_run,
                 reprocess,
@@ -150,10 +204,7 @@ async def _run_product_labeling(
     repo: str | None,
     issue_number: int | None,
     model: str,
-    thinking_effort: str | None,
-    thinking_budget: int | None,
-    temperature: float,
-    retry_count: int,
+    model_settings: dict[str, Any],
     include_images: bool,
     dry_run: bool,
     reprocess: bool,
@@ -219,25 +270,10 @@ async def _run_product_labeling(
             console.print(f"Would process: {file_path.name}")
         return
 
-    # Create agent using new simplified interface
-    try:
-        agent = create_product_labeling_agent(
-            model=model,
-            thinking_effort=thinking_effort,
-            temperature=temperature,
-            retry_count=retry_count,
-        )
-        console.print(f"[blue]Using model: {model}[/blue]")
-        console.print(
-            f"[blue]Temperature: {temperature}, Retry count: {retry_count}[/blue]"
-        )
-        if thinking_effort:
-            console.print(f"[blue]Thinking effort: {thinking_effort}[/blue]")
-
-    except Exception as e:
-        console.print(f"[red]Failed to create agent: {e}[/red]")
-        return
-
+    # Show configuration
+    console.print(f"[blue]Using model: {model}[/blue]")
+    if model_settings:
+        console.print(f"[blue]Model settings: {model_settings}[/blue]")
     console.print(
         f"[blue]Image processing: {'enabled' if include_images else 'disabled'}[/blue]"
     )
@@ -286,8 +322,14 @@ async def _run_product_labeling(
                 if attachment_count > 0:
                     console.print(f"  Found {attachment_count} image(s) to analyze")
 
-            # Analyze with AI using new agent interface
-            result = await _analyze_issue_with_agent(agent, issue_data, include_images)
+            # Analyze with AI using simplified interface
+            result = await analyze_issue(
+                product_labeling_agent,
+                issue_data,
+                include_images=include_images,
+                model=model,
+                model_settings=model_settings,
+            )
 
             # Save result
             result_file = results_dir / f"{file_path.stem}_product-labeling.json"
@@ -302,8 +344,6 @@ async def _run_product_labeling(
                     "name": "product-labeling",
                     "version": "3.0.0",  # Simplified agent interface version
                     "model": model,
-                    "thinking_effort": thinking_effort,
-                    "temperature": temperature,
                     "include_images": include_images,
                     "timestamp": datetime.utcnow().isoformat() + "Z",
                 },
@@ -327,123 +367,6 @@ async def _run_product_labeling(
             f"\n[blue]Summary: Processed {processed_count}/{total_count} issues "
             f"({skipped_count} skipped due to existing reviews)[/blue]"
         )
-
-
-async def _analyze_issue_with_agent(
-    agent: Any, issue_data: dict[str, Any], include_images: bool = True
-) -> Any:
-    """Analyze issue using the new agent interface.
-
-    Args:
-        agent: PydanticAI agent instance
-        issue_data: Issue data dictionary
-        include_images: Whether to include image analysis
-
-    Returns:
-        ProductLabelingResponse with analysis results
-    """
-    from pydantic_ai.messages import ImageUrl
-
-    from ..ai.image_utils import load_downloaded_images
-
-    # Load images if requested
-    image_contents = load_downloaded_images(issue_data, include_images)
-
-    # Build prompt with explicit image context
-    text_prompt = _format_issue_prompt(issue_data, len(image_contents))
-
-    # Handle image processing
-    if image_contents:
-        # Build multimodal content using PydanticAI message types
-        message_parts: list[str | ImageUrl] = [text_prompt]
-
-        # Add images as ImageUrl messages
-        for img_content in image_contents:
-            if img_content.get("type") == "image_url":
-                image_url = img_content["image_url"]["url"]
-                message_parts.append(ImageUrl(url=image_url))
-
-        try:
-            result = await agent.run(message_parts)
-            return result.data
-        except Exception as e:
-            # Fallback to text-only if multimodal fails
-            console.print(
-                f"[yellow]Multimodal processing failed, "
-                f"falling back to text-only: {e}[/yellow]"
-            )
-            # Rebuild prompt without image context for fallback
-            fallback_prompt = _format_issue_prompt(issue_data, 0)
-            result = await agent.run(fallback_prompt)
-            return result.data
-    else:
-        # Text-only processing
-        try:
-            result = await agent.run(text_prompt)
-            return result.data
-        except Exception as e:
-            # Graceful error handling - log and re-raise with context
-            console.print(f"[red]Failed to analyze issue: {e}[/red]")
-            raise
-
-
-def _format_issue_prompt(issue_data: dict[str, Any], image_count: int = 0) -> str:
-    """Format issue data for analysis prompt."""
-    issue = issue_data["issue"]
-
-    # Include all comments with full content
-    comment_text = ""
-    if issue.get("comments"):
-        all_comments = issue["comments"]  # Include ALL comments
-        comment_entries = []
-        for comment in all_comments:
-            user = comment["user"]["login"]
-            body = comment["body"].replace("\n", " ").strip()  # Full content
-            comment_entries.append(f"{user}: {body}")
-        comment_text = " | ".join(comment_entries)
-
-    # Add explicit image context instructions
-    if image_count > 0:
-        image_instruction = f"""
-
-**IMAGES PROVIDED:** This issue contains {image_count} image(s) that you should analyze.
-When analyzing the images, look for:
-- UI screenshots showing specific product interfaces
-- Error messages or logs that indicate which product is failing
-- File browser views, admin consoles, or diagnostic outputs
-- Any visual indicators of the affected product
-
-IMPORTANT: Fill in the images_analyzed array with descriptions of what each image
-shows and how it influences your classification. Fill in image_impact with how
-the images affected your decision.
-"""
-    else:
-        image_instruction = """
-
-**NO IMAGES PROVIDED:** This issue contains no images to analyze.
-IMPORTANT: Leave images_analyzed as an empty array and image_impact as an empty
-string since no images were provided.
-"""
-
-    return f"""
-Analyze this GitHub issue for product labeling:
-
-**Title:** {issue["title"]}
-
-**Body:** {issue["body"]}
-
-**Current Labels:** {json.dumps([
-    label["name"] for label in issue["labels"]
-    if label["name"].startswith("product::")
-], separators=(',', ':'))}
-
-**Repository:** {issue_data["org"]}/{issue_data["repo"]}
-
-**Comments:** {comment_text or "No comments"}
-{image_instruction}
-
-Recommend the most appropriate product label(s) based on the issue content.
-"""
 
 
 if __name__ == "__main__":

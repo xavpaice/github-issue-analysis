@@ -8,7 +8,7 @@ from typing import Any
 
 from rich.console import Console
 
-from ..config import AIModelConfig, build_ai_config
+from .config_compat import AIModelConfig, build_ai_config
 from .models import (
     BatchJob,
     BatchJobError,

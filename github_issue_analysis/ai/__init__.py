@@ -1,7 +1,7 @@
 """AI processing module for GitHub issue analysis."""
 
-from .agents import create_product_labeling_agent
-from .config import supports_thinking, validate_model_string
+from .agents import product_labeling_agent
+from .analysis import analyze_issue, format_issue_prompt, prepare_issue_for_analysis
 from .models import (
     IssueClassificationResponse,
     LabelAssessment,
@@ -9,18 +9,21 @@ from .models import (
     ProductLabelingResponse,
     RecommendedLabel,
 )
-from .processors import ProductLabelingProcessor
-from .prompts import build_product_labeling_prompt
+from .prompts import PRODUCT_LABELING_PROMPT
 
 __all__ = [
+    # Models
     "ProductLabel",
     "RecommendedLabel",
     "LabelAssessment",
     "ProductLabelingResponse",
     "IssueClassificationResponse",
-    "ProductLabelingProcessor",
-    "build_product_labeling_prompt",
-    "create_product_labeling_agent",
-    "validate_model_string",
-    "supports_thinking",
+    # Agents
+    "product_labeling_agent",
+    # Analysis functions
+    "analyze_issue",
+    "prepare_issue_for_analysis",
+    "format_issue_prompt",
+    # Prompts
+    "PRODUCT_LABELING_PROMPT",
 ]

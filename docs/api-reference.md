@@ -160,6 +160,21 @@ uv run github-analysis update-labels --org myorg --dry-run
 uv run github-analysis process [COMMAND] [OPTIONS]
 ```
 
+#### show-settings
+Display available model settings that can be configured.
+
+```bash
+uv run github-analysis process show-settings
+```
+
+Shows common settings like:
+- `temperature`: Randomness in responses (0.0-1.0)
+- `max_tokens`: Maximum tokens to generate
+- `reasoning_effort`: Thinking effort for reasoning models
+- `top_p`: Nucleus sampling parameter
+- `timeout`: Request timeout in seconds
+- `seed`: Random seed for deterministic results
+
 #### product-labeling
 Analyze GitHub issues for product labeling recommendations with optional image processing.
 
@@ -170,30 +185,48 @@ uv run github-analysis process product-labeling [OPTIONS]
 **Options:**
 - `--org, -o TEXT`: GitHub organization name
 - `--repo, -r TEXT`: GitHub repository name
-- `--issue-number INTEGER`: Specific issue number to process
-- `--model TEXT`: AI model to use (e.g., 'openai:gpt-4o-mini', 'openai:o4-mini')
-- `--thinking-effort TEXT`: Reasoning effort level for thinking models (low, medium, high)
-- `--thinking-budget INTEGER`: Thinking token budget for Anthropic/Google models
+- `--issue-number, -i INTEGER`: Specific issue number to process
+- `--model, -m TEXT`: AI model to use (default: 'openai:o4-mini')
+- `--setting TEXT`: Model settings as key=value (can be used multiple times)
 - `--include-images / --no-include-images`: Include image analysis (default: true)
-- `--dry-run / --no-dry-run`: Show what would be processed without running AI (default: false)
+- `--dry-run, -d / --no-dry-run`: Show what would be processed without running AI (default: false)
+- `--reprocess / --no-reprocess`: Force reprocessing of already reviewed items (default: false)
 
 **Examples:**
 ```bash
+# Show available model settings
+uv run github-analysis process show-settings
+
 # Process all collected issues for a repository
 uv run github-analysis process product-labeling --org myorg --repo myrepo
 
 # Process a specific issue with custom model
 uv run github-analysis process product-labeling --org myorg --repo myrepo --issue-number 123 --model openai:o4-mini
 
-# Process with thinking model and reasoning effort
-uv run github-analysis process product-labeling --org myorg --repo myrepo --issue-number 123 --model openai:o4-mini --thinking-effort medium
+# Process with custom model settings
+uv run github-analysis process product-labeling --org myorg --repo myrepo \
+  --model anthropic:claude-3-5-sonnet \
+  --setting temperature=0.5 \
+  --setting reasoning_effort=high
 
-# Process with Anthropic thinking model and budget
-uv run github-analysis process product-labeling --org myorg --repo myrepo --issue-number 123 --model anthropic:claude-3-5-sonnet-latest --thinking-budget 2048
+# Process with multiple settings
+uv run github-analysis process product-labeling --org myorg --repo myrepo --issue-number 123 \
+  --model openai:o4-mini \
+  --setting reasoning_effort=medium \
+  --setting max_tokens=2000
 
 # Dry run to see what would be processed
 uv run github-analysis process product-labeling --org myorg --repo myrepo --dry-run
+
+# Force reprocessing of already reviewed items
+uv run github-analysis process product-labeling --org myorg --repo myrepo --reprocess
 ```
+
+**Note on Model Settings:**
+- Use `--setting` for any model-specific configuration
+- PydanticAI will validate settings and provide clear error messages
+- Not all settings are supported by all models
+- Settings are passed as key=value pairs
 
 ### update-labels
 Update GitHub issue labels based on AI recommendations from product-labeling analysis.
@@ -286,7 +319,7 @@ Show version information.
 uv run github-analysis version
 ```
 
-## Thinking Models and Advanced Configuration
+## Model Configuration
 
 ### Model Format
 All models must be specified in the format `provider:model-name`:
@@ -294,31 +327,35 @@ All models must be specified in the format `provider:model-name`:
 - ✅ `anthropic:claude-3-5-sonnet-latest`
 - ❌ `o4-mini` (missing provider)
 
-### Thinking Capabilities
-Different models support different thinking options:
+### Generic Settings Approach
+The simplified AI architecture uses a generic `--setting` flag for all model configurations:
 
-**OpenAI Reasoning Models** (o4-mini, o3):
-- `--thinking-effort`: Controls reasoning depth (low, medium, high)
-- `--thinking-summary`: Provides reasoning summaries
-
-**Anthropic Models** (claude-3-5-sonnet-latest):
-- `--thinking-budget`: Token budget for thinking process
-
-**Google Models** (gemini-2.0-flash):
-- `--thinking-budget`: Token budget for thinking process
-
-### Examples
 ```bash
-# Use OpenAI reasoning model with medium effort
-uv run github-analysis process product-labeling --model openai:o4-mini --thinking-effort medium
+# OpenAI reasoning models
+uv run github-analysis process product-labeling --model openai:o4-mini \
+  --setting reasoning_effort=medium
 
-# Use Anthropic with thinking budget
-uv run github-analysis process product-labeling --model anthropic:claude-3-5-sonnet-latest --thinking-budget 2048
+# Anthropic models with thinking
+uv run github-analysis process product-labeling --model anthropic:claude-3-5-sonnet-latest \
+  --setting reasoning_effort=high \
+  --setting temperature=0.5
 
-# Invalid format will show helpful error
-uv run github-analysis process product-labeling --model o4-mini --thinking-effort high
-# Error: Invalid model format 'o4-mini'. Expected format: provider:model
+# Multiple settings
+uv run github-analysis process product-labeling --model openai:gpt-4o \
+  --setting temperature=0.7 \
+  --setting max_tokens=2000 \
+  --setting top_p=0.9
 ```
+
+### Common Settings
+- `temperature`: Controls randomness (0.0-1.0)
+- `max_tokens`: Maximum response length
+- `reasoning_effort`: For thinking models (low, medium, high)
+- `top_p`: Nucleus sampling parameter
+- `timeout`: Request timeout in seconds
+- `seed`: For deterministic results
+
+PydanticAI handles model-specific validation and will provide clear error messages for unsupported settings.
 
 ## Development Commands
 
