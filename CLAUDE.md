@@ -25,12 +25,12 @@ uv run black . && uv run ruff check --fix --unsafe-fixes && uv run mypy . && uv 
 ```
 
 All four tools must pass:
-- **Black**: Code formatting consistency (automatically applies fixes - **DO NOT** manually edit files for formatting)
+- **Black**: Code formatting consistency (automatically applies fixes - **ALWAYS USE BLACK, NEVER MANUALLY FIX FORMATTING**)
 - **Ruff**: Code quality, imports, style violations (automatically applies fixes)
 - **MyPy**: Type checking and type annotations
 - **Pytest**: All tests must pass
 
-**IMPORTANT**: Black runs FIRST to automatically fix formatting (including line length). This ensures agents never see E501 line length errors that Black can resolve automatically.
+**CRITICAL**: Black runs FIRST to automatically fix formatting (including line length). NEVER manually edit files for formatting issues - always run `uv run black .` first. This ensures agents never see E501 line length errors that Black can resolve automatically.
 
 **Runtime Requirements:**
 - Never use `python` directly - Always use `uv run python` or `uv run <command>`
