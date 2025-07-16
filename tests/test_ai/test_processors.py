@@ -4,7 +4,7 @@ from typing import Any
 from unittest.mock import AsyncMock, patch
 
 import pytest
-from pydantic_ai.messages import ImageUrl
+from pydantic_ai.messages import BinaryContent, ImageUrl
 
 from github_issue_analysis.ai.analysis import (
     analyze_issue,
@@ -162,8 +162,8 @@ def test_prepare_issue_for_analysis(sample_issue_data: dict[str, Any]) -> None:
         )
         assert len(message_parts) == 2
         assert isinstance(message_parts[0], str)
-        assert isinstance(message_parts[1], ImageUrl)
-        assert message_parts[1].url == "data:image/png;base64,test"
+        assert isinstance(message_parts[1], BinaryContent)
+        assert message_parts[1].media_type == "image/png"
 
 
 def test_format_issue_prompt(sample_issue_data: dict[str, Any]) -> None:

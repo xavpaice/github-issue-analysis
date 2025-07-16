@@ -136,12 +136,19 @@ def product_labeling(
         help="Force reprocessing of items already processed",
         rich_help_panel="Processing Options",
     ),
+    concurrency: int = typer.Option(
+        20,
+        "--concurrency",
+        "-c",
+        help="Number of concurrent processing tasks",
+        rich_help_panel="Processing Options",
+    ),
 ) -> None:
     """Analyze GitHub issues for product labeling recommendations.
 
     This command processes GitHub issues using AI to generate product labeling
     recommendations. You can target specific issues, repositories, or entire
-    organizations.
+    organizations. Processing is done concurrently for better performance.
 
     Examples:
 
@@ -154,6 +161,10 @@ def product_labeling(
 
         # Process all issues in an organization
         github-analysis process product-labeling --org myorg
+
+        # Process with custom concurrency (default: 20)
+        github-analysis process product-labeling --org myorg --repo myrepo \\
+            --concurrency 10
 
         # Preview changes without processing
         github-analysis process product-labeling --org myorg --repo myrepo --dry-run
@@ -191,6 +202,7 @@ def product_labeling(
                 include_images,
                 dry_run,
                 reprocess,
+                concurrency,
             )
         )
     except ValueError as e:
@@ -207,6 +219,7 @@ async def _run_product_labeling(
     include_images: bool,
     dry_run: bool,
     reprocess: bool,
+    concurrency: int,
 ) -> None:
     """Run product labeling analysis."""
 
@@ -280,12 +293,70 @@ async def _run_product_labeling(
     # Initialize recommendation manager for filtering
     recommendation_manager = RecommendationManager(base_data_dir)
 
-    # Process each issue
+    # Process each issue concurrently
     results_dir = base_data_dir / "results"
     results_dir.mkdir(exist_ok=True)
 
-    skipped_count = 0
+    # Create semaphore to limit concurrent operations
+    semaphore = asyncio.Semaphore(concurrency)
+
+    # Process files concurrently
+    tasks = []
     for file_path in issue_files:
+        task = asyncio.create_task(
+            _process_single_issue(
+                file_path,
+                recommendation_manager,
+                results_dir,
+                model,
+                model_settings,
+                include_images,
+                reprocess,
+                semaphore,
+            )
+        )
+        tasks.append(task)
+
+    # Wait for all tasks to complete and collect results
+    results = await asyncio.gather(*tasks, return_exceptions=True)
+
+    # Count successes and failures
+    processed_count = 0
+    skipped_count = 0
+    failed_count = 0
+
+    for result in results:
+        if isinstance(result, Exception):
+            failed_count += 1
+        elif result == "processed":
+            processed_count += 1
+        elif result == "skipped":
+            skipped_count += 1
+
+    # Show summary
+    total_count = len(issue_files)
+    console.print(
+        f"\n[blue]Summary: Processed {processed_count}/{total_count} issues "
+        f"({skipped_count} skipped, {failed_count} failed)[/blue]"
+    )
+
+
+async def _process_single_issue(
+    file_path: Path,
+    recommendation_manager: RecommendationManager,
+    results_dir: Path,
+    model: str,
+    model_settings: dict[str, Any],
+    include_images: bool,
+    reprocess: bool,
+    semaphore: asyncio.Semaphore,
+) -> str:
+    """Process a single issue file.
+
+    Returns:
+        "processed" if successful, "skipped" if skipped, raises exception if failed
+    """
+    async with semaphore:
         try:
             # Load issue data to check if we should process it
             with open(file_path) as f:
@@ -303,8 +374,7 @@ async def _run_product_labeling(
                     f"[yellow]Skipping {file_path.name} - already reviewed "
                     "(use --reprocess to override)[/yellow]"
                 )
-                skipped_count += 1
-                continue
+                return "skipped"
 
             console.print(f"Processing {file_path.name}...")
 
@@ -353,19 +423,11 @@ async def _run_product_labeling(
                 json.dump(result_data, f, indent=2)
 
             console.print(f"[green]✓ Saved results to {result_file.name}[/green]")
+            return "processed"
 
         except Exception as e:
             console.print(f"[red]✗ Failed to process {file_path.name}: {e}[/red]")
-            continue
-
-    # Show summary if any were skipped
-    if skipped_count > 0:
-        total_count = len(issue_files)
-        processed_count = total_count - skipped_count
-        console.print(
-            f"\n[blue]Summary: Processed {processed_count}/{total_count} issues "
-            f"({skipped_count} skipped due to existing reviews)[/blue]"
-        )
+            raise
 
 
 if __name__ == "__main__":
