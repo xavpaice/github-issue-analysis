@@ -265,7 +265,7 @@ async def _run_batch_submit(
     else:
         # Show summary for large batches
         console.print(
-            f"  Issues from {len(set(f'{i['org']}/{i['repo']}' for i in issues))} "
+            f"  Issues from {len(set(f'{i["org"]}/{i["repo"]}' for i in issues))} "
             "repositories"
         )
 

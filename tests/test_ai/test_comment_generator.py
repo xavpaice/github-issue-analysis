@@ -32,7 +32,7 @@ def sample_plan_with_additions() -> IssueUpdatePlan:
         overall_confidence=0.88,
         needs_update=True,
         comment_summary=(
-            "Adding vendor and troubleshoot labels based on " "issue content analysis"
+            "Adding vendor and troubleshoot labels based on issue content analysis"
         ),
     )
 
@@ -170,13 +170,11 @@ class TestCommentGenerator:
 
         # Check that reasoning is included with changes
         assert (
-            "+ product::vendor - Issue concerns vendor portal " "functionality"
+            "+ product::vendor - Issue concerns vendor portal functionality"
         ) in summary
+        assert ("+ product::troubleshoot - Contains troubleshooting request") in summary
         assert (
-            "+ product::troubleshoot - Contains troubleshooting " "request"
-        ) in summary
-        assert (
-            "- product::kots - Analysis indicates this is not " "KOTS-related"
+            "- product::kots - Analysis indicates this is not KOTS-related"
         ) in summary
 
         # Check that GitHub comment previews are included

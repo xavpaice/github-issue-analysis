@@ -197,7 +197,7 @@ class TestChangeDetector:
             label="product::wrong",
             correct=False,
             reasoning=(
-                "This label is incorrect because the issue is not about " "this product"
+                "This label is incorrect because the issue is not about this product"
             ),
         )
         recommendations: list[RecommendedLabel] = []
@@ -206,7 +206,9 @@ class TestChangeDetector:
 
         # Should not remove when reasoning is too short
         assessment_short = LabelAssessment(
-            label="product::wrong", correct=False, reasoning="Wrong"  # Too short
+            label="product::wrong",
+            correct=False,
+            reasoning="Wrong",  # Too short
         )
 
         assert not detector._should_remove_label(assessment_short, recommendations)

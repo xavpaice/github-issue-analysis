@@ -159,7 +159,6 @@ def product_labeling(
         github-analysis process product-labeling --org myorg --repo myrepo --dry-run
     """
     try:
-
         # Parse settings into dict
         model_settings = {}
         for setting in settings:
@@ -226,7 +225,7 @@ async def _run_product_labeling(
         # Validate that repo is provided for specific issue
         if not repo:
             console.print(
-                "[red]Error: --repo is required when specifying " "--issue-number[/red]"
+                "[red]Error: --repo is required when specifying --issue-number[/red]"
             )
             return
 

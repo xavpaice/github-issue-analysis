@@ -78,8 +78,7 @@ class CommentGenerator:
             and plan.ai_result.root_cause_confidence is not None
         ):
             lines.append(
-                f"**Root Cause Confidence**: "
-                f"{plan.ai_result.root_cause_confidence:.0%}"
+                f"**Root Cause Confidence**: {plan.ai_result.root_cause_confidence:.0%}"
             )
 
         # Add image analysis context if available
@@ -126,8 +125,7 @@ class CommentGenerator:
                 and plan.ai_result.root_cause_confidence is not None
             ):
                 lines.append(
-                    f"Root cause confidence: "
-                    f"{plan.ai_result.root_cause_confidence:.2f}"
+                    f"Root cause confidence: {plan.ai_result.root_cause_confidence:.2f}"
                 )
 
             # Show changes without individual confidence scores
