@@ -5,24 +5,14 @@ import json
 import os
 from datetime import datetime
 from pathlib import Path
+from typing import Any
 
 import typer
 from rich.console import Console
 
+from ..ai.agents import create_product_labeling_agent
 from ..ai.capabilities import validate_thinking_configuration
-from ..ai.config import build_ai_config
-from ..ai.processors import ProductLabelingProcessor
 from ..recommendation.manager import RecommendationManager
-from .options import (
-    DRY_RUN_OPTION,
-    INCLUDE_IMAGES_OPTION,
-    ISSUE_NUMBER_OPTION,
-    MODEL_OPTION,
-    REPO_OPTION,
-    REPROCESS_OPTION,
-    THINKING_BUDGET_OPTION,
-    THINKING_EFFORT_OPTION,
-)
 
 app = typer.Typer(
     help="AI processing commands",
@@ -33,20 +23,100 @@ console = Console()
 
 @app.command()
 def product_labeling(
-    org: str | None = typer.Option(
-        None, "--org", "-o", help="GitHub organization name"
+    org: str = typer.Option(
+        ...,
+        "--org",
+        "-o",
+        help="GitHub organization name",
+        rich_help_panel="Target Selection",
     ),
-    repo: str | None = REPO_OPTION,
-    issue_number: int | None = ISSUE_NUMBER_OPTION,
-    model: str | None = MODEL_OPTION,
-    thinking_effort: str | None = THINKING_EFFORT_OPTION,
-    thinking_budget: int | None = THINKING_BUDGET_OPTION,
-    include_images: bool = INCLUDE_IMAGES_OPTION,
-    dry_run: bool = DRY_RUN_OPTION,
-    reprocess: bool = REPROCESS_OPTION,
+    repo: str | None = typer.Option(
+        None,
+        "--repo",
+        "-r",
+        help="GitHub repository name",
+        rich_help_panel="Target Selection",
+    ),
+    issue_number: int | None = typer.Option(
+        None,
+        "--issue-number",
+        "-i",
+        help="Specific issue number",
+        rich_help_panel="Target Selection",
+    ),
+    model: str = typer.Option(
+        "openai:gpt-4o",
+        "--model",
+        "-m",
+        help="AI model in format provider:name (e.g., openai:gpt-4o)",
+        rich_help_panel="AI Configuration",
+    ),
+    thinking_effort: str | None = typer.Option(
+        None,
+        "--thinking-effort",
+        help="Reasoning effort level: low, medium, high (for thinking models)",
+        rich_help_panel="AI Configuration",
+    ),
+    temperature: float = typer.Option(
+        0.0,
+        "--temperature",
+        help="Model temperature (0.0-2.0)",
+        rich_help_panel="AI Configuration",
+    ),
+    retry_count: int = typer.Option(
+        2,
+        "--retry-count",
+        help="Number of retries on failure",
+        rich_help_panel="AI Configuration",
+    ),
+    thinking_budget: int | None = typer.Option(
+        None,
+        "--thinking-budget",
+        help="Thinking token budget for models (legacy option)",
+        rich_help_panel="AI Configuration",
+    ),
+    include_images: bool = typer.Option(
+        True,
+        "--include-images/--no-include-images",
+        help="Include image analysis",
+        rich_help_panel="Processing Options",
+    ),
+    dry_run: bool = typer.Option(
+        False,
+        "--dry-run",
+        "-d",
+        help="Preview changes without applying them",
+        rich_help_panel="Processing Options",
+    ),
+    reprocess: bool = typer.Option(
+        False,
+        "--reprocess",
+        help="Force reprocessing of items already processed",
+        rich_help_panel="Processing Options",
+    ),
 ) -> None:
-    """Analyze GitHub issues for product labeling recommendations with optional
-    image processing."""
+    """Analyze GitHub issues for product labeling recommendations.
+
+    This command processes GitHub issues using AI to generate product labeling
+    recommendations. You can target specific issues, repositories, or entire
+    organizations.
+
+    Examples:
+
+        # Process a specific issue
+        github-analysis process product-labeling --org myorg --repo myrepo \\
+            --issue-number 123
+
+        # Process all issues in a repository
+        github-analysis process product-labeling --org myorg --repo myrepo
+
+        # Use a thinking model with high effort
+        github-analysis process product-labeling --org myorg --repo myrepo \\
+            --model openai:o4-mini --thinking-effort high
+
+        # Preview changes without processing
+        github-analysis process product-labeling --org myorg --repo myrepo --dry-run
+    """
     try:
         # Validate thinking configuration early
         if model and (thinking_effort or thinking_budget):
@@ -60,6 +130,8 @@ def product_labeling(
                 model,
                 thinking_effort,
                 thinking_budget,
+                temperature,
+                retry_count,
                 include_images,
                 dry_run,
                 reprocess,
@@ -71,12 +143,14 @@ def product_labeling(
 
 
 async def _run_product_labeling(
-    org: str | None,
+    org: str,
     repo: str | None,
     issue_number: int | None,
-    model: str | None,
+    model: str,
     thinking_effort: str | None,
     thinking_budget: int | None,
+    temperature: float,
+    retry_count: int,
     include_images: bool,
     dry_run: bool,
     reprocess: bool,
@@ -95,11 +169,10 @@ async def _run_product_labeling(
 
     issue_files = []
     if issue_number:
-        # Validate that org and repo are provided for specific issue
-        if not org or not repo:
+        # Validate that repo is provided for specific issue
+        if not repo:
             console.print(
-                "[red]Error: --org and --repo are required when specifying "
-                "--issue-number[/red]"
+                "[red]Error: --repo is required when specifying " "--issue-number[/red]"
             )
             return
 
@@ -143,24 +216,24 @@ async def _run_product_labeling(
             console.print(f"Would process: {file_path.name}")
         return
 
-    # Build AI configuration
-    ai_config = build_ai_config(
-        model_name=model,
-        thinking_effort=thinking_effort,
-        thinking_budget=thinking_budget,
-    )
+    # Create agent using new simplified interface
+    try:
+        agent = create_product_labeling_agent(
+            model=model,
+            thinking_effort=thinking_effort,
+            temperature=temperature,
+            retry_count=retry_count,
+        )
+        console.print(f"[blue]Using model: {model}[/blue]")
+        console.print(
+            f"[blue]Temperature: {temperature}, Retry count: {retry_count}[/blue]"
+        )
+        if thinking_effort:
+            console.print(f"[blue]Thinking effort: {thinking_effort}[/blue]")
 
-    # Initialize processor with enhanced configuration
-    processor = ProductLabelingProcessor(config=ai_config)
-    console.print(f"[blue]Using model: {ai_config.model_name}[/blue]")
-
-    # Display thinking configuration if present
-    if ai_config.thinking:
-        if ai_config.thinking.effort:
-            console.print(f"[blue]Thinking effort: {ai_config.thinking.effort}[/blue]")
-        if ai_config.thinking.budget_tokens:
-            budget = ai_config.thinking.budget_tokens
-            console.print(f"[blue]Thinking budget: {budget} tokens[/blue]")
+    except Exception as e:
+        console.print(f"[red]Failed to create agent: {e}[/red]")
+        return
 
     console.print(
         f"[blue]Image processing: {'enabled' if include_images else 'disabled'}[/blue]"
@@ -210,8 +283,8 @@ async def _run_product_labeling(
                 if attachment_count > 0:
                     console.print(f"  Found {attachment_count} image(s) to analyze")
 
-            # Analyze with AI
-            result = await processor.analyze_issue(issue_data, include_images)
+            # Analyze with AI using new agent interface
+            result = await _analyze_issue_with_agent(agent, issue_data, include_images)
 
             # Save result
             result_file = results_dir / f"{file_path.stem}_product-labeling.json"
@@ -224,11 +297,10 @@ async def _run_product_labeling(
                 },
                 "processor": {
                     "name": "product-labeling",
-                    "version": "2.1.0",  # Thinking models support version
-                    "model": ai_config.model_name,
-                    "thinking_config": (
-                        ai_config.thinking.model_dump() if ai_config.thinking else None
-                    ),
+                    "version": "3.0.0",  # Simplified agent interface version
+                    "model": model,
+                    "thinking_effort": thinking_effort,
+                    "temperature": temperature,
                     "include_images": include_images,
                     "timestamp": datetime.utcnow().isoformat() + "Z",
                 },
@@ -252,6 +324,123 @@ async def _run_product_labeling(
             f"\n[blue]Summary: Processed {processed_count}/{total_count} issues "
             f"({skipped_count} skipped due to existing reviews)[/blue]"
         )
+
+
+async def _analyze_issue_with_agent(
+    agent: Any, issue_data: dict[str, Any], include_images: bool = True
+) -> Any:
+    """Analyze issue using the new agent interface.
+
+    Args:
+        agent: PydanticAI agent instance
+        issue_data: Issue data dictionary
+        include_images: Whether to include image analysis
+
+    Returns:
+        ProductLabelingResponse with analysis results
+    """
+    from pydantic_ai.messages import ImageUrl
+
+    from ..ai.image_utils import load_downloaded_images
+
+    # Load images if requested
+    image_contents = load_downloaded_images(issue_data, include_images)
+
+    # Build prompt with explicit image context
+    text_prompt = _format_issue_prompt(issue_data, len(image_contents))
+
+    # Handle image processing
+    if image_contents:
+        # Build multimodal content using PydanticAI message types
+        message_parts: list[str | ImageUrl] = [text_prompt]
+
+        # Add images as ImageUrl messages
+        for img_content in image_contents:
+            if img_content.get("type") == "image_url":
+                image_url = img_content["image_url"]["url"]
+                message_parts.append(ImageUrl(url=image_url))
+
+        try:
+            result = await agent.run(message_parts)
+            return result.data
+        except Exception as e:
+            # Fallback to text-only if multimodal fails
+            console.print(
+                f"[yellow]Multimodal processing failed, "
+                f"falling back to text-only: {e}[/yellow]"
+            )
+            # Rebuild prompt without image context for fallback
+            fallback_prompt = _format_issue_prompt(issue_data, 0)
+            result = await agent.run(fallback_prompt)
+            return result.data
+    else:
+        # Text-only processing
+        try:
+            result = await agent.run(text_prompt)
+            return result.data
+        except Exception as e:
+            # Graceful error handling - log and re-raise with context
+            console.print(f"[red]Failed to analyze issue: {e}[/red]")
+            raise
+
+
+def _format_issue_prompt(issue_data: dict[str, Any], image_count: int = 0) -> str:
+    """Format issue data for analysis prompt."""
+    issue = issue_data["issue"]
+
+    # Include all comments with full content
+    comment_text = ""
+    if issue.get("comments"):
+        all_comments = issue["comments"]  # Include ALL comments
+        comment_entries = []
+        for comment in all_comments:
+            user = comment["user"]["login"]
+            body = comment["body"].replace("\n", " ").strip()  # Full content
+            comment_entries.append(f"{user}: {body}")
+        comment_text = " | ".join(comment_entries)
+
+    # Add explicit image context instructions
+    if image_count > 0:
+        image_instruction = f"""
+
+**IMAGES PROVIDED:** This issue contains {image_count} image(s) that you should analyze.
+When analyzing the images, look for:
+- UI screenshots showing specific product interfaces
+- Error messages or logs that indicate which product is failing
+- File browser views, admin consoles, or diagnostic outputs
+- Any visual indicators of the affected product
+
+IMPORTANT: Fill in the images_analyzed array with descriptions of what each image
+shows and how it influences your classification. Fill in image_impact with how
+the images affected your decision.
+"""
+    else:
+        image_instruction = """
+
+**NO IMAGES PROVIDED:** This issue contains no images to analyze.
+IMPORTANT: Leave images_analyzed as an empty array and image_impact as an empty
+string since no images were provided.
+"""
+
+    return f"""
+Analyze this GitHub issue for product labeling:
+
+**Title:** {issue["title"]}
+
+**Body:** {issue["body"]}
+
+**Current Labels:** {json.dumps([
+    label["name"] for label in issue["labels"]
+    if label["name"].startswith("product::")
+], separators=(',', ':'))}
+
+**Repository:** {issue_data["org"]}/{issue_data["repo"]}
+
+**Comments:** {comment_text or "No comments"}
+{image_instruction}
+
+Recommend the most appropriate product label(s) based on the issue content.
+"""
 
 
 if __name__ == "__main__":

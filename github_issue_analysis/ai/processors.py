@@ -1,92 +1,38 @@
-"""Product labeling processor using PydanticAI."""
+"""Minimal processor wrapper for backward compatibility."""
 
 import json
 from typing import Any
 
-from pydantic_ai import Agent
 from pydantic_ai.messages import ImageUrl
 
-from .config import AIModelConfig, build_ai_config, build_provider_specific_settings
+from .agents import create_product_labeling_agent
 from .models import ProductLabelingResponse
-from .prompts import build_product_labeling_prompt
 
 
 class ProductLabelingProcessor:
-    """Product labeling processor with configurable AI models."""
+    """Minimal wrapper around the new agent interface for backward compatibility."""
 
-    def __init__(
-        self, config: AIModelConfig | None = None, model_name: str | None = None
-    ):
-        """Initialize processor with configurable model.
+    def __init__(self, config: Any = None, model_name: str | None = None):
+        """Initialize processor.
 
         Args:
-            config: Enhanced AI model configuration with thinking support.
-                   If None, will build from model_name or environment variables
-            model_name: Legacy model identifier (e.g., 'openai:gpt-4o-mini').
-                       Used for backward compatibility when config is None
+            config: Ignored (for backward compatibility)
+            model_name: Model identifier (e.g., 'openai:gpt-4o-mini')
         """
-        if config is not None:
-            self.config = config
-            self.model_name = config.model_name
-        else:
-            # Backward compatibility - build config from model_name
-            self.config = build_ai_config(model_name=model_name)
-            self.model_name = self.config.model_name
-
-        self._agent: Agent | None = None
+        self.model_name = model_name or "openai:o4-mini"
+        self._agent: Any = None
 
     @property
-    def agent(self) -> Agent:
-        """Lazy-loaded agent for product labeling with thinking support."""
+    def agent(self) -> Any:
+        """Lazy-loaded agent for product labeling."""
         if self._agent is None:
-            # Build provider-specific settings for thinking models
-            model_settings = build_provider_specific_settings(self.config)
-
-            self._agent = Agent(
-                model=self.model_name,
-                output_type=ProductLabelingResponse,  # type: ignore[arg-type]
-                system_prompt=self._build_system_prompt(),
-                model_settings=model_settings if model_settings else None,  # type: ignore[arg-type]
-            )
+            self._agent = create_product_labeling_agent(self.model_name)
         return self._agent
-
-    def _build_system_prompt(self) -> str:
-        """Build system prompt from modular components."""
-        return build_product_labeling_prompt()
-
-    def _enhance_system_prompt_for_images(self) -> str:
-        """Enhanced system prompt when images are present."""
-        base_prompt = self._build_system_prompt()
-
-        image_guidance = """
-
-**IMAGE ANALYSIS GUIDANCE:**
-When images are provided, analyze them carefully for:
-1. **Product Interface Screenshots**: Look for specific UI elements, branding, or
-   interface patterns
-2. **Error Messages**: Read error text that might indicate which product is failing
-3. **File Paths and Logs**: Check for product-specific file paths or log entries
-4. **Admin Console Views**: Identify KOTS admin interface, file browsers, or
-   configuration screens
-
-Include your image analysis in the reasoning field and populate the images_analyzed
-array with descriptions of what each image shows.
-"""
-
-        return base_prompt + image_guidance
 
     async def analyze_issue(
         self, issue_data: dict[str, Any], include_images: bool = True
     ) -> ProductLabelingResponse:
-        """Analyze issue and recommend product labels with optional image processing.
-
-        Args:
-            issue_data: Issue data dictionary
-            include_images: Whether to include image analysis
-
-        Returns:
-            ProductLabelingResponse with analysis results
-        """
+        """Analyze issue using new agent interface."""
         from .image_utils import load_downloaded_images
 
         # Load images if requested
@@ -108,19 +54,19 @@ array with descriptions of what each image shows.
 
             try:
                 result = await self.agent.run(message_parts)
-                return result.data  # type: ignore[return-value]
+                return result.data  # type: ignore[no-any-return]
             except Exception as e:
                 # Fallback to text-only if multimodal fails
                 print(f"Multimodal processing failed, falling back to text-only: {e}")
                 # Rebuild prompt without image context for fallback
                 fallback_prompt = self._format_issue_prompt(issue_data, 0)
                 result = await self.agent.run(fallback_prompt)
-                return result.data  # type: ignore[return-value]
+                return result.data  # type: ignore[no-any-return]
         else:
             # Text-only processing
             try:
                 result = await self.agent.run(text_prompt)
-                return result.data  # type: ignore[return-value]
+                return result.data  # type: ignore[no-any-return]
             except Exception as e:
                 # Graceful error handling - log and re-raise with context
                 print(f"Failed to analyze issue: {e}")
@@ -185,10 +131,3 @@ Analyze this GitHub issue for product labeling:
 
 Recommend the most appropriate product label(s) based on the issue content.
 """
-
-
-# Future: Easy to add new processor types
-class IssueClassificationProcessor:
-    """Future: General issue classification processor."""
-
-    pass
