@@ -213,7 +213,7 @@ class TestRecommendationWorkflow:
             assert rec3_updated is not None
             assert rec3_updated.status == RecommendationStatus.PENDING  # Not reviewed
 
-    @patch("github_issue_analysis.cli.process._analyze_issue_with_agent")
+    @patch("github_issue_analysis.cli.process.analyze_issue")
     def test_reprocessing_integration_with_ai_processor(self, mock_analyze):
         """Test that AI processing respects recommendation status."""
         # Save original env var if it exists
@@ -258,7 +258,13 @@ class TestRecommendationWorkflow:
                 # Mock AI agent analysis to track which issues are processed
                 processed_issues = []
 
-                async def mock_analyze_fn(agent, issue_data, include_images):
+                async def mock_analyze_fn(
+                    agent,
+                    issue_data,
+                    include_images=True,
+                    model=None,
+                    model_settings=None,
+                ):
                     processed_issues.append(issue_data["issue"]["number"])
                     return ProductLabelingResponse(
                         root_cause_analysis="Test",

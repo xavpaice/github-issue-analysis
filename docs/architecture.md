@@ -28,10 +28,13 @@ GitHub API → Issue Collection → JSON Storage → **Batch AI Processing** →
 - **fetcher.py**: Issue fetching with rate limiting and pagination
 - **models.py**: Pydantic models for GitHub data structures
 
-### AI Processing Layer  
-- **providers.py**: OpenAI and Anthropic client abstractions
-- **processors.py**: Issue analysis implementations
-- **prompts.py**: Prompt templates and management
+### AI Processing Layer
+- **agents.py**: PydanticAI agent definitions (direct usage, no wrappers)
+- **analysis.py**: Core analysis functions (`analyze_issue`, `prepare_issue_for_analysis`)
+- **prompts.py**: Prompt constants for different agents
+- **models.py**: Pydantic response models for structured AI output
+- **image_utils.py**: Image loading and processing utilities
+- **batch/**: Batch processing system for cost-effective parallel analysis
 
 ### Storage Layer
 - **Issues**: JSON files in `data/issues/` named `org_repo_issue_<number>.json`
@@ -54,6 +57,46 @@ Each task should deliver a complete, testable feature that can be used independe
 ## Design Principles
 
 - **Separation of Concerns**: Clear boundaries between GitHub API, AI processing, and storage
-- **Extensibility**: Easy to add new AI processors and data sources
+- **Direct PydanticAI Usage**: Agents are used directly without unnecessary wrappers
+- **Extensibility**: Easy to add new agents and analysis types
 - **Testability**: Each component can be tested in isolation
 - **Agent-Friendly**: Clear documentation and minimal boilerplate for rapid development
+
+## Adding New AI Agents
+
+To add a new AI agent for a different analysis type:
+
+1. **Define the agent** in `ai/agents.py`:
+   ```python
+   issue_classification_agent = Agent(
+       output_type=IssueClassificationResponse,
+       instructions=ISSUE_CLASSIFICATION_PROMPT,
+       retries=2,
+   )
+   ```
+
+2. **Create response model** in `ai/models.py`:
+   ```python
+   class IssueClassificationResponse(BaseModel):
+       # Define your structured output
+   ```
+
+3. **Add prompt** in `ai/prompts.py`:
+   ```python
+   ISSUE_CLASSIFICATION_PROMPT = """..."""
+   ```
+
+4. **Create CLI command** in `cli/process.py`:
+   ```python
+   @app.command()
+   def issue_classification(...):
+       # Use analyze_issue() with your agent
+       result = await analyze_issue(
+           issue_classification_agent,
+           issue_data,
+           model=model,
+           model_settings=model_settings,
+       )
+   ```
+
+**Note**: The CLI command name (e.g., `issue-classification`) is mapped to the function name (`issue_classification`) by Typer. The function manually specifies which agent to use - there's no automatic registry or dynamic mapping.

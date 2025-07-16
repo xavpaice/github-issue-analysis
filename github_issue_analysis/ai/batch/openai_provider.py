@@ -9,8 +9,8 @@ from typing import Any
 import httpx
 from rich.console import Console
 
-from ..config import AIModelConfig, build_provider_specific_settings
-from ..prompts import build_product_labeling_prompt
+from ..prompts import PRODUCT_LABELING_PROMPT
+from .config_compat import AIModelConfig, build_provider_specific_settings
 
 console = Console()
 
@@ -65,7 +65,7 @@ class OpenAIBatchProvider:
         output_path.parent.mkdir(parents=True, exist_ok=True)
 
         # Build system prompt
-        system_prompt = build_product_labeling_prompt()
+        system_prompt = PRODUCT_LABELING_PROMPT
 
         # Get model settings for OpenAI
         model_settings = build_provider_specific_settings(self.config)

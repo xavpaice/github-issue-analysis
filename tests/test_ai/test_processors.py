@@ -1,18 +1,22 @@
-"""Tests for AI processors."""
+"""Tests for AI analysis functions."""
 
 from typing import Any
 from unittest.mock import AsyncMock, patch
 
 import pytest
+from pydantic_ai.messages import ImageUrl
 
-# Legacy config classes removed in simplification phase
+from github_issue_analysis.ai.analysis import (
+    analyze_issue,
+    format_issue_prompt,
+    prepare_issue_for_analysis,
+)
 from github_issue_analysis.ai.models import (
     LabelAssessment,
     ProductLabel,
     ProductLabelingResponse,
     RecommendedLabel,
 )
-from github_issue_analysis.ai.processors import ProductLabelingProcessor
 
 
 @pytest.fixture
@@ -54,35 +58,35 @@ def sample_kots_response() -> ProductLabelingResponse:
 
 
 @pytest.mark.asyncio
-async def test_product_labeling_basic(
+async def test_analyze_issue_basic(
     sample_issue_data: dict[str, Any], sample_kots_response: ProductLabelingResponse
 ) -> None:
-    """Test basic product labeling functionality."""
-    processor = ProductLabelingProcessor(model_name="openai:gpt-4o-mini")
-
-    # Mock the agent property to avoid OpenAI client initialization
+    """Test basic issue analysis functionality."""
+    # Mock the agent to avoid OpenAI client initialization
     mock_agent = AsyncMock()
-    mock_agent.run.return_value.data = sample_kots_response
+    mock_agent.run.return_value.output = sample_kots_response
 
-    with patch.object(
-        ProductLabelingProcessor, "agent", new_callable=lambda: mock_agent
-    ):
-        result = await processor.analyze_issue(sample_issue_data)
+    # Just pass the mock agent directly - no need to patch
+    result = await analyze_issue(mock_agent, sample_issue_data)
 
-        # Verify the response structure
-        assert isinstance(result, ProductLabelingResponse)
-        assert result.recommendation_confidence == 0.9
-        assert len(result.recommended_labels) == 1
-        assert result.recommended_labels[0].label == ProductLabel.KOTS
-        assert "kotsadm" in result.recommended_labels[0].reasoning.lower()
+    # Verify the response structure
+    assert isinstance(result, ProductLabelingResponse)
+    assert result.recommendation_confidence == 0.9
+    assert len(result.recommended_labels) == 1
+    assert result.recommended_labels[0].label == ProductLabel.KOTS
+    assert "kotsadm" in result.recommended_labels[0].reasoning.lower()
+
+    # Verify agent was called with proper message parts
+    mock_agent.run.assert_called_once()
+    message_parts = mock_agent.run.call_args[0][0]
+    assert isinstance(message_parts, list)
+    assert len(message_parts) >= 1  # At least the text prompt
+    assert isinstance(message_parts[0], str)
 
 
 @pytest.mark.asyncio
-async def test_multiple_product_labels() -> None:
-    """Test that AI can recommend multiple specific product labels."""
-    processor = ProductLabelingProcessor()
-
-    # Mock response for issue affecting both KOTS and embedded-cluster
+async def test_analyze_issue_with_model_override() -> None:
+    """Test issue analysis with model and settings override."""
     mock_response = ProductLabelingResponse(
         recommendation_confidence=0.85,
         recommended_labels=[
@@ -90,17 +94,10 @@ async def test_multiple_product_labels() -> None:
                 label=ProductLabel.EMBEDDED_CLUSTER,
                 reasoning="Issue involves cluster installation and k0s setup",
             ),
-            RecommendedLabel(
-                label=ProductLabel.KOTS,
-                reasoning="Issue also affects KOTS installation within the cluster",
-            ),
         ],
         current_labels_assessment=[],
-        summary="Installation issue affecting both embedded cluster setup "
-        "and KOTS deployment",
-        reasoning="This issue involves both cluster installation "
-        "(embedded-cluster product) and KOTS deployment within that cluster "
-        "(kots product). Both teams need to coordinate on the fix.",
+        summary="Installation issue",
+        reasoning="Test reasoning",
     )
 
     sample_data = {
@@ -108,47 +105,70 @@ async def test_multiple_product_labels() -> None:
         "repo": "test",
         "issue": {
             "number": 1,
-            "title": "embedded-cluster install fails to deploy KOTS",
-            "body": "When running embedded-cluster install, the k0s cluster "
-            "starts but KOTS fails to deploy",
+            "title": "Test issue",
+            "body": "Test body",
             "labels": [],
             "comments": [],
         },
     }
 
-    # Mock the agent property to avoid OpenAI client initialization
+    # Mock the agent
     mock_agent = AsyncMock()
-    mock_agent.run.return_value.data = mock_response
+    mock_agent.run.return_value.output = mock_response
 
-    with patch.object(
-        ProductLabelingProcessor, "agent", new_callable=lambda: mock_agent
-    ):
-        result = await processor.analyze_issue(sample_data)
+    result = await analyze_issue(
+        mock_agent,
+        sample_data,
+        model="anthropic:claude-3-5-sonnet",
+        model_settings={"temperature": 0.5, "reasoning_effort": "high"},
+    )
 
-        # Verify multiple specific labels recommended
-        assert len(result.recommended_labels) == 2
-        labels = [r.label for r in result.recommended_labels]
-        assert ProductLabel.EMBEDDED_CLUSTER in labels
-        assert ProductLabel.KOTS in labels
-        assert "both" in result.reasoning.lower()
+    # Verify result
+    assert isinstance(result, ProductLabelingResponse)
+    assert len(result.recommended_labels) == 1
+
+    # Verify agent was called with overrides
+    mock_agent.run.assert_called_once()
+    _, kwargs = mock_agent.run.call_args
+    assert kwargs.get("model") == "anthropic:claude-3-5-sonnet"
+    assert kwargs.get("model_settings") == {
+        "temperature": 0.5,
+        "reasoning_effort": "high",
+    }
 
 
-@pytest.mark.asyncio
-async def test_processor_model_configuration() -> None:
-    """Test processor model configuration."""
-    # Test default model
-    processor1 = ProductLabelingProcessor()
-    assert processor1.model_name == "openai:o4-mini"
+def test_prepare_issue_for_analysis(sample_issue_data: dict[str, Any]) -> None:
+    """Test prepare_issue_for_analysis function."""
+    # Test without images
+    message_parts = prepare_issue_for_analysis(sample_issue_data, include_images=False)
+    assert isinstance(message_parts, list)
+    assert len(message_parts) == 1
+    assert isinstance(message_parts[0], str)
+    assert "KOTS admin console not loading" in message_parts[0]
 
-    # Test custom model
-    processor2 = ProductLabelingProcessor(model_name="anthropic:claude-3-5-sonnet")
-    assert processor2.model_name == "anthropic:claude-3-5-sonnet"
+    # Test with images (mocked)
+    with patch(
+        "github_issue_analysis.ai.analysis.load_downloaded_images"
+    ) as mock_load_images:
+        mock_load_images.return_value = [
+            {
+                "type": "image_url",
+                "image_url": {"url": "data:image/png;base64,test"},
+                "metadata": {"source": "issue_body", "filename": "test.png"},
+            }
+        ]
+        message_parts = prepare_issue_for_analysis(
+            sample_issue_data, include_images=True
+        )
+        assert len(message_parts) == 2
+        assert isinstance(message_parts[0], str)
+        assert isinstance(message_parts[1], ImageUrl)
+        assert message_parts[1].url == "data:image/png;base64,test"
 
 
 def test_format_issue_prompt(sample_issue_data: dict[str, Any]) -> None:
     """Test issue prompt formatting."""
-    processor = ProductLabelingProcessor()
-    prompt = processor._format_issue_prompt(sample_issue_data)
+    prompt = format_issue_prompt(sample_issue_data)
 
     # Verify prompt contains expected components
     assert "KOTS admin console not loading" in prompt
@@ -157,12 +177,11 @@ def test_format_issue_prompt(sample_issue_data: dict[str, Any]) -> None:
     assert "product::kots" in prompt
     assert "bug" not in prompt  # Non-product labels should be filtered out
     assert "No comments" in prompt
+    assert "NO IMAGES PROVIDED" in prompt  # No images context
 
 
-def test_format_issue_prompt_with_comments() -> None:
-    """Test issue prompt formatting with comments."""
-    processor = ProductLabelingProcessor()
-
+def test_format_issue_prompt_with_comments_and_images() -> None:
+    """Test issue prompt formatting with comments and image context."""
     issue_data_with_comments = {
         "org": "test-org",
         "repo": "test-repo",
@@ -184,12 +203,75 @@ def test_format_issue_prompt_with_comments() -> None:
         },
     }
 
-    prompt = processor._format_issue_prompt(issue_data_with_comments)
-
-    # Verify comments are included in prompt
+    # Test without images
+    prompt = format_issue_prompt(issue_data_with_comments, image_count=0)
     assert "user1: This is a test comment" in prompt
     assert "user2: Another comment" in prompt
+    assert "NO IMAGES PROVIDED" in prompt
+
+    # Test with images
+    prompt_with_images = format_issue_prompt(issue_data_with_comments, image_count=2)
+    assert "IMAGES PROVIDED:** This issue contains 2 image(s)" in prompt_with_images
+    assert "Fill in the images_analyzed array" in prompt_with_images
 
 
-# Legacy integration tests removed - these tested the old complex configuration system
-# that has been simplified. The new agent interface is tested in test_agents.py
+@pytest.mark.asyncio
+async def test_analyze_issue_fallback_on_multimodal_failure() -> None:
+    """Test that analyze_issue falls back to text-only on multimodal failure."""
+    sample_data = {
+        "org": "test",
+        "repo": "test",
+        "issue": {
+            "number": 1,
+            "title": "Test issue",
+            "body": "Test body",
+            "labels": [],
+            "comments": [],
+        },
+    }
+
+    mock_response = ProductLabelingResponse(
+        recommendation_confidence=0.9,
+        recommended_labels=[
+            RecommendedLabel(label=ProductLabel.KOTS, reasoning="Fallback reasoning")
+        ],
+        current_labels_assessment=[],
+        summary="Test summary",
+        reasoning="Test reasoning",
+    )
+
+    # Mock agent that fails on multimodal but succeeds on text-only
+    mock_agent = AsyncMock()
+    call_count = 0
+
+    def side_effect(*args, **kwargs):
+        nonlocal call_count
+        call_count += 1
+        if call_count == 1:
+            # First call (multimodal) fails
+            raise Exception("Multimodal processing failed")
+        else:
+            # Second call (text-only) succeeds
+            result = AsyncMock()
+            result.output = mock_response
+            return result
+
+    mock_agent.run.side_effect = side_effect
+
+    # Mock image loading to return images
+    with patch(
+        "github_issue_analysis.ai.analysis.load_downloaded_images"
+    ) as mock_load_images:
+        mock_load_images.return_value = [
+            {
+                "type": "image_url",
+                "image_url": {"url": "data:image/png;base64,test"},
+            }
+        ]
+
+        result = await analyze_issue(mock_agent, sample_data, include_images=True)
+
+        # Verify fallback happened
+        assert mock_agent.run.call_count == 2
+        assert isinstance(result, ProductLabelingResponse)
+        assert result.recommendation_confidence == 0.9

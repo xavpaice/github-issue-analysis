@@ -1,44 +1,10 @@
-"""Minimal AI configuration helpers."""
+"""Minimal compatibility classes for batch system only."""
 
 from typing import Any
 
 from pydantic import BaseModel
 
 
-def validate_model_string(model: str) -> tuple[str, str]:
-    """Validate and parse model string format.
-
-    Args:
-        model: Model identifier (e.g., 'openai:gpt-4o-mini')
-
-    Returns:
-        Tuple of (provider, model_name)
-
-    Raises:
-        ValueError: If model string format is invalid
-    """
-    if ":" not in model:
-        raise ValueError(
-            f"Invalid model format '{model}'. Expected format: provider:model"
-        )
-
-    parts = model.split(":", 1)
-    if len(parts) != 2 or not parts[0] or not parts[1]:
-        raise ValueError(
-            f"Invalid model format '{model}'. Provider and model must be non-empty."
-        )
-
-    provider = parts[0].lower()
-    model_name = parts[1]
-    return provider, model_name
-
-
-def supports_thinking(model: str) -> bool:
-    """Placeholder - let PydanticAI handle thinking validation."""
-    return ":" in model  # Basic format check only
-
-
-# Minimal compatibility classes for batch system
 class AIModelConfig(BaseModel):
     """Minimal compatibility class for batch system."""
 
@@ -79,8 +45,8 @@ def build_provider_specific_settings(config: AIModelConfig) -> dict[str, Any]:
         "temperature": config.temperature,
     }
 
-    # Add thinking-related settings if available
-    if config.thinking_effort and "o1" in config.model:
+    # Pass through thinking settings without model detection
+    if config.thinking_effort:
         settings["reasoning_effort"] = config.thinking_effort
 
     return settings

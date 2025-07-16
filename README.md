@@ -28,6 +28,21 @@ Collect GitHub issues and analyze them with AI to improve issue labeling and cat
    uv run github-analysis batch collect <job-id>
    ```
 
+   **Individual Processing** (for single issues or custom models):
+   ```bash
+   # Use default model
+   uv run github-analysis process product-labeling --org YOUR_ORG --repo YOUR_REPO --issue-number 123
+   
+   # Use custom model with settings
+   uv run github-analysis process product-labeling --org YOUR_ORG --repo YOUR_REPO \
+     --model anthropic:claude-3-5-sonnet \
+     --setting temperature=0.5 \
+     --setting reasoning_effort=high
+   
+   # Show available model settings
+   uv run github-analysis process show-settings
+   ```
+
 4. **Update Labels** (with GitHub write token)
    ```bash
    # Preview changes first

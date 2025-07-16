@@ -11,13 +11,13 @@ from unittest.mock import AsyncMock, MagicMock, mock_open, patch
 import pytest
 
 from github_issue_analysis.ai.batch.batch_manager import BatchManager
+from github_issue_analysis.ai.batch.config_compat import AIModelConfig
 from github_issue_analysis.ai.batch.models import (
     BatchJob,
     BatchJobError,
     BatchResult,
 )
 from github_issue_analysis.ai.batch.openai_provider import OpenAIBatchProvider
-from github_issue_analysis.ai.config import AIModelConfig
 
 
 @pytest.fixture
