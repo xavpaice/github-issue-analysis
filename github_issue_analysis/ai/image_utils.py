@@ -1,6 +1,5 @@
 """Image processing utilities for AI analysis."""
 
-import base64
 import mimetypes
 from pathlib import Path
 from typing import Any
@@ -41,14 +40,21 @@ def load_downloaded_images(
             continue
 
         try:
-            # Read and encode the downloaded image
+            # Read the downloaded image
             img_bytes = local_path.read_bytes()
-            img_base64 = base64.b64encode(img_bytes).decode()
+            img_size_mb = len(img_bytes) / (1024 * 1024)
+
+            # Check if image is too large (most models have 5MB limits)
+            if img_size_mb > 5:
+                print(
+                    f"WARNING: Image {local_path.name} is {img_size_mb:.2f}MB, may be too large for some models"
+                )
 
             image_contents.append(
                 {
-                    "type": "image_url",
-                    "image_url": {"url": f"data:{content_type};base64,{img_base64}"},
+                    "type": "binary_content",
+                    "data": img_bytes,
+                    "media_type": content_type,
                     "metadata": {
                         "source": attachment[
                             "source"

@@ -4,14 +4,14 @@ import json
 from typing import Any
 
 from pydantic_ai import Agent
-from pydantic_ai.messages import ImageUrl
+from pydantic_ai.messages import BinaryContent, ImageUrl
 
 from .image_utils import load_downloaded_images
 
 
 def prepare_issue_for_analysis(
     issue_data: dict[str, Any], include_images: bool = True
-) -> list[str | ImageUrl]:
+) -> list[str | ImageUrl | BinaryContent]:
     """Prepare issue data for AI analysis.
 
     Args:
@@ -28,13 +28,38 @@ def prepare_issue_for_analysis(
     text_prompt = format_issue_prompt(issue_data, len(image_contents))
 
     # Build message parts
-    message_parts: list[str | ImageUrl] = [text_prompt]
+    message_parts: list[str | ImageUrl | BinaryContent] = [text_prompt]
 
-    # Add images as ImageUrl messages
-    for img_content in image_contents:
-        if img_content.get("type") == "image_url":
+    # Add images as BinaryContent (works with all model providers)
+    for i, img_content in enumerate(image_contents):
+        if img_content.get("type") == "binary_content":
+            print(f"DEBUG: Image {i+1} metadata: {img_content.get('metadata', {})}")
+            message_parts.append(
+                BinaryContent(
+                    data=img_content["data"], media_type=img_content["media_type"]
+                )
+            )
+            print(
+                f"DEBUG: Added BinaryContent with media_type={img_content['media_type']}"
+            )
+        elif img_content.get("type") == "image_url":
+            # Legacy support for data URLs (should not happen with new code)
             image_url = img_content["image_url"]["url"]
-            message_parts.append(ImageUrl(url=image_url))
+            print(f"DEBUG: Legacy image_url format detected: {image_url[:100]}...")
+            if image_url.startswith("data:"):
+                import base64
+
+                header, data = image_url.split(",", 1)
+                media_type = header.split(";")[0].split(":")[1]
+                img_bytes = base64.b64decode(data)
+                message_parts.append(
+                    BinaryContent(data=img_bytes, media_type=media_type)
+                )
+                print(
+                    f"DEBUG: Converted legacy to BinaryContent with media_type={media_type}"
+                )
+            else:
+                message_parts.append(ImageUrl(url=image_url))
 
     return message_parts
 
@@ -138,12 +163,35 @@ async def analyze_issue(
         if model_settings:
             kwargs["model_settings"] = model_settings
 
+        print(
+            f"DEBUG: Running analysis with model={model}, include_images={include_images}"
+        )
+        print(f"DEBUG: Message parts count: {len(message_parts)}")
+        print(
+            f"DEBUG: Message parts types: {[type(part).__name__ for part in message_parts]}"
+        )
+        print(f"DEBUG: Model settings: {model_settings}")
+
         result = await agent.run(message_parts, **kwargs)
         return result.output
     except Exception as e:
+        print("DEBUG: Exception caught in analyze_issue:")
+        print(f"DEBUG: Exception type: {type(e).__name__}")
+        print(f"DEBUG: Exception message: {str(e)}")
+        print(f"DEBUG: Exception args: {e.args}")
+        import traceback
+
+        print("DEBUG: Full traceback:")
+        traceback.print_exc()
+
         # If multimodal fails and we have images, try text-only as fallback
         if include_images and len(message_parts) > 1:
-            print(f"Multimodal processing failed, falling back to text-only: {e}")
+            print(
+                f"FALLBACK: Multimodal processing failed for model {model}, falling back to text-only: {e}"
+            )
+            print(
+                "FALLBACK: This should NOT happen with vision-capable models like claude-3-5-haiku"
+            )
             fallback_prompt = format_issue_prompt(issue_data, 0)
             result = await agent.run(fallback_prompt, **kwargs)
             return result.output
