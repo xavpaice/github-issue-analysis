@@ -8,7 +8,8 @@ from rich.console import Console
 from rich.table import Table
 
 from ..ai.batch.batch_manager import BatchManager
-from ..ai.capabilities import validate_thinking_configuration
+
+# No imports needed - let PydanticAI handle validation
 from ..recommendation.manager import RecommendationManager
 from .options import (
     FORCE_OPTION,
@@ -123,9 +124,11 @@ def submit(
             --issue-number 123 --model openai:o4-mini --thinking-effort high
     """
     try:
-        # Validate thinking configuration early
-        if model and (thinking_effort or thinking_budget):
-            validate_thinking_configuration(model, thinking_effort, thinking_budget)
+        # Basic model format check
+        if model and ":" not in model:
+            raise typer.BadParameter(
+                f"Invalid model format '{model}'. Expected format: provider:model"
+            )
 
         asyncio.run(
             _run_batch_submit(

@@ -346,29 +346,22 @@ class TestBatchCliBackwardCompatibility:
 class TestBatchErrorHandling:
     """Test error handling in batch commands."""
 
-    def test_thinking_configuration_validation_error(self, runner: CliRunner) -> None:
-        """Test error handling for invalid thinking configuration."""
-        with patch(
-            "github_issue_analysis.cli.batch.validate_thinking_configuration"
-        ) as mock_validate:
-            mock_validate.side_effect = ValueError("Invalid thinking configuration")
+    def test_invalid_model_format_error(self, runner: CliRunner) -> None:
+        """Test error handling for invalid model format."""
+        result = runner.invoke(
+            app,
+            [
+                "submit",
+                "product-labeling",
+                "--org",
+                "test-org",
+                "--model",
+                "invalid-model",  # No colon, invalid format
+            ],
+        )
 
-            result = runner.invoke(
-                app,
-                [
-                    "submit",
-                    "product-labeling",
-                    "--org",
-                    "test-org",
-                    "--model",
-                    "invalid:model",
-                    "--thinking-effort",
-                    "invalid",
-                ],
-            )
-
-        assert result.exit_code == 1
-        assert "Invalid thinking configuration" in result.stdout
+        assert result.exit_code == 1  # Error exit code
+        assert "Invalid model format" in result.stdout
 
     def test_batch_manager_exception_handling(self, runner: CliRunner) -> None:
         """Test error handling when batch manager throws exceptions."""

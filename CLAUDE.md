@@ -30,7 +30,9 @@ All four tools must pass:
 - **MyPy**: Type checking and type annotations
 - **Pytest**: All tests must pass
 
-**CRITICAL**: Black runs FIRST to automatically fix formatting (including line length). NEVER manually edit files for formatting issues - always run `uv run black .` first. This ensures agents never see E501 line length errors that Black can resolve automatically.
+**CRITICAL**: Black automatically fixes ALL formatting issues when you run it. NEVER manually edit files for formatting issues - ALWAYS run `uv run black .` first. Black will automatically fix line length, spacing, quotes, etc. This ensures agents never see E501 line length errors that Black can resolve automatically.
+
+**IMPORTANT**: When you see formatting errors from ruff, run `uv run black .` first - it will fix them automatically!
 
 **Runtime Requirements:**
 - Never use `python` directly - Always use `uv run python` or `uv run <command>`

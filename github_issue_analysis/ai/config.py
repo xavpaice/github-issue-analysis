@@ -4,15 +4,6 @@ from typing import Any
 
 from pydantic import BaseModel
 
-from .capabilities import get_model_capabilities
-
-# Thinking model constants
-THINKING_MODELS = {
-    "openai:o1",
-    "openai:o1-mini",
-    "anthropic:claude-3-5-sonnet",
-}
-
 
 def validate_model_string(model: str) -> tuple[str, str]:
     """Validate and parse model string format.
@@ -28,19 +19,13 @@ def validate_model_string(model: str) -> tuple[str, str]:
     """
     if ":" not in model:
         raise ValueError(
-            f"Invalid model format '{model}'. Expected format: provider:model\n\n"
-            f"💡 Examples of valid model formats:\n"
-            f"   openai:o4-mini\n"
-            f"   openai:gpt-4o-mini\n"
-            f"   anthropic:claude-3-5-sonnet-latest\n"
-            f"   google:gemini-2.0-flash"
+            f"Invalid model format '{model}'. Expected format: provider:model"
         )
 
     parts = model.split(":", 1)
     if len(parts) != 2 or not parts[0] or not parts[1]:
         raise ValueError(
-            f"Invalid model format '{model}'. Both provider and model name must be "
-            f"non-empty."
+            f"Invalid model format '{model}'. Provider and model must be non-empty."
         )
 
     provider = parts[0].lower()
@@ -49,29 +34,8 @@ def validate_model_string(model: str) -> tuple[str, str]:
 
 
 def supports_thinking(model: str) -> bool:
-    """Check if model supports thinking/reasoning.
-
-    Args:
-        model: Model identifier (e.g., 'openai:o4-mini')
-
-    Returns:
-        True if model supports any thinking capabilities
-
-    Raises:
-        ValueError: If model string format is invalid
-    """
-    # Validate model format first
-    validate_model_string(model)
-
-    # Check if model has any thinking capabilities
-    capabilities = get_model_capabilities(model)
-    thinking_capabilities = {
-        "thinking_effort",
-        "thinking_budget",
-        "thinking_summary",
-        "thinking_format",
-    }
-    return bool(capabilities & thinking_capabilities)
+    """Placeholder - let PydanticAI handle thinking validation."""
+    return ":" in model  # Basic format check only
 
 
 # Minimal compatibility classes for batch system
