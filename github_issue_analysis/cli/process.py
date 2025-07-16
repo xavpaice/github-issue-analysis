@@ -11,7 +11,8 @@ import typer
 from rich.console import Console
 
 from ..ai.agents import create_product_labeling_agent
-from ..ai.capabilities import validate_thinking_configuration
+
+# No imports needed - let PydanticAI handle validation
 from ..recommendation.manager import RecommendationManager
 
 app = typer.Typer(
@@ -118,9 +119,11 @@ def product_labeling(
         github-analysis process product-labeling --org myorg --repo myrepo --dry-run
     """
     try:
-        # Validate thinking configuration early
-        if model and (thinking_effort or thinking_budget):
-            validate_thinking_configuration(model, thinking_effort, thinking_budget)
+        # Basic model format check
+        if model and ":" not in model:
+            raise typer.BadParameter(
+                f"Invalid model format '{model}'. Expected format: provider:model"
+            )
 
         asyncio.run(
             _run_product_labeling(
