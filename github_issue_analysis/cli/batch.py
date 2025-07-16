@@ -9,19 +9,9 @@ from rich.table import Table
 
 from ..ai.batch.batch_manager import BatchManager
 from ..ai.capabilities import validate_thinking_configuration
-from ..ai.config import build_ai_config
 from ..recommendation.manager import RecommendationManager
 from .options import (
-    DRY_RUN_OPTION,
     FORCE_OPTION,
-    INCLUDE_IMAGES_OPTION,
-    ISSUE_NUMBER_OPTION,
-    MODEL_OPTION,
-    ORG_OPTION,
-    REPO_OPTION,
-    REPROCESS_OPTION,
-    THINKING_BUDGET_OPTION,
-    THINKING_EFFORT_OPTION,
 )
 
 app = typer.Typer(
@@ -36,17 +26,102 @@ def submit(
     processor_type: str = typer.Argument(
         help="Processor type (e.g., 'product-labeling')"
     ),
-    org: str | None = ORG_OPTION,
-    repo: str | None = REPO_OPTION,
-    issue_number: int | None = ISSUE_NUMBER_OPTION,
-    model: str | None = MODEL_OPTION,
-    thinking_effort: str | None = THINKING_EFFORT_OPTION,
-    thinking_budget: int | None = THINKING_BUDGET_OPTION,
-    include_images: bool = INCLUDE_IMAGES_OPTION,
-    dry_run: bool = DRY_RUN_OPTION,
-    reprocess: bool = REPROCESS_OPTION,
+    # Target Selection
+    org: str = typer.Option(
+        ...,
+        "--org",
+        "-o",
+        help="GitHub organization name",
+        rich_help_panel="Target Selection",
+    ),
+    repo: str | None = typer.Option(
+        None,
+        "--repo",
+        "-r",
+        help="Repository name (optional)",
+        rich_help_panel="Target Selection",
+    ),
+    issue_number: int | None = typer.Option(
+        None,
+        "--issue-number",
+        "-i",
+        help="Specific issue number (optional)",
+        rich_help_panel="Target Selection",
+    ),
+    # AI Configuration
+    model: str = typer.Option(
+        "openai:gpt-4o",
+        "--model",
+        "-m",
+        help="AI model (provider:name format, e.g., openai:gpt-4o)",
+        rich_help_panel="AI Configuration",
+    ),
+    thinking_effort: str | None = typer.Option(
+        None,
+        "--thinking-effort",
+        help="Thinking effort level: low, medium, high (for supported models)",
+        rich_help_panel="AI Configuration",
+    ),
+    thinking_budget: int | None = typer.Option(
+        None,
+        "--thinking-budget",
+        help="Thinking token budget for models (overrides effort level)",
+        rich_help_panel="AI Configuration",
+    ),
+    temperature: float = typer.Option(
+        0.0,
+        "--temperature",
+        help="Model temperature (0.0-2.0, controls randomness)",
+        rich_help_panel="AI Configuration",
+    ),
+    retry_count: int = typer.Option(
+        2,
+        "--retry-count",
+        help="Number of retries on API failures",
+        rich_help_panel="AI Configuration",
+    ),
+    # Processing Options
+    include_images: bool = typer.Option(
+        True,
+        "--include-images/--no-include-images",
+        help="Include image analysis in processing",
+        rich_help_panel="Processing Options",
+    ),
+    max_items: int | None = typer.Option(
+        None,
+        "--max-items",
+        help="Maximum items per batch (for testing)",
+        rich_help_panel="Processing Options",
+    ),
+    dry_run: bool = typer.Option(
+        False,
+        "--dry-run",
+        "-d",
+        help="Preview batch job without submitting",
+        rich_help_panel="Processing Options",
+    ),
+    reprocess: bool = typer.Option(
+        False,
+        "--reprocess",
+        help="Force reprocessing of already-analyzed issues",
+        rich_help_panel="Processing Options",
+    ),
 ) -> None:
-    """Submit a batch processing job for cost-effective AI analysis."""
+    """Submit a batch processing job for cost-effective AI analysis.
+
+    Examples:
+
+        # Basic batch processing for a repository
+        github-analysis batch submit product-labeling --org myorg --repo myrepo
+
+        # Organization-wide processing with custom model
+        github-analysis batch submit product-labeling --org myorg \\
+            --model anthropic:claude-3-haiku-20241022 --temperature 0.3
+
+        # Single issue with thinking model
+        github-analysis batch submit product-labeling --org myorg --repo myrepo \\
+            --issue-number 123 --model openai:o4-mini --thinking-effort high
+    """
     try:
         # Validate thinking configuration early
         if model and (thinking_effort or thinking_budget):
@@ -61,7 +136,10 @@ def submit(
                 model,
                 thinking_effort,
                 thinking_budget,
+                temperature,
+                retry_count,
                 include_images,
+                max_items,
                 dry_run,
                 reprocess,
             )
@@ -76,13 +154,16 @@ def submit(
 
 async def _run_batch_submit(
     processor_type: str,
-    org: str | None,
+    org: str,
     repo: str | None,
     issue_number: int | None,
-    model: str | None,
+    model: str,
     thinking_effort: str | None,
     thinking_budget: int | None,
+    temperature: float,
+    retry_count: int,
     include_images: bool,
+    max_items: int | None,
     dry_run: bool,
     reprocess: bool,
 ) -> None:
@@ -92,7 +173,7 @@ async def _run_batch_submit(
     if processor_type != "product-labeling":
         console.print(f"[red]Unsupported processor type: {processor_type}[/red]")
         console.print("Currently supported: product-labeling")
-        return
+        raise typer.Exit(1)
 
     # Validate CLI argument combinations
     if issue_number and (not org or not repo):
@@ -100,7 +181,7 @@ async def _run_batch_submit(
             "[red]Error: --org and --repo are required when "
             "specifying --issue-number[/red]"
         )
-        return
+        raise typer.Exit(1)
 
     # Initialize batch manager
     batch_manager = BatchManager()
@@ -124,7 +205,7 @@ async def _run_batch_submit(
 
     except Exception as e:
         console.print(f"[red]Error finding issues: {e}[/red]")
-        return
+        raise typer.Exit(1)
 
     # Filter issues based on recommendation status
     if not reprocess:
@@ -159,6 +240,15 @@ async def _run_batch_submit(
             )
             return
 
+    # Apply max_items limit if specified
+    if max_items and len(issues) > max_items:
+        original_count = len(issues)
+        issues = issues[:max_items]
+        console.print(
+            f"[yellow]Limited to {max_items} items "
+            f"(from {original_count} total)[/yellow]"
+        )
+
     # Show what would be processed
     console.print(f"[blue]Found {len(issues)} issue(s) to process[/blue]")
 
@@ -176,28 +266,30 @@ async def _run_batch_submit(
             "repositories"
         )
 
+    # Build AI configuration using new agent interface
+    ai_config = {
+        "model": model,
+        "thinking_effort": thinking_effort,
+        "temperature": temperature,
+        "retry_count": retry_count,
+        "include_images": include_images,
+        # Keep thinking_budget for backward compatibility
+        "thinking_budget": thinking_budget,
+    }
+
+    console.print(f"[blue]Using model: {model}[/blue]")
+    console.print(f"[blue]Temperature: {temperature}[/blue]")
+    console.print(f"[blue]Retry count: {retry_count}[/blue]")
+
+    # Display thinking configuration if present
+    if thinking_effort:
+        console.print(f"[blue]Thinking effort: {thinking_effort}[/blue]")
+    elif thinking_budget:
+        console.print(f"[blue]Thinking budget: {thinking_budget} tokens[/blue]")
+
     if dry_run:
         console.print("[yellow]Dry run - no batch job submitted[/yellow]")
         return
-
-    # Build AI configuration
-    ai_config = build_ai_config(
-        model_name=model,
-        thinking_effort=thinking_effort,
-        thinking_budget=thinking_budget,
-    )
-    # Set image processing flag
-    ai_config.include_images = include_images
-
-    console.print(f"[blue]Using model: {ai_config.model_name}[/blue]")
-
-    # Display thinking configuration if present
-    if ai_config.thinking:
-        if ai_config.thinking.effort:
-            console.print(f"[blue]Thinking effort: {ai_config.thinking.effort}[/blue]")
-        if ai_config.thinking.budget_tokens:
-            budget = ai_config.thinking.budget_tokens
-            console.print(f"[blue]Thinking budget: {budget} tokens[/blue]")
 
     # Create and submit batch job
     try:

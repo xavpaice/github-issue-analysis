@@ -1283,3 +1283,151 @@ class TestOpenAIProviderCancel:
                 Exception, match="Batch cancellation failed: 404 Batch not found"
             ):
                 await provider.cancel_batch("batch_123")
+
+
+class TestBatchSimplifiedConfig:
+    """Test batch processing with new simplified configuration interface."""
+
+    @pytest.mark.asyncio
+    async def test_create_batch_job_with_dict_config(
+        self, temp_batch_dir: Path, sample_issue_data: list[dict[str, Any]]
+    ) -> None:
+        """Test batch job creation with new simplified dict configuration."""
+        manager = BatchManager(str(temp_batch_dir))
+
+        # New simplified configuration format
+        config = {
+            "model": "anthropic:claude-3-haiku-20241022",
+            "temperature": 0.3,
+            "retry_count": 3,
+            "include_images": False,
+        }
+
+        with patch(
+            "github_issue_analysis.ai.batch.batch_manager.OpenAIBatchProvider"
+        ) as mock_provider_class:
+            mock_provider = AsyncMock()
+            mock_provider_class.return_value = mock_provider
+            mock_provider.create_jsonl_file.return_value = Path("test.jsonl")
+            mock_provider.upload_file.return_value = "file_123"
+            mock_provider.submit_batch.return_value = "batch_123"
+
+            with patch.object(manager, "find_issues", return_value=sample_issue_data):
+                result = await manager.create_batch_job(
+                    processor_type="product-labeling",
+                    org="test-org",
+                    repo="test-repo",
+                    model_config=config,
+                )
+
+        # Verify result
+        assert isinstance(result, BatchJob)
+        assert result.processor_type == "product-labeling"
+        assert result.org == "test-org"
+        assert result.repo == "test-repo"
+        assert result.total_items == 2
+        assert result.status == "validating"
+
+        # Verify the config was converted correctly to AIModelConfig
+        assert "anthropic:claude-3-haiku-20241022" in str(result.ai_model_config)
+
+    @pytest.mark.asyncio
+    async def test_create_batch_job_with_thinking_budget(
+        self, temp_batch_dir: Path, sample_issue_data: list[dict[str, Any]]
+    ) -> None:
+        """Test batch job with thinking_budget parameter."""
+        manager = BatchManager(str(temp_batch_dir))
+
+        config = {
+            "model": "anthropic:claude-3-5-sonnet-latest",
+            "thinking_budget": 5000,
+            "temperature": 0.1,
+            "retry_count": 1,
+            "include_images": True,
+        }
+
+        with patch(
+            "github_issue_analysis.ai.batch.batch_manager.OpenAIBatchProvider"
+        ) as mock_provider_class:
+            mock_provider = AsyncMock()
+            mock_provider_class.return_value = mock_provider
+            mock_provider.create_jsonl_file.return_value = Path("test.jsonl")
+            mock_provider.upload_file.return_value = "file_123"
+            mock_provider.submit_batch.return_value = "batch_123"
+
+            with patch.object(manager, "find_issues", return_value=sample_issue_data):
+                result = await manager.create_batch_job(
+                    processor_type="product-labeling",
+                    org="test-org",
+                    model_config=config,
+                )
+
+        assert isinstance(result, BatchJob)
+        assert result.total_items == 2
+        assert "claude-3-5-sonnet-latest" in str(result.ai_model_config)
+
+    @pytest.mark.asyncio
+    async def test_backward_compatibility_with_ai_model_config(
+        self,
+        temp_batch_dir: Path,
+        sample_issue_data: list[dict[str, Any]],
+        ai_model_config: AIModelConfig,
+    ) -> None:
+        """Test that old AIModelConfig format still works."""
+        manager = BatchManager(str(temp_batch_dir))
+
+        with patch(
+            "github_issue_analysis.ai.batch.batch_manager.OpenAIBatchProvider"
+        ) as mock_provider_class:
+            mock_provider = AsyncMock()
+            mock_provider_class.return_value = mock_provider
+            mock_provider.create_jsonl_file.return_value = Path("test.jsonl")
+            mock_provider.upload_file.return_value = "file_123"
+            mock_provider.submit_batch.return_value = "batch_123"
+
+            with patch.object(manager, "find_issues", return_value=sample_issue_data):
+                result = await manager.create_batch_job(
+                    processor_type="product-labeling",
+                    org="test-org",
+                    repo="test-repo",
+                    model_config=ai_model_config,  # Use old format
+                )
+
+        # Should work exactly as before
+        assert isinstance(result, BatchJob)
+        assert result.processor_type == "product-labeling"
+        assert result.total_items == 2
+        assert result.status == "validating"
+
+    @pytest.mark.asyncio
+    async def test_config_defaults_applied(
+        self, temp_batch_dir: Path, sample_issue_data: list[dict[str, Any]]
+    ) -> None:
+        """Test that default values are applied correctly."""
+        manager = BatchManager(str(temp_batch_dir))
+
+        # Minimal config - should get defaults for missing values
+        config = {
+            "model": "openai:gpt-4o",
+        }
+
+        with patch(
+            "github_issue_analysis.ai.batch.batch_manager.OpenAIBatchProvider"
+        ) as mock_provider_class:
+            mock_provider = AsyncMock()
+            mock_provider_class.return_value = mock_provider
+            mock_provider.create_jsonl_file.return_value = Path("test.jsonl")
+            mock_provider.upload_file.return_value = "file_123"
+            mock_provider.submit_batch.return_value = "batch_123"
+
+            with patch.object(manager, "find_issues", return_value=sample_issue_data):
+                result = await manager.create_batch_job(
+                    processor_type="product-labeling",
+                    org="test-org",
+                    model_config=config,
+                )
+
+        assert isinstance(result, BatchJob)
+        # Verify defaults were applied (temperature=0.0, retry_count=2, etc.)
+        config_dict = result.ai_model_config
+        assert config_dict["model_name"] == "openai:gpt-4o"

@@ -42,7 +42,10 @@ SKIP_COMMENTS_OPTION = typer.Option(
 
 # Data options - AI processing configuration
 MODEL_OPTION = typer.Option(
-    None, "--model", "-m", help="AI model to use (e.g., 'openai:gpt-4o-mini')"
+    "openai:gpt-4o",
+    "--model",
+    "-m",
+    help="AI model to use (e.g., 'openai:gpt-4o-mini')",
 )
 
 THINKING_EFFORT_OPTION = typer.Option(
@@ -51,6 +54,14 @@ THINKING_EFFORT_OPTION = typer.Option(
 
 THINKING_BUDGET_OPTION = typer.Option(
     None, "--thinking-budget", help="Thinking token budget for models"
+)
+
+TEMPERATURE_OPTION = typer.Option(
+    0.0, "--temperature", help="Model temperature (0.0-2.0)"
+)
+
+RETRY_COUNT_OPTION = typer.Option(
+    2, "--retry-count", help="Number of retries on failure"
 )
 
 INCLUDE_IMAGES_OPTION = typer.Option(

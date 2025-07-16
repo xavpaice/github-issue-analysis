@@ -8,7 +8,7 @@ from typing import Any
 
 from rich.console import Console
 
-from ..config import AIModelConfig
+from ..config import AIModelConfig, build_ai_config
 from .models import (
     BatchJob,
     BatchJobError,
@@ -104,7 +104,7 @@ class BatchManager:
         org: str | None = None,
         repo: str | None = None,
         issue_number: int | None = None,
-        model_config: AIModelConfig | None = None,
+        model_config: AIModelConfig | dict[str, Any] | None = None,
         issues: list[dict[str, Any]] | None = None,
     ) -> BatchJob:
         """Create batch job using standard filtering options or pre-filtered issues.
@@ -120,10 +120,21 @@ class BatchManager:
         Returns:
             Created batch job
         """
+        # Handle both old AIModelConfig and new simplified config format
         if model_config is None:
-            from ..config import build_ai_config
-
             model_config = build_ai_config()
+        elif isinstance(model_config, dict):
+            # Convert new simplified config to AIModelConfig
+            config_dict = model_config  # Save reference before overwriting
+            model_config = build_ai_config(
+                model_name=config_dict.get("model", "openai:gpt-4o"),
+                thinking_effort=config_dict.get("thinking_effort"),
+                thinking_budget=config_dict.get("thinking_budget"),
+                temperature=config_dict.get("temperature", 0.0),
+            )
+            # Note: retry_count is handled at the agent level, not in AIModelConfig
+            # Set additional properties
+            model_config.include_images = config_dict.get("include_images", True)
 
         # Use provided issues or find them
         if issues is None:
