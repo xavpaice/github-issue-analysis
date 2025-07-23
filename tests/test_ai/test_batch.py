@@ -583,7 +583,7 @@ class TestOpenAIBatchProvider:
         """Test issue prompt formatting."""
         provider = OpenAIBatchProvider(ai_model_config)
 
-        prompt = provider._format_issue_prompt(sample_issue_data[0])
+        prompt = provider._format_issue_prompt(sample_issue_data[0], "product-labeling")
 
         # Verify prompt contains expected elements
         assert "KOTS admin console not loading" in prompt

@@ -1,11 +1,15 @@
 """Main CLI entry point."""
 
 import typer
+from dotenv import load_dotenv
 from rich.console import Console
 
 from . import batch, process, recommendations
 from .collect import collect, status
 from .update import update_labels
+
+# Load environment variables from .env file
+load_dotenv()
 
 app = typer.Typer(
     name="github-analysis",

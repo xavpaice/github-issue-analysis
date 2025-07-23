@@ -12,7 +12,7 @@ from pydantic_ai.settings import ModelSettings
 from rich.console import Console
 from rich.table import Table
 
-from ..ai.agents import product_labeling_agent
+from ..ai.agents import issue_type_agent, product_labeling_agent
 from ..ai.analysis import analyze_issue
 from ..ai.settings_validator import get_valid_settings_help, validate_settings
 from ..recommendation.manager import RecommendationManager
@@ -204,6 +204,140 @@ def product_labeling(
 
         asyncio.run(
             _run_product_labeling(
+                org,
+                repo,
+                issue_number,
+                model,
+                model_settings,
+                include_images,
+                dry_run,
+                reprocess,
+                concurrency,
+            )
+        )
+    except ValueError as e:
+        console.print(f"[red]❌ {e}[/red]")
+        raise typer.Exit(1)
+
+
+@app.command()
+def issue_type_classification(
+    org: str = typer.Option(
+        ...,
+        "--org",
+        "-o",
+        help="GitHub organization name",
+        rich_help_panel="Target Selection",
+    ),
+    repo: str | None = typer.Option(
+        None,
+        "--repo",
+        "-r",
+        help="GitHub repository name",
+        rich_help_panel="Target Selection",
+    ),
+    issue_number: int | None = typer.Option(
+        None,
+        "--issue-number",
+        "-i",
+        help="Specific issue number",
+        rich_help_panel="Target Selection",
+    ),
+    model: str = typer.Option(
+        "openai:o4-mini",
+        "--model",
+        "-m",
+        help="AI model to use",
+        rich_help_panel="AI Configuration",
+    ),
+    settings: list[str] = typer.Option(
+        [],
+        "--setting",
+        help="Model settings as key=value (e.g., --setting temperature=0.7)",
+        rich_help_panel="AI Configuration",
+    ),
+    include_images: bool = typer.Option(
+        True,
+        "--include-images/--no-include-images",
+        help="Include image analysis",
+        rich_help_panel="Processing Options",
+    ),
+    dry_run: bool = typer.Option(
+        False,
+        "--dry-run",
+        "-d",
+        help="Preview changes without applying them",
+        rich_help_panel="Processing Options",
+    ),
+    reprocess: bool = typer.Option(
+        False,
+        "--reprocess",
+        help="Force reprocessing of items already processed",
+        rich_help_panel="Processing Options",
+    ),
+    concurrency: int = typer.Option(
+        20,
+        "--concurrency",
+        "-c",
+        help="Number of concurrent processing tasks",
+        rich_help_panel="Processing Options",
+    ),
+) -> None:
+    """Analyze GitHub issues for issue type classification.
+
+    This command processes GitHub issues using AI to classify them into three
+    categories: customer environment issues, usage questions, or product bugs.
+    You can target specific issues, repositories, or entire organizations.
+
+    Examples:
+
+        # Classify a specific issue
+        github-analysis process issue-type-classification --org myorg --repo myrepo \\
+            --issue-number 123
+
+        # Classify all issues in a repository
+        github-analysis process issue-type-classification --org myorg --repo myrepo
+
+        # Classify all issues in an organization
+        github-analysis process issue-type-classification --org myorg
+
+        # Preview classifications without processing
+        github-analysis process issue-type-classification --org myorg --repo myrepo --dry-run
+    """
+    try:
+        # Parse settings into dict
+        model_settings = {}
+        for setting in settings:
+            if "=" not in setting:
+                console.print(
+                    f"[red]❌ Invalid setting format '{setting}'. "
+                    "Use key=value format.[/red]"
+                )
+                raise typer.Exit(1)
+            key, value = setting.split("=", 1)
+            # Try to parse as number if possible
+            parsed_value: Any = value
+            try:
+                num_value = float(value)
+                if num_value.is_integer():
+                    parsed_value = int(num_value)
+                else:
+                    parsed_value = num_value
+            except ValueError:
+                pass  # Keep as string
+            model_settings[key] = parsed_value
+
+        # Validate settings BEFORE processing
+        errors = validate_settings(model, model_settings)
+        if errors:
+            console.print("[red]❌ Invalid settings:[/red]")
+            for error in errors:
+                console.print(f"  • {error}")
+            console.print(f"\n{get_valid_settings_help(model)}")
+            raise typer.Exit(1)
+
+        asyncio.run(
+            _run_issue_type_classification(
                 org,
                 repo,
                 issue_number,
@@ -431,6 +565,212 @@ async def _process_single_issue(
 
             with open(result_file, "w") as f:
                 json.dump(result_data, f, indent=2)
+
+            console.print(f"[green]✓ Saved results to {result_file.name}[/green]")
+            return "processed"
+
+        except Exception as e:
+            console.print(f"[red]✗ Failed to process {file_path.name}: {e}[/red]")
+            raise
+
+
+async def _run_issue_type_classification(
+    org: str,
+    repo: str | None,
+    issue_number: int | None,
+    model: str,
+    model_settings: dict[str, Any],
+    include_images: bool,
+    dry_run: bool,
+    reprocess: bool,
+    concurrency: int,
+) -> None:
+    """Run issue type classification analysis."""
+
+    # Find issue files to process (same logic as product labeling)
+    base_data_dir = Path(os.environ.get("GITHUB_ANALYSIS_DATA_DIR", "data"))
+    data_dir = base_data_dir / "issues"
+    if not data_dir.exists():
+        console.print(
+            "[red]No issues directory found. Run collect command first.[/red]"
+        )
+        return
+
+    issue_files = []
+    if issue_number:
+        # Validate that repo is provided for specific issue
+        if not repo:
+            console.print(
+                "[red]Error: --repo is required when specifying --issue-number[/red]"
+            )
+            return
+
+        # Find specific issue file with org/repo/issue pattern
+        expected_filename = f"{org}_{repo}_issue_{issue_number}.json"
+        expected_path = data_dir / expected_filename
+
+        if not expected_path.exists():
+            console.print(
+                f"[red]Issue #{issue_number} not found for {org}/{repo}.[/red]"
+            )
+            console.print(f"[red]Expected file: {expected_filename}[/red]")
+            return
+        issue_files = [expected_path]
+    elif org and repo:
+        # Process all issues for specific org/repo
+        pattern = f"{org}_{repo}_issue_*.json"
+        issue_files = list(data_dir.glob(pattern))
+        if not issue_files:
+            console.print(f"[red]No issues found for {org}/{repo}.[/red]")
+            return
+    elif org:
+        # Process all issues for specific org (across all repos)
+        pattern = f"{org}_*_issue_*.json"
+        issue_files = list(data_dir.glob(pattern))
+        if not issue_files:
+            console.print(f"[red]No issues found for organization {org}.[/red]")
+            return
+    else:
+        # Process all issues
+        issue_files = list(data_dir.glob("*_issue_*.json"))
+
+    if not issue_files:
+        console.print("[yellow]No issue files found to process.[/yellow]")
+        return
+
+    console.print(f"[blue]Found {len(issue_files)} issue(s) to process[/blue]")
+
+    if dry_run:
+        for file_path in issue_files:
+            console.print(f"Would process: {file_path.name}")
+        return
+
+    # Show configuration
+    console.print(f"[blue]Using model: {model}[/blue]")
+    if model_settings:
+        console.print(f"[blue]Model settings: {model_settings}[/blue]")
+    console.print(
+        f"[blue]Image processing: {'enabled' if include_images else 'disabled'}[/blue]"
+    )
+
+    # Process each issue concurrently
+    results_dir = base_data_dir / "results"
+    results_dir.mkdir(exist_ok=True)
+
+    # Create semaphore to limit concurrent operations
+    semaphore = asyncio.Semaphore(concurrency)
+
+    # Process files concurrently
+    tasks = []
+    for file_path in issue_files:
+        task = asyncio.create_task(
+            _process_single_issue_type_classification(
+                file_path,
+                results_dir,
+                model,
+                model_settings,
+                include_images,
+                reprocess,
+                semaphore,
+            )
+        )
+        tasks.append(task)
+
+    # Wait for all tasks to complete and collect results
+    results = await asyncio.gather(*tasks, return_exceptions=True)
+
+    # Count successes and failures
+    processed_count = 0
+    skipped_count = 0
+    failed_count = 0
+
+    for result in results:
+        if isinstance(result, Exception):
+            failed_count += 1
+        elif result == "processed":
+            processed_count += 1
+        elif result == "skipped":
+            skipped_count += 1
+
+    console.print(
+        f"[blue]Processing complete: {processed_count} processed "
+        f"({skipped_count} skipped, {failed_count} failed)[/blue]"
+    )
+
+
+async def _process_single_issue_type_classification(
+    file_path: Path,
+    results_dir: Path,
+    model: str,
+    model_settings: dict[str, Any],
+    include_images: bool,
+    reprocess: bool,
+    semaphore: asyncio.Semaphore,
+) -> str:
+    """Process a single issue file for issue type classification.
+
+    Returns:
+        "processed" if successful, "skipped" if skipped, raises exception if failed
+    """
+    async with semaphore:
+        try:
+            # Load issue data
+            with open(file_path) as f:
+                issue_data = json.load(f)
+
+            issue_org = issue_data["org"]
+            issue_repo = issue_data["repo"] 
+            issue_num = issue_data["issue"]["number"]
+
+            # Check if we should reprocess - use same logic but different filename pattern
+            result_filename = f"{issue_org}_{issue_repo}_issue_{issue_num}_issue-type-classification.json"
+            result_file = results_dir / result_filename
+
+            if result_file.exists() and not reprocess:
+                console.print(
+                    f"[yellow]Skipping {file_path.name} - already processed "
+                    "(use --reprocess to override)[/yellow]"
+                )
+                return "skipped"
+
+            console.print(f"Processing {file_path.name} for issue type classification...")
+
+            # Check for images if enabled
+            if include_images:
+                attachment_count = len(
+                    [
+                        att
+                        for att in issue_data["issue"].get("attachments", [])
+                        if att.get("downloaded")
+                        and att.get("content_type", "").startswith("image/")
+                    ]
+                )
+                if attachment_count > 0:
+                    console.print(f"  Found {attachment_count} image(s) to analyze")
+
+            # Analyze with AI using the issue type agent
+            result = await analyze_issue(
+                issue_type_agent,
+                issue_data,
+                include_images=include_images,
+                model=model,
+                model_settings=model_settings,
+            )
+
+            # Save result
+            result_data = {
+                "org": issue_org,
+                "repo": issue_repo,
+                "issue_number": issue_num,
+                "processor": "issue-type-classification",
+                "model": model,
+                "model_settings": model_settings,
+                "analysis": result.model_dump(),
+                "processed_at": datetime.now().isoformat(),
+            }
+
+            with open(result_file, "w") as f:
+                json.dump(result_data, f, indent=2, default=str)
 
             console.print(f"[green]✓ Saved results to {result_file.name}[/green]")
             return "processed"

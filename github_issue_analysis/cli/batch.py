@@ -175,9 +175,10 @@ async def _run_batch_submit(
     """Run batch submission."""
 
     # Validate processor type
-    if processor_type != "product-labeling":
+    valid_processors = ["product-labeling", "issue-type-classification"]
+    if processor_type not in valid_processors:
         console.print(f"[red]Unsupported processor type: {processor_type}[/red]")
-        console.print("Currently supported: product-labeling")
+        console.print(f"Currently supported: {', '.join(valid_processors)}")
         raise typer.Exit(1)
 
     # Validate CLI argument combinations

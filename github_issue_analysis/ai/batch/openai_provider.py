@@ -58,14 +58,21 @@ class OpenAIBatchProvider:
         Returns:
             Path to the created JSONL file
         """
-        if processor_type != "product-labeling":
+        if processor_type not in ["product-labeling", "issue-type-classification"]:
             raise ValueError(f"Unsupported processor type: {processor_type}")
 
         # Ensure output directory exists
         output_path.parent.mkdir(parents=True, exist_ok=True)
 
-        # Build system prompt
-        system_prompt = PRODUCT_LABELING_PROMPT
+        # Build system prompt based on processor type
+        if processor_type == "product-labeling":
+            from ..prompts import PRODUCT_LABELING_PROMPT
+            system_prompt = PRODUCT_LABELING_PROMPT
+        elif processor_type == "issue-type-classification":
+            from ..prompts import ISSUE_TYPE_CLASSIFICATION_PROMPT
+            system_prompt = ISSUE_TYPE_CLASSIFICATION_PROMPT
+        else:
+            raise ValueError(f"Unknown processor type: {processor_type}")
 
         # Get model settings for OpenAI
         model_settings = build_provider_specific_settings(self.config)
@@ -83,7 +90,7 @@ class OpenAIBatchProvider:
                 )
 
                 # Format the issue prompt using the same logic as the regular processor
-                user_prompt = self._format_issue_prompt(issue_data)
+                user_prompt = self._format_issue_prompt(issue_data, processor_type)
 
                 # Build messages with image support
                 messages = [{"role": "system", "content": system_prompt}]
@@ -128,9 +135,9 @@ class OpenAIBatchProvider:
                     "response_format": {
                         "type": "json_schema",
                         "json_schema": {
-                            "name": "product_labeling_response",
+                            "name": f"{processor_type.replace('-', '_')}_response",
                             "strict": True,
-                            "schema": self._get_response_schema(),
+                            "schema": self._get_response_schema(processor_type),
                         },
                     },
                 }
@@ -151,10 +158,12 @@ class OpenAIBatchProvider:
         console.print(f"Created JSONL file with {len(issues)} requests: {output_path}")
         return output_path
 
-    def _format_issue_prompt(self, issue_data: dict[str, Any]) -> str:
+    def _format_issue_prompt(self, issue_data: dict[str, Any], processor_type: str) -> str:
         """Format issue data for analysis prompt.
 
-        Same logic as ProductLabelingProcessor.
+        Args:
+            issue_data: Issue data dictionary
+            processor_type: Type of processor ('product-labeling' or 'issue-type-classification')
         """
         issue = issue_data["issue"]
 
@@ -195,15 +204,11 @@ IMPORTANT: Leave images_analyzed as an empty array and image_impact as an empty
 string since image processing is disabled.
 """
 
-        return f"""
-Analyze this GitHub issue for product labeling:
-
-**Title:** {issue["title"]}
-
-**Body:** {issue["body"]}
-
-**Current Labels:** {
-            json.dumps(
+        # Generate prompt based on processor type
+        if processor_type == "product-labeling":
+            analysis_type = "product labeling"
+            instruction = "Recommend the most appropriate product label(s) based on the issue content."
+            current_labels = json.dumps(
                 [
                     label["name"]
                     for label in issue["labels"]
@@ -211,17 +216,43 @@ Analyze this GitHub issue for product labeling:
                 ],
                 separators=(",", ":"),
             )
-        }
+        elif processor_type == "issue-type-classification":
+            analysis_type = "issue type classification"  
+            instruction = "Classify this issue into the most appropriate issue type category."
+            current_labels = json.dumps(
+                [label["name"] for label in issue["labels"]],
+                separators=(",", ":"),
+            )
+        else:
+            raise ValueError(f"Unknown processor type: {processor_type}")
+
+        return f"""
+Analyze this GitHub issue for {analysis_type}:
+
+**Title:** {issue["title"]}
+
+**Body:** {issue["body"]}
+
+**Current Labels:** {current_labels}
 
 **Repository:** {issue_data["org"]}/{issue_data["repo"]}
 
 **Comments:** {comment_text or "No comments"}
 {image_instruction}
 
-Recommend the most appropriate product label(s) based on the issue content.
+{instruction}
 """
 
-    def _get_response_schema(self) -> dict[str, Any]:
+    def _get_response_schema(self, processor_type: str) -> dict[str, Any]:
+        """Get JSON schema for the specified processor response type."""
+        if processor_type == "product-labeling":
+            return self._get_product_labeling_schema()
+        elif processor_type == "issue-type-classification":
+            return self._get_issue_type_classification_schema()
+        else:
+            raise ValueError(f"Unknown processor type: {processor_type}")
+
+    def _get_product_labeling_schema(self) -> dict[str, Any]:
         """Get JSON schema for ProductLabelingResponse."""
         return {
             "type": "object",
@@ -335,11 +366,114 @@ Recommend the most appropriate product label(s) based on the issue content.
                 },
             },
             "required": [
-                "confidence",
+                "root_cause_analysis",
+                "root_cause_confidence",
+                "recommendation_confidence",
                 "recommended_labels",
                 "current_labels_assessment",
                 "summary",
                 "reasoning",
+                "images_analyzed",
+                "image_impact",
+            ],
+            "additionalProperties": False,
+        }
+
+    def _get_issue_type_classification_schema(self) -> dict[str, Any]:
+        """Get JSON schema for IssueTypeResponse."""
+        return {
+            "type": "object",
+            "properties": {
+                "issue_type": {
+                    "type": "string",
+                    "enum": [
+                        "customer-environment",
+                        "usage-question",
+                        "product-bug",
+                        "helm-chart-fix",
+                    ],
+                    "description": "The primary classification of this issue",
+                },
+                "root_cause_analysis": {
+                    "type": "string",
+                    "description": (
+                        "Analysis of the root cause of the issue. "
+                        "State 'Root cause unclear' if unable to determine."
+                    ),
+                },
+                "root_cause_confidence": {
+                    "type": ["number", "null"],
+                    "minimum": 0.0,
+                    "maximum": 1.0,
+                    "description": (
+                        "Confidence in identified root cause (0-1). "
+                        "Only provide if a specific root cause is identified."
+                    ),
+                },
+                "classification_confidence": {
+                    "type": "number",
+                    "minimum": 0.0,
+                    "maximum": 1.0,
+                    "description": "Overall confidence in the issue type classification (0-1)",
+                },
+                "reasoning": {
+                    "type": "string",
+                    "description": "Detailed reasoning for the issue type classification",
+                },
+                "supporting_evidence": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "description": "Key pieces of evidence that support the classification",
+                },
+                "resolution_indicators": {
+                    "type": "string",
+                    "description": (
+                        "How the issue was or should be resolved, if evident from the thread"
+                    ),
+                },
+                "images_analyzed": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "filename": {"type": "string"},
+                            "source": {"type": "string"},
+                            "description": {"type": "string"},
+                            "relevance_score": {
+                                "type": "number",
+                                "minimum": 0.0,
+                                "maximum": 1.0,
+                            },
+                        },
+                        "required": [
+                            "filename",
+                            "source",
+                            "description",
+                            "relevance_score",
+                        ],
+                        "additionalProperties": False,
+                    },
+                    "description": (
+                        "Analysis of images found in issue. "
+                        "MUST be empty if no images were provided."
+                    ),
+                },
+                "image_impact": {
+                    "type": "string",
+                    "description": (
+                        "How images influenced the classification decision. "
+                        "MUST be empty if no images were provided."
+                    ),
+                },
+            },
+            "required": [
+                "issue_type",
+                "root_cause_analysis",
+                "root_cause_confidence",
+                "classification_confidence",
+                "reasoning",
+                "supporting_evidence",
+                "resolution_indicators",
                 "images_analyzed",
                 "image_impact",
             ],

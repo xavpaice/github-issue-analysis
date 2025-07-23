@@ -101,8 +101,75 @@ class ProductLabelingResponse(BaseModel):
         return v
 
 
-# Future: Easy to add new response types for different analysis tasks
+# Issue type classification models
+class IssueType(str, Enum):
+    """Available issue types for classification."""
+
+    CUSTOMER_ENVIRONMENT = "customer-environment"
+    USAGE_QUESTION = "usage-question"
+    PRODUCT_BUG = "product-bug"
+    HELM_CHART_FIX = "helm-chart-fix"
+
+
+class IssueTypeResponse(BaseModel):
+    """Structured response for issue type classification analysis."""
+
+    issue_type: IssueType = Field(
+        description="The primary classification of this issue"
+    )
+    root_cause_analysis: str = Field(
+        description="Analysis of the root cause of the issue. "
+        "State 'Root cause unclear' if unable to determine."
+    )
+    root_cause_confidence: float | None = Field(
+        default=None,
+        ge=0.0,
+        le=1.0,
+        description="Confidence in identified root cause (0-1). "
+        "Only provide if a specific root cause is identified.",
+    )
+    classification_confidence: float = Field(
+        ge=0.0,
+        le=1.0,
+        description="Overall confidence in the issue type classification (0-1)"
+    )
+    reasoning: str = Field(
+        description="Detailed reasoning for the issue type classification"
+    )
+    supporting_evidence: list[str] = Field(
+        description="Key pieces of evidence that support the classification"
+    )
+    resolution_indicators: str = Field(
+        description="How the issue was or should be resolved, if evident from the thread"
+    )
+
+    # Image-related fields for consistency with product labeling
+    images_analyzed: list[ImageAnalysis] = Field(
+        default_factory=list,
+        description="Analysis of images found in issue. "
+        "MUST be empty if no images were provided.",
+    )
+    image_impact: str = Field(
+        default="",
+        description="How images influenced the classification decision. "
+        "MUST be empty if no images were provided.",
+    )
+
+    @field_validator("images_analyzed")
+    @classmethod
+    def validate_images_analyzed(cls, v: list[ImageAnalysis]) -> list[ImageAnalysis]:
+        """Validate that images_analyzed is only populated when images are present."""
+        return v
+
+    @field_validator("image_impact")
+    @classmethod
+    def validate_image_impact(cls, v: str) -> str:
+        """Validate that image_impact is only populated when images are present."""
+        return v
+
+
+# Legacy alias for backward compatibility
 class IssueClassificationResponse(BaseModel):
-    """Future: General issue classification beyond just product labels."""
+    """Legacy alias - use IssueTypeResponse for new code."""
 
     pass
