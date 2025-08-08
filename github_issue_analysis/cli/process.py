@@ -472,10 +472,11 @@ def troubleshoot(
         rich_help_panel="Target Selection",
     ),
     agent: str = typer.Option(
-        "o3_medium",
+        "gpt5_mini_medium",
         "--agent",
         "-a",
-        help="Troubleshoot agent to use (o3_medium, o3_high, opus_41)",
+        help="Troubleshoot agent to use (gpt5_mini_medium, gpt5_mini_high, "
+        "gpt5_medium, gpt5_high, o3_medium, o3_high)",
         rich_help_panel="AI Configuration",
     ),
     include_images: bool = typer.Option(
@@ -511,14 +512,18 @@ def troubleshoot(
     Currently supports single-issue analysis for in-depth investigation.
 
     Agents available:
-    - o3_medium: OpenAI O3 with medium reasoning (default, balanced speed/quality)
+    - gpt5_mini_medium: GPT-5 Mini with medium reasoning (default, balanced
+      speed/quality)
+    - gpt5_mini_high: GPT-5 Mini with high reasoning (more thorough)
+    - gpt5_medium: GPT-5 with medium reasoning (higher capability)
+    - gpt5_high: GPT-5 with high reasoning (most capable)
+    - o3_medium: OpenAI O3 with medium reasoning (balanced speed/quality)
     - o3_high: OpenAI O3 with high reasoning (slower but more thorough)
-    - opus_41: Anthropic Claude Opus 4.1 (alternative approach)
 
     Required environment variables:
     - SBCTL_TOKEN: Required for all agents (MCP tool access)
-    - OPENAI_API_KEY: Required for o3_medium and o3_high agents
-    - ANTHROPIC_API_KEY: Required for opus_41 agent
+    - OPENAI_API_KEY: Required for gpt5_* and o3_* agents
+    - ANTHROPIC_API_KEY: Required for claude_* agents (if available)
 
     Examples:
 
@@ -530,7 +535,11 @@ def troubleshoot(
         github-analysis process troubleshoot --org myorg --repo myrepo \
             --issue-number 123
 
-        # Use high-reasoning O3 agent for complex issues
+        # Use high-reasoning GPT-5 agent for complex issues
+        github-analysis process troubleshoot \
+            --url https://github.com/myorg/myrepo/issues/456 --agent gpt5_high
+
+        # Use O3 agent with high reasoning
         github-analysis process troubleshoot \
             --url https://github.com/myorg/myrepo/issues/456 --agent o3_high
 
@@ -599,24 +608,32 @@ async def _run_troubleshoot(
         return
 
     # Validate agent-specific API keys
-    if agent_name in ["o3_medium", "o3_high"]:
+    if agent_name in [
+        "gpt5_mini_medium",
+        "gpt5_mini_high",
+        "gpt5_medium",
+        "gpt5_high",
+        "o3_medium",
+        "o3_high",
+    ]:
         if not os.environ.get("OPENAI_API_KEY"):
             console.print(
                 "[red]❌ OPENAI_API_KEY environment variable is required "
-                "for O3 agents[/red]"
+                "for GPT-5 and O3 agents[/red]"
             )
             return
-    elif agent_name == "opus_41":
+    elif agent_name.startswith("claude_"):
         if not os.environ.get("ANTHROPIC_API_KEY"):
             console.print(
                 "[red]❌ ANTHROPIC_API_KEY environment variable is required "
-                "for Opus agent[/red]"
+                "for Claude agents[/red]"
             )
             return
     else:
         console.print(
             f"[red]❌ Unknown agent: {agent_name}. Available: "
-            f"o3_medium, o3_high, opus_41[/red]"
+            f"gpt5_mini_medium, gpt5_mini_high, gpt5_medium, gpt5_high, "
+            f"o3_medium, o3_high[/red]"
         )
         return
 
@@ -779,8 +796,7 @@ async def _run_troubleshoot(
         end_time = datetime.utcnow()
         processing_time = (end_time - start_time).total_seconds()
 
-        # Update processing time in result
-        result.processing_time_seconds = processing_time
+        # Processing time calculated but not stored in discriminated union
 
         console.print(f"[green]✓ Analysis completed in {processing_time:.1f}s[/green]")
 
@@ -788,26 +804,44 @@ async def _run_troubleshoot(
         console.print(f"[red]❌ Analysis failed: {e}[/red]")
         return
 
-    # Display results
+    # Display results based on discriminated union status
     console.print("\n[bold blue]🔍 Troubleshoot Analysis Results[/bold blue]")
-    console.print(f"[blue]Confidence Score: {result.confidence_score:.2f}[/blue]")
 
-    if result.tools_used:
-        console.print(f"[blue]Tools Used: {', '.join(result.tools_used)}[/blue]")
+    if result.status == "resolved":
+        console.print("\n[bold green]✅ Root Cause Identified[/bold green]")
+        console.print("\n[bold]Root Cause:[/bold]")
+        console.print(result.root_cause)
 
-    console.print("\n[bold]Root Cause:[/bold]")
-    console.print(result.analysis.root_cause)
+        if result.evidence:
+            console.print("\n[bold]Evidence:[/bold]")
+            for i, evidence in enumerate(result.evidence, 1):
+                console.print(f"{i}. {evidence}")
 
-    if result.analysis.key_findings:
-        console.print("\n[bold]Key Findings:[/bold]")
-        for i, finding in enumerate(result.analysis.key_findings, 1):
-            console.print(f"{i}. {finding}")
+        console.print("\n[bold]Recommended Solution:[/bold]")
+        console.print(result.solution)
 
-    console.print("\n[bold]Recommended Solution:[/bold]")
-    console.print(result.analysis.remediation)
+        console.print("\n[bold]Analysis Validation:[/bold]")
+        console.print(result.validation)
 
-    console.print("\n[bold]Technical Explanation:[/bold]")
-    console.print(result.analysis.explanation)
+    elif result.status == "needs_data":
+        console.print("\n[bold yellow]📋 Additional Data Needed[/bold yellow]")
+        console.print("\n[bold]Current Hypothesis:[/bold]")
+        console.print(result.current_hypothesis)
+
+        if result.missing_evidence:
+            console.print("\n[bold]Missing Evidence Needed:[/bold]")
+            for i, missing in enumerate(result.missing_evidence, 1):
+                console.print(f"{i}. {missing}")
+
+        if result.next_steps:
+            console.print("\n[bold]Next Steps:[/bold]")
+            for i, step in enumerate(result.next_steps, 1):
+                console.print(f"{i}. {step}")
+
+        if result.eliminated:
+            console.print("\n[bold]Ruled Out:[/bold]")
+            for i, eliminated in enumerate(result.eliminated, 1):
+                console.print(f"{i}. {eliminated}")
 
     # Save results
     results_dir = base_data_dir / "results" / "troubleshoot"

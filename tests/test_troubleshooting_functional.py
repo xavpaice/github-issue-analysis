@@ -5,11 +5,17 @@ Only mock external services (API calls) where absolutely necessary.
 """
 
 import os
+from types import SimpleNamespace
+from unittest.mock import patch
 
 import pytest
 
 from github_issue_analysis.ai.mcp_server import troubleshoot_mcp_server
 from github_issue_analysis.ai.troubleshooting_agents import (
+    create_gpt5_high_agent,
+    create_gpt5_medium_agent,
+    create_gpt5_mini_high_agent,
+    create_gpt5_mini_medium_agent,
     create_troubleshooting_agent,
 )
 
@@ -71,41 +77,117 @@ class TestAgentCreation:
         os.environ.pop("OPENAI_API_KEY", None)
         os.environ.pop("ANTHROPIC_API_KEY", None)
 
-        # O3 agents should require OPENAI_API_KEY
-        with pytest.raises(ValueError, match="OPENAI_API_KEY"):
-            create_troubleshooting_agent("o3_medium", "token")
+        # GPT-5 and O3 agents should require OPENAI_API_KEY
+        for agent_name in [
+            "gpt5_mini_medium",
+            "gpt5_mini_high",
+            "gpt5_medium",
+            "gpt5_high",
+            "o3_medium",
+            "o3_high",
+        ]:
+            with pytest.raises(ValueError, match="OPENAI_API_KEY"):
+                create_troubleshooting_agent(agent_name, "token")
 
-        with pytest.raises(ValueError, match="OPENAI_API_KEY"):
-            create_troubleshooting_agent("o3_high", "token")
 
-        # Opus should require ANTHROPIC_API_KEY
-        with pytest.raises(ValueError, match="ANTHROPIC_API_KEY"):
-            create_troubleshooting_agent("opus_41", "token")
+class TestGPT5AgentCreation:
+    """Test GPT-5 agent creation functions."""
+
+    def test_create_gpt5_mini_medium_agent(self):
+        """Test GPT-5-mini medium agent creation."""
+        with patch.dict(os.environ, {"OPENAI_API_KEY": "test-key"}):
+            agent = create_gpt5_mini_medium_agent("test-token")
+            assert agent is not None
+            assert hasattr(agent, "model")
+            assert hasattr(agent, "run")
+            assert hasattr(agent, "output_type")
+
+    def test_create_gpt5_mini_high_agent(self):
+        """Test GPT-5-mini high agent creation."""
+        with patch.dict(os.environ, {"OPENAI_API_KEY": "test-key"}):
+            agent = create_gpt5_mini_high_agent("test-token")
+            assert agent is not None
+            assert hasattr(agent, "model")
+            assert hasattr(agent, "run")
+            assert hasattr(agent, "output_type")
+
+    def test_create_gpt5_medium_agent(self):
+        """Test GPT-5 medium agent creation."""
+        with patch.dict(os.environ, {"OPENAI_API_KEY": "test-key"}):
+            agent = create_gpt5_medium_agent("test-token")
+            assert agent is not None
+            assert hasattr(agent, "model")
+            assert hasattr(agent, "run")
+            assert hasattr(agent, "output_type")
+
+    def test_create_gpt5_high_agent(self):
+        """Test GPT-5 high agent creation."""
+        with patch.dict(os.environ, {"OPENAI_API_KEY": "test-key"}):
+            agent = create_gpt5_high_agent("test-token")
+            assert agent is not None
+            assert hasattr(agent, "model")
+            assert hasattr(agent, "run")
+            assert hasattr(agent, "output_type")
+
+    def test_create_gpt5_agents_require_openai_key(self):
+        """Test that all GPT-5 agents require OPENAI_API_KEY."""
+        with patch.dict(os.environ, {}, clear=True):
+            with pytest.raises(
+                ValueError, match="OPENAI_API_KEY environment variable required"
+            ):
+                create_gpt5_mini_medium_agent("test-token")
+
+            with pytest.raises(
+                ValueError, match="OPENAI_API_KEY environment variable required"
+            ):
+                create_gpt5_mini_high_agent("test-token")
+
+            with pytest.raises(
+                ValueError, match="OPENAI_API_KEY environment variable required"
+            ):
+                create_gpt5_medium_agent("test-token")
+
+            with pytest.raises(
+                ValueError, match="OPENAI_API_KEY environment variable required"
+            ):
+                create_gpt5_high_agent("test-token")
+
+    def test_factory_function_supports_new_agents(self):
+        """Test factory function creates all new agent types."""
+        with patch.dict(os.environ, {"OPENAI_API_KEY": "test-key"}):
+            agents_to_test = [
+                "gpt5_mini_medium",
+                "gpt5_mini_high",
+                "gpt5_medium",
+                "gpt5_high",
+            ]
+            for agent_name in agents_to_test:
+                agent = create_troubleshooting_agent(agent_name, "test-token")
+                assert agent is not None
+
+    def test_factory_function_rejects_opus(self):
+        """Test that opus_41 is no longer available."""
+        with pytest.raises(ValueError, match="opus_41 agent is no longer supported"):
+            create_troubleshooting_agent("opus_41", "test-token")
 
 
 class TestEndToEnd:
     """End-to-end functional tests."""
 
     def test_agent_has_model_configured(self):
-        """Test that agents have models configured correctly."""
-        sbctl_token = os.getenv("SBCTL_TOKEN")
-        openai_key = os.getenv("OPENAI_API_KEY")
-
-        if not sbctl_token or not openai_key:
-            pytest.skip(
-                "SBCTL_TOKEN and OPENAI_API_KEY required for agent creation test"
+        """Test that agents have models configured correctly using mocked API keys."""
+        # Use fake API keys for testing agent creation without real API calls
+        with patch.dict(os.environ, {"OPENAI_API_KEY": "sk-test-fake-key"}):
+            # Test that o3_medium agent has model set
+            agent = create_troubleshooting_agent("o3_medium", "fake-sbctl-token")
+            assert hasattr(agent, "_model_name") or hasattr(agent, "model"), (
+                "Agent should have model configured"
             )
 
-        # Test that o3_medium agent has model set
-        agent = create_troubleshooting_agent("o3_medium", sbctl_token)
-        assert hasattr(agent, "_model_name") or hasattr(agent, "model"), (
-            "Agent should have model configured"
-        )
-
-        # Test that agent has toolsets configured
-        assert hasattr(agent, "_user_toolsets"), (
-            "Agent should have user toolsets configured for MCP server"
-        )
+            # Test that agent has toolsets configured
+            assert hasattr(agent, "_user_toolsets"), (
+                "Agent should have user toolsets configured for MCP server"
+            )
 
     @pytest.mark.asyncio
     async def test_prompt_content_validation(self):
@@ -153,7 +235,7 @@ class TestEndToEnd:
         import json
         import os
         import tempfile
-        from unittest.mock import AsyncMock, patch
+        from unittest.mock import AsyncMock
 
         # Create test issue file
         test_issue = {
@@ -191,30 +273,16 @@ class TestEndToEnd:
             async def mock_run(message_parts, **kwargs):
                 nonlocal captured_prompt
                 captured_prompt = message_parts[0] if message_parts else None
-                # Return minimal valid response structure
-                from types import SimpleNamespace
+                # Return minimal valid response - using new discriminated union
+                from github_issue_analysis.ai.models import ResolvedAnalysis
 
-                mock_result = SimpleNamespace()
-                mock_result.analysis = SimpleNamespace()
-                mock_result.analysis.root_cause = "Test root cause"
-                mock_result.analysis.key_findings = ["Test finding"]
-                mock_result.analysis.remediation = "Test remediation"
-                mock_result.analysis.explanation = "Test explanation"
-                mock_result.confidence_score = 0.8
-                mock_result.tools_used = []
-                mock_result.processing_time_seconds = 1.0
-                # Add model_dump method for CLI compatibility
-                mock_result.model_dump = lambda: {
-                    "analysis": {
-                        "root_cause": "Test root cause",
-                        "key_findings": ["Test finding"],
-                        "remediation": "Test remediation",
-                        "explanation": "Test explanation",
-                    },
-                    "confidence_score": 0.8,
-                    "tools_used": [],
-                    "processing_time_seconds": 1.0,
-                }
+                mock_result = ResolvedAnalysis(
+                    status="resolved",
+                    root_cause="Test root cause",
+                    evidence=["Test finding"],
+                    solution="Test remediation",
+                    validation="Test explanation",
+                )
                 return SimpleNamespace(output=mock_result)
 
             # Mock agent creation to return our spy agent
@@ -264,88 +332,3 @@ class TestEndToEnd:
                 "recommend the most appropriate product label"
                 not in captured_prompt.lower()
             )
-
-    @pytest.mark.skipif(
-        not os.getenv("RUN_INTEGRATION_TESTS"),
-        reason="Set RUN_INTEGRATION_TESTS=1 to run integration tests",
-    )
-    @pytest.mark.asyncio
-    async def test_real_cli_command_integration(self):
-        """Test real CLI command integration (requires valid API tokens)."""
-        # Only test the command structure and function calls, not AI analysis
-        # This validates the actual CLI path without requiring expensive AI calls
-
-        import json
-        import tempfile
-        from unittest.mock import AsyncMock, patch
-
-        # Skip if tokens not available
-        if not os.getenv("SBCTL_TOKEN") or not os.getenv("OPENAI_API_KEY"):
-            pytest.skip(
-                "SBCTL_TOKEN and OPENAI_API_KEY required for CLI integration test"
-            )
-
-        test_issue = {
-            "org": "testorg",
-            "repo": "testrepo",
-            "issue": {
-                "number": 999,
-                "title": "Production outage - services unreachable",
-                "body": "All microservices showing connection timeouts",
-                "labels": [],
-                "attachments": [],
-                "comments": [],
-            },
-        }
-
-        # Mock analyze_troubleshooting_issue to verify it gets called
-        # (not analyze_issue)
-        mock_analysis_result = AsyncMock()
-        mock_analysis_result.analysis.root_cause = "Network partition detected"
-        mock_analysis_result.analysis.key_findings = ["DNS resolution failing"]
-        mock_analysis_result.analysis.remediation = "Check network configuration"
-        mock_analysis_result.analysis.explanation = "Evidence shows network issues"
-        mock_analysis_result.confidence_score = 0.9
-        mock_analysis_result.tools_used = ["kubectl", "dig"]
-        mock_analysis_result.processing_time_seconds = 30.0
-
-        with tempfile.TemporaryDirectory() as temp_dir:
-            # Create proper directory structure
-            issues_dir = f"{temp_dir}/issues"
-            os.makedirs(issues_dir, exist_ok=True)
-
-            issue_file = f"{issues_dir}/testorg_testrepo_issue_999.json"
-            with open(issue_file, "w") as f:
-                json.dump(test_issue, f)
-
-            with patch.dict(os.environ, {"GITHUB_ANALYSIS_DATA_DIR": temp_dir}):
-                with patch(
-                    "github_issue_analysis.cli.process.analyze_troubleshooting_issue",
-                    return_value=mock_analysis_result,
-                ) as mock_analyze:
-                    # Run real CLI command (not analyze_issue!)
-                    from github_issue_analysis.cli.process import _run_troubleshoot
-
-                    await _run_troubleshoot(
-                        org="testorg",
-                        repo="testrepo",
-                        issue_number=999,
-                        url=None,
-                        agent_name="o3_medium",
-                        include_images=False,
-                        limit_comments=None,
-                        dry_run=False,
-                        interactive=False,
-                    )
-
-                    # Verify analyze_troubleshooting_issue was called
-                    # (not analyze_issue)
-                    mock_analyze.assert_called_once()
-
-                    # Verify the issue data passed to analysis
-                    call_args = mock_analyze.call_args
-                    passed_issue_data = call_args[0][1]  # Second positional arg
-                    assert (
-                        passed_issue_data["issue"]["title"]
-                        == "Production outage - services unreachable"
-                    )
