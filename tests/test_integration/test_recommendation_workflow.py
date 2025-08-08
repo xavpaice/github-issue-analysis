@@ -138,9 +138,9 @@ class TestRecommendationWorkflow:
 
             # Create realistic AI result files
             test_cases = [
-                ("replicated", "kots", 100, 0.95),
-                ("replicated", "kots", 101, 0.85),
-                ("replicated", "troubleshoot", 200, 0.75),
+                ("example-org", "example-repo", 100, 0.95),
+                ("example-org", "example-repo", 101, 0.85),
+                ("test-org", "test-repo", 200, 0.75),
             ]
 
             for org, repo, issue_num, confidence in test_cases:
@@ -160,7 +160,7 @@ class TestRecommendationWorkflow:
             assert len(all_recs) == 3
 
             # Verify recommendation details
-            rec1 = manager.status_tracker.get_recommendation("replicated", "kots", 100)
+            rec1 = manager.status_tracker.get_recommendation("example-org", "example-repo", 100)
             assert rec1 is not None
             assert rec1.original_confidence == 0.95
             assert "product::kots" in rec1.recommended_labels
@@ -193,7 +193,7 @@ class TestRecommendationWorkflow:
 
             # Verify status changes persisted correctly
             rec1_updated = manager.status_tracker.get_recommendation(
-                "replicated", "kots", 100
+                "example-org", "example-repo", 100
             )
             assert rec1_updated is not None
             assert rec1_updated.status == RecommendationStatus.APPROVED
@@ -201,14 +201,14 @@ class TestRecommendationWorkflow:
             assert rec1_updated.reviewed_at is not None
 
             rec2_updated = manager.status_tracker.get_recommendation(
-                "replicated", "kots", 101
+                "example-org", "example-repo", 101
             )
             assert rec2_updated is not None
             assert rec2_updated.status == RecommendationStatus.REJECTED
             assert rec2_updated.review_notes == "Not relevant"
 
             rec3_updated = manager.status_tracker.get_recommendation(
-                "replicated", "troubleshoot", 200
+                "test-org", "test-repo", 200
             )
             assert rec3_updated is not None
             assert rec3_updated.status == RecommendationStatus.PENDING  # Not reviewed

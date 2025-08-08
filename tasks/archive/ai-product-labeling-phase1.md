@@ -182,9 +182,9 @@ PRODUCT_DEFINITIONS = {
     
     "docs": "Documentation: Issues with documentation, tutorials, guides, examples, or documentation website. Look for: documentation requests, unclear guides, missing examples, doc site issues.",
     
-    "vendor": "Vendor Portal: Web interface for vendors to manage applications, customers, and releases. Issues involve vendor.replicated.com interface, application/customer/release management.",
+    "vendor": "Vendor Portal: Web interface for vendors to manage applications, customers, and releases. Issues involve vendor portal interface, application/customer/release management.",
     
-    "downloadportal": "Download Portal: Customer-facing download interface for air-gapped installations. Issues involve download.replicated.com, customer download experience, package downloads.",
+    "downloadportal": "Download Portal: Customer-facing download interface for air-gapped installations. Issues involve download portal, customer download experience, package downloads.",
     
     "compatibility-matrix": "Compatibility Matrix: Tool for testing application compatibility across Kubernetes versions. Issues involve compatibility testing, version matrices, test automation.",
     

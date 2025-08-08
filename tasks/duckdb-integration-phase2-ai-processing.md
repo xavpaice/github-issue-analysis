@@ -85,7 +85,7 @@ QUERY_ALIASES['label_summary'] = {
 uv run gh-analysis query alias label_summary
 
 # Filter to specific repository
-uv run gh-analysis query sql "SELECT * FROM (${label_summary_sql}) WHERE repository = 'replicated/kots'"
+uv run gh-analysis query sql "SELECT * FROM (${label_summary_sql}) WHERE repository = 'example-org/example-repo'"
 
 # Find under-labeled issues
 uv run gh-analysis query sql "SELECT * FROM (${label_summary_sql}) WHERE recommendation_impact = 'Under-labeled'"
