@@ -51,10 +51,10 @@ def process_issues(issues: List[Dict[str, Any]]) -> Optional[str]:
 
 **CLI Usage:**
 ```bash
-# Collect GitHub issues (various modes)
-uv run gh-analysis collect --org myorg --repo myrepo                    # Repository-specific
-uv run gh-analysis collect --org myorg                                  # Organization-wide  
-uv run gh-analysis collect --org myorg --repo myrepo --issue-number 123 # Single issue
+# Collect GitHub issues (various modes) - ask user for org/repo/issue values
+uv run gh-analysis collect --org [ORG] --repo [REPO]                    # Repository-specific
+uv run gh-analysis collect --org [ORG]                                  # Organization-wide  
+uv run gh-analysis collect --org [ORG] --repo [REPO] --issue-number [NUM] # Single issue
 
 # Show storage statistics
 uv run gh-analysis status
@@ -64,14 +64,14 @@ uv run gh-analysis version
 
 # AI processing commands (BATCH PROCESSING RECOMMENDED)
 # Use batch processing for cost-effective analysis (50% cheaper than individual processing)
-uv run gh-analysis batch submit product-labeling --org myorg --repo myrepo   # Batch process all issues for repo
-uv run gh-analysis batch submit product-labeling --org myorg               # Batch process all org issues
+uv run gh-analysis batch submit product-labeling --org [ORG] --repo [REPO]   # Batch process all issues for repo
+uv run gh-analysis batch submit product-labeling --org [ORG]               # Batch process all org issues
 uv run gh-analysis batch status <job-id>                                   # Check batch job progress
 uv run gh-analysis batch collect <job-id>                                  # Collect completed results
 uv run gh-analysis batch list                                              # List all batch jobs
 
 # Individual processing (use only for single issues or testing)
-uv run gh-analysis process product-labeling --org myorg --repo myrepo --issue-number 123  # Single issue only
+uv run gh-analysis process product-labeling --org [ORG] --repo [REPO] --issue-number [NUM]  # Single issue only
 ```
 
 ## Architecture
@@ -118,6 +118,7 @@ When implementing features, consult these docs for detailed specifications:
 - Write comprehensive tests (unit and integration)
 - Add type hints throughout
 - Implement proper error handling
+- **NEVER hardcode real repository names** - use placeholders and ask users for test repositories
 
 ### Key Technologies
 - **Python 3.12+** with strict typing
@@ -164,12 +165,27 @@ GITHUB_TOKEN=$GITHUB_PERSONAL_ACCESS_TOKEN gh pr create --title "Title" --body "
 GITHUB_TOKEN=$GITHUB_PERSONAL_ACCESS_TOKEN gh repo view
 
 # Testing the CLI tool (use GITHUB_TOKEN for test repo access)
-uv run gh-analysis collect --org YOUR_ORG --repo YOUR_REPO --issue-number 123
+uv run gh-analysis collect --org [USER-ORG] --repo [USER-REPO] --issue-number [USER-ISSUE]
 ```
 
 **Why Two Tokens:**
 - `GITHUB_TOKEN`: Has access to test repositories but limited GitHub API permissions
 - `GITHUB_PERSONAL_ACCESS_TOKEN`: Has full GitHub API permissions for repository operations
+
+## Repository Reference Policy
+
+**CRITICAL: Never hardcode real GitHub organization or repository names in code, tests, or documentation.**
+
+**Placeholder Usage:**
+- Use generic placeholders like `[ORG]`, `[REPO]`, `[ISSUE-NUMBER]` in documentation
+- Always ask users to provide actual repository information when needed
+- Keep all real repository names out of the codebase permanently
+
+**Examples:**
+- ✅ Good: `--org [USER-ORG] --repo [USER-REPO]` (ask user for values)
+- ❌ Bad: `--org replicated --repo kots` (real repositories hardcoded)
+
+This policy ensures we never leak real repository information into version control or documentation.
 
 ## Important Security Notes
 
