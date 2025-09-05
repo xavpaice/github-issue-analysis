@@ -470,11 +470,13 @@ def troubleshoot(
         rich_help_panel="Target Selection",
     ),
     agent: str = typer.Option(
-        "gpt5_mini_medium",
+        "gpt5_mini_medium_mt",
         "--agent",
         "-a",
         help="Troubleshoot agent to use (gpt5_mini_medium, gpt5_mini_high, "
-        "gpt5_medium, gpt5_high, o3_medium, o3_high)",
+        "gpt5_medium, gpt5_high, o3_medium, o3_high, claude_sonnet_mt, "
+        "gpt5_mini_medium_mt, gpt5_mini_high_mt, gpt5_medium_mt, gpt5_high_mt, "
+        "gemini_25_pro_mt)",
         rich_help_panel="AI Configuration",
     ),
     include_images: bool = typer.Option(
@@ -510,18 +512,30 @@ def troubleshoot(
     Currently supports single-issue analysis for in-depth investigation.
 
     Agents available:
-    - gpt5_mini_medium: GPT-5 Mini with medium reasoning (default, balanced
-      speed/quality)
-    - gpt5_mini_high: GPT-5 Mini with high reasoning (more thorough)
-    - gpt5_medium: GPT-5 with medium reasoning (higher capability)
-    - gpt5_high: GPT-5 with high reasoning (most capable)
-    - o3_medium: OpenAI O3 with medium reasoning (balanced speed/quality)
-    - o3_high: OpenAI O3 with high reasoning (slower but more thorough)
+    - gpt5_mini_medium_mt: GPT-5 Mini (medium reasoning) with memory+tools (default, 
+      balanced speed and enhanced analysis with historical case retrieval)
+    - gpt5_mini_high_mt: GPT-5 Mini (high reasoning) with memory+tools (slower but more thorough)
+    - claude_sonnet_mt: Claude Sonnet 4 with memory+tools (alternative enhanced option)
+    - gpt5_mini_medium: GPT-5 Mini with medium reasoning (basic, no memory)
+    - gpt5_mini_high: GPT-5 Mini with high reasoning (basic, no memory)
+    - gpt5_medium: GPT-5 with medium reasoning (basic, no memory)
+    - gpt5_high: GPT-5 with high reasoning (basic, no memory)
+    - o3_medium: OpenAI O3 with medium reasoning (basic, no memory)
+    - o3_high: OpenAI O3 with high reasoning (basic, no memory)
+    
+    Memory+Tool agents (*_mt) provide enhanced analysis with:
+    - Historical case retrieval from similar resolved issues
+    - Dynamic evidence search during analysis
+    - Improved root cause identification accuracy
 
     Required environment variables:
     - SBCTL_TOKEN: Required for all agents (MCP tool access)
     - OPENAI_API_KEY: Required for gpt5_* and o3_* agents
-    - ANTHROPIC_API_KEY: Required for claude_* agents (if available)
+    - ANTHROPIC_API_KEY: Required for claude_* agents
+    - GOOGLE_API_KEY: Required for gemini_* agents
+    
+    Additional requirements for Memory+Tool agents (*_mt):
+    - SNOWFLAKE_ACCOUNT, SNOWFLAKE_USER, SNOWFLAKE_PRIVATE_KEY_PATH: For historical case retrieval
 
     Examples:
 
@@ -611,6 +625,10 @@ async def _run_troubleshoot(
         "gpt5_mini_high",
         "gpt5_medium",
         "gpt5_high",
+        "gpt5_mini_medium_mt",
+        "gpt5_mini_high_mt",
+        "gpt5_medium_mt",
+        "gpt5_high_mt",
         "o3_medium",
         "o3_high",
     ]:
@@ -627,11 +645,19 @@ async def _run_troubleshoot(
                 "for Claude agents[/red]"
             )
             return
+    elif agent_name.startswith("gemini_"):
+        if not os.environ.get("GOOGLE_API_KEY"):
+            console.print(
+                "[red]❌ GOOGLE_API_KEY environment variable is required "
+                "for Gemini agents[/red]"
+            )
+            return
     else:
         console.print(
             f"[red]❌ Unknown agent: {agent_name}. Available: "
             f"gpt5_mini_medium, gpt5_mini_high, gpt5_medium, gpt5_high, "
-            f"o3_medium, o3_high[/red]"
+            f"o3_medium, o3_high, claude_sonnet_mt, gpt5_mini_medium_mt, "
+            f"gpt5_mini_high_mt, gpt5_medium_mt, gpt5_high_mt, gemini_25_pro_mt[/red]"
         )
         return
 
@@ -771,6 +797,10 @@ async def _run_troubleshoot(
             class SimpleAgentResult:
                 def __init__(self, output: Any) -> None:
                     self.output = output
+
+                def new_messages(self) -> list[Any]:
+                    """Return empty message history for interactive mode compatibility."""
+                    return []
 
             agent_result = SimpleAgentResult(result)
         else:
