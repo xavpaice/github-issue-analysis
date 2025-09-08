@@ -23,8 +23,6 @@ from .troubleshooting.memory_tool.gpt5_mini_high_memory_tool import (
 from .troubleshooting.memory_tool.gpt5_mini_medium_memory_tool import (
     GPT5MiniMediumMemoryToolRunner,
 )
-from .troubleshooting.o3_high import O3HighTroubleshootRunner
-from .troubleshooting.o3_medium import O3MediumTroubleshootRunner
 from .utils.github_runner import GitHubIssueRunner
 
 RUNNERS: dict[str, type[GitHubIssueRunner]] = {
@@ -33,8 +31,6 @@ RUNNERS: dict[str, type[GitHubIssueRunner]] = {
     "gpt5_mini_high": GPT5MiniHighTroubleshootRunner,
     "gpt5_medium": GPT5MediumTroubleshootRunner,
     "gpt5_high": GPT5HighTroubleshootRunner,
-    "o3_medium": O3MediumTroubleshootRunner,
-    "o3_high": O3HighTroubleshootRunner,
     "claude_sonnet_mt": ClaudeSonnetMemoryToolRunner,
     "gpt5_mini_medium_mt": GPT5MiniMediumMemoryToolRunner,
     "gpt5_mini_high_mt": GPT5MiniHighMemoryToolRunner,
@@ -62,8 +58,6 @@ def list_runners() -> dict[str, str]:
         "gpt5_mini_high": "GPT-5 Mini with high reasoning for troubleshooting",
         "gpt5_medium": "GPT-5 with medium reasoning for troubleshooting",
         "gpt5_high": "GPT-5 with high reasoning for troubleshooting",
-        "o3_medium": "OpenAI O3 with medium reasoning for troubleshooting",
-        "o3_high": "OpenAI O3 with high reasoning for troubleshooting",
         "claude_sonnet_mt": "Claude Sonnet 4 with memory injection and evidence search tools",
         "gpt5_mini_medium_mt": "GPT-5 Mini (medium reasoning) with memory and evidence search",
         "gpt5_mini_high_mt": "GPT-5 Mini (high reasoning) with memory and evidence search",

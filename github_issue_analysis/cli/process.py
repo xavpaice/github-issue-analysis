@@ -474,7 +474,7 @@ def troubleshoot(
         "--agent",
         "-a",
         help="Troubleshoot agent to use (gpt5_mini_medium, gpt5_mini_high, "
-        "gpt5_medium, gpt5_high, o3_medium, o3_high, claude_sonnet_mt, "
+        "gpt5_medium, gpt5_high, claude_sonnet_mt, "
         "gpt5_mini_medium_mt, gpt5_mini_high_mt, gpt5_medium_mt, gpt5_high_mt, "
         "gemini_25_pro_mt)",
         rich_help_panel="AI Configuration",
@@ -520,8 +520,6 @@ def troubleshoot(
     - gpt5_mini_high: GPT-5 Mini with high reasoning (basic, no memory)
     - gpt5_medium: GPT-5 with medium reasoning (basic, no memory)
     - gpt5_high: GPT-5 with high reasoning (basic, no memory)
-    - o3_medium: OpenAI O3 with medium reasoning (basic, no memory)
-    - o3_high: OpenAI O3 with high reasoning (basic, no memory)
     
     Memory+Tool agents (*_mt) provide enhanced analysis with:
     - Historical case retrieval from similar resolved issues
@@ -530,7 +528,7 @@ def troubleshoot(
 
     Required environment variables:
     - SBCTL_TOKEN: Required for all agents (MCP tool access)
-    - OPENAI_API_KEY: Required for gpt5_* and o3_* agents
+    - OPENAI_API_KEY: Required for gpt5_* agents
     - ANTHROPIC_API_KEY: Required for claude_* agents
     - GOOGLE_API_KEY: Required for gemini_* agents
     
@@ -550,10 +548,6 @@ def troubleshoot(
         # Use high-reasoning GPT-5 agent for complex issues
         github-analysis process troubleshoot \
             --url https://github.com/myorg/myrepo/issues/456 --agent gpt5_high
-
-        # Use O3 agent with high reasoning
-        github-analysis process troubleshoot \
-            --url https://github.com/myorg/myrepo/issues/456 --agent o3_high
 
         # Limit comments for large issues (only affects processing, not download)
         github-analysis process troubleshoot \
@@ -629,8 +623,6 @@ async def _run_troubleshoot(
         "gpt5_mini_high_mt",
         "gpt5_medium_mt",
         "gpt5_high_mt",
-        "o3_medium",
-        "o3_high",
     ]:
         if not os.environ.get("OPENAI_API_KEY"):
             console.print(
@@ -656,7 +648,7 @@ async def _run_troubleshoot(
         console.print(
             f"[red]❌ Unknown agent: {agent_name}. Available: "
             f"gpt5_mini_medium, gpt5_mini_high, gpt5_medium, gpt5_high, "
-            f"o3_medium, o3_high, claude_sonnet_mt, gpt5_mini_medium_mt, "
+            f"claude_sonnet_mt, gpt5_mini_medium_mt, "
             f"gpt5_mini_high_mt, gpt5_medium_mt, gpt5_high_mt, gemini_25_pro_mt[/red]"
         )
         return
