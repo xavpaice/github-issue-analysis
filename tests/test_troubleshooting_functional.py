@@ -10,8 +10,8 @@ from unittest.mock import patch
 
 import pytest
 
-from github_issue_analysis.ai.mcp_server import troubleshoot_mcp_server
-from github_issue_analysis.ai.troubleshooting_agents import (
+from gh_analysis.ai.mcp_server import troubleshoot_mcp_server
+from gh_analysis.ai.troubleshooting_agents import (
     create_gpt5_high_agent,
     create_gpt5_medium_agent,
     create_gpt5_mini_high_agent,
@@ -212,7 +212,7 @@ class TestEndToEnd:
         }
 
         # Test the troubleshooting prompt formatter
-        from github_issue_analysis.ai.analysis import format_troubleshooting_prompt
+        from gh_analysis.ai.analysis import format_troubleshooting_prompt
 
         prompt_content = format_troubleshooting_prompt(test_issue, 0)
 
@@ -274,7 +274,7 @@ class TestEndToEnd:
                 nonlocal captured_prompt
                 captured_prompt = message_parts[0] if message_parts else None
                 # Return minimal valid response - using new discriminated union
-                from github_issue_analysis.ai.models import ResolvedAnalysis
+                from gh_analysis.ai.models import ResolvedAnalysis
 
                 mock_result = ResolvedAnalysis(
                     status="resolved",
@@ -295,10 +295,8 @@ class TestEndToEnd:
                 "OPENAI_API_KEY": "test_openai_key",
             }
             with patch.dict(os.environ, env_patches):
-                with patch(
-                    "github_issue_analysis.runners.get_runner"
-                ) as mock_get_runner:
-                    from github_issue_analysis.ai.models import ResolvedAnalysis
+                with patch("gh_analysis.runners.get_runner") as mock_get_runner:
+                    from gh_analysis.ai.models import ResolvedAnalysis
 
                     mock_result = ResolvedAnalysis(
                         status="resolved",
@@ -311,7 +309,7 @@ class TestEndToEnd:
                     async def mock_analyze(self, data):
                         nonlocal captured_prompt
                         # Capture the prompt from GitHub context
-                        from github_issue_analysis.runners.utils.github_context import (
+                        from gh_analysis.runners.utils.github_context import (
                             build_github_context,
                         )
 
@@ -323,7 +321,7 @@ class TestEndToEnd:
                     )()
                     mock_get_runner.return_value = mock_runner
                     # Import and run the CLI function directly
-                    from github_issue_analysis.cli.process import _run_troubleshoot
+                    from gh_analysis.cli.process import _run_troubleshoot
 
                     # This should call analyze_troubleshooting_issue, not analyze_issue
                     await _run_troubleshoot(
@@ -331,7 +329,7 @@ class TestEndToEnd:
                         repo="testrepo",
                         issue_number=123,
                         url=None,
-                        agent_name="o3_medium",
+                        agent_name="gpt5_mini_medium",
                         include_images=False,
                         limit_comments=None,
                         dry_run=False,

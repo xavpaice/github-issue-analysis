@@ -81,6 +81,119 @@ uv run python -c "from github_issue_analysis.runners.utils.summary_retrieval imp
 
 **Note:** Basic agents (`gpt5_mini_medium`, `gpt5_mini_high`, `gpt5_medium`, `gpt5_high`) work without Snowflake and provide standard troubleshooting analysis.
 
+## Container Usage
+
+For parallel processing and deployment scenarios, the CLI is available as a containerized solution:
+
+```bash
+# Build the container locally
+podman build -f Containerfile -t gh-analysis .
+
+# Test the build works
+podman run --rm \
+  -e ISSUE_URL="https://github.com/test/repo/issues/1" \
+  -e CLI_ARGS="--help" \
+  gh-analysis
+
+# Process a single issue
+podman run --rm \
+  -e GITHUB_TOKEN=$GITHUB_TOKEN \
+  -e OPENAI_API_KEY=$OPENAI_API_KEY \
+  -e SBCTL_TOKEN=$SBCTL_TOKEN \
+  -v $(pwd)/data:/app/data \
+  -e ISSUE_URL="https://github.com/your-org/your-repo/issues/123" \
+  -e CLI_ARGS="--agent gpt5_mini_medium" \
+  gh-analysis
+```
+
+**Note:** Use `gh-analysis` for local builds or `ghcr.io/chris-sanders/github-issue-analysis:latest` for tagged releases.
+
+### Environment Variables
+
+**Required:**
+- `ISSUE_URL`: Full GitHub issue URL (e.g., `https://github.com/org/repo/issues/123`)
+- `GITHUB_TOKEN`: GitHub personal access token
+- `SBCTL_TOKEN`: Required for all troubleshooting agents (MCP tool access)
+
+**AI API Keys (at least one required):**
+- `OPENAI_API_KEY`: For GPT-5 agents
+- `ANTHROPIC_API_KEY`: For Claude agents  
+- `GOOGLE_API_KEY`: For Gemini agents
+
+**Optional:**
+- `CLI_ARGS`: Additional command-line arguments (e.g., `--agent gpt5_high --interactive`)
+
+**Memory+Tool Agents (optional, for `_mt` agents only):**
+- `SNOWFLAKE_ACCOUNT`: Snowflake account identifier
+- `SNOWFLAKE_USER`: Snowflake username  
+- `SNOWFLAKE_WAREHOUSE`: Snowflake warehouse name
+- `SNOWFLAKE_PRIVATE_KEY_PATH`: Path to private key file (local system path, will be mapped into container)
+
+**Volume Mounts:**
+- **Data caching**: `-v $(pwd)/data:/app/data` - Persistent storage for collected issues and results across container runs
+- **Snowflake SSH keys**: `-v $(dirname $(eval echo $SNOWFLAKE_PRIVATE_KEY_PATH)):/home/appuser/.ssh:ro` - Mount directory containing the private key
+- Map the key path: `-e SNOWFLAKE_PRIVATE_KEY_PATH=/home/appuser/.ssh/$(basename $SNOWFLAKE_PRIVATE_KEY_PATH)`
+
+**Note:** Memory+Tool agents (`*_mt`) require Snowflake. If you don't have Snowflake access, use basic agents like `gpt5_mini_medium` instead of `gpt5_mini_medium_mt`.
+
+### Parallel Processing
+
+Run multiple containers simultaneously with different `ISSUE_URL` values to process multiple issues in parallel.
+
+### Advanced Usage
+
+**Interactive Mode:**
+```bash
+podman run --rm -it \
+  -e GITHUB_TOKEN=$GITHUB_TOKEN \
+  -e OPENAI_API_KEY=$OPENAI_API_KEY \
+  -e ISSUE_URL="$ISSUE_URL" \
+  -e CLI_ARGS="--agent gpt5_mini_medium --interactive" \
+  gh-analysis
+```
+
+**Memory+Tool Agent with Snowflake:**
+```bash
+# Option 1: With Snowflake (requires private key file)
+podman run --rm \
+  -e GITHUB_TOKEN=$GITHUB_TOKEN \
+  -e OPENAI_API_KEY=$OPENAI_API_KEY \
+  -e SBCTL_TOKEN=$SBCTL_TOKEN \
+  -e SNOWFLAKE_ACCOUNT=$SNOWFLAKE_ACCOUNT \
+  -e SNOWFLAKE_USER=$SNOWFLAKE_USER \
+  -e SNOWFLAKE_WAREHOUSE=$SNOWFLAKE_WAREHOUSE \
+  -v $(dirname $(eval echo $SNOWFLAKE_PRIVATE_KEY_PATH)):/home/appuser/.ssh:ro \
+  -e SNOWFLAKE_PRIVATE_KEY_PATH=/home/appuser/.ssh/$(basename $SNOWFLAKE_PRIVATE_KEY_PATH) \
+  -v $(pwd)/data:/app/data \
+  -e ISSUE_URL="$ISSUE_URL" \
+  -e CLI_ARGS="--agent gpt5_mini_medium_mt" \
+  gh-analysis
+
+# Option 2: Without Snowflake (use basic agents instead)
+podman run --rm \
+  -e GITHUB_TOKEN=$GITHUB_TOKEN \
+  -e OPENAI_API_KEY=$OPENAI_API_KEY \
+  -e SBCTL_TOKEN=$SBCTL_TOKEN \
+  -v $(pwd)/data:/app/data \
+  -e ISSUE_URL="$ISSUE_URL" \
+  -e CLI_ARGS="--agent gpt5_mini_medium" \
+  gh-analysis
+```
+
+
+### Container Testing
+
+Run the included test script to validate container functionality:
+
+```bash
+# Run comprehensive container tests
+./scripts/test-container-examples.sh
+
+# Test specific functionality
+podman run --rm gh-analysis  # Should exit with code 2 (missing ISSUE_URL)
+podman run --rm -e ISSUE_URL="test" -e CLI_ARGS="--help" gh-analysis  # Should show help
+```
+
 ## For AI Agents
 
 **All agent instructions are in `CLAUDE.md`** - this is the single source of truth for development workflow, commands, and requirements.

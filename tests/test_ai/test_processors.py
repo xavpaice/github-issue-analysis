@@ -6,12 +6,12 @@ from unittest.mock import AsyncMock, patch
 import pytest
 from pydantic_ai.messages import BinaryContent
 
-from github_issue_analysis.ai.analysis import (
+from gh_analysis.ai.analysis import (
     analyze_issue,
     format_issue_prompt,
     prepare_issue_for_analysis,
 )
-from github_issue_analysis.ai.models import (
+from gh_analysis.ai.models import (
     LabelAssessment,
     ProductLabel,
     ProductLabelingResponse,
@@ -147,9 +147,7 @@ def test_prepare_issue_for_analysis(sample_issue_data: dict[str, Any]) -> None:
     assert "KOTS admin console not loading" in message_parts[0]
 
     # Test with images (mocked)
-    with patch(
-        "github_issue_analysis.ai.analysis.load_downloaded_images"
-    ) as mock_load_images:
+    with patch("gh_analysis.ai.analysis.load_downloaded_images") as mock_load_images:
         mock_load_images.return_value = [
             {
                 "type": "image_url",
@@ -259,9 +257,7 @@ async def test_analyze_issue_fallback_on_multimodal_failure() -> None:
     mock_agent.run.side_effect = side_effect
 
     # Mock image loading to return images
-    with patch(
-        "github_issue_analysis.ai.analysis.load_downloaded_images"
-    ) as mock_load_images:
+    with patch("gh_analysis.ai.analysis.load_downloaded_images") as mock_load_images:
         mock_load_images.return_value = [
             {
                 "type": "image_url",
