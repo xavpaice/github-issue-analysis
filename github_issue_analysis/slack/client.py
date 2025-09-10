@@ -18,15 +18,24 @@ class SlackClient:
     def __init__(self, config: Optional[SlackConfig] = None) -> None:
         """Initialize Slack client with configuration."""
         self.config = config or SlackConfig()
-        self._client: Optional[WebClient] = None
+        self._bot_client: Optional[WebClient] = None
+        self._user_client: Optional[WebClient] = None
 
     @property
-    def client(self) -> WebClient:
-        """Get or create Slack WebClient instance."""
-        if self._client is None:
+    def bot_client(self) -> WebClient:
+        """Get or create Slack WebClient instance for bot token (posting messages)."""
+        if self._bot_client is None:
             self.config.validate()
-            self._client = WebClient(token=self.config.bot_token)
-        return self._client
+            self._bot_client = WebClient(token=self.config.bot_token)
+        return self._bot_client
+
+    @property
+    def user_client(self) -> WebClient:
+        """Get or create Slack WebClient instance for user token (searching messages)."""
+        if self._user_client is None:
+            self.config.validate()
+            self._user_client = WebClient(token=self.config.user_token)
+        return self._user_client
 
     def search_for_issue(self, issue_url: str) -> Optional[str]:
         """
@@ -49,7 +58,7 @@ class SlackClient:
                 # Search for messages containing the issue URL or issue reference
                 search_query = f"in:{self.config.channel.lstrip('#')} {issue_url}"
 
-                result = self.client.search_messages(query=search_query)
+                result = self.user_client.search_messages(query=search_query)
 
                 if result["ok"] and result["messages"]["total"] > 0:
                     # Return the timestamp of the first matching message
@@ -58,7 +67,7 @@ class SlackClient:
 
                 # If direct URL search fails, try searching by issue reference
                 search_query = f"in:{self.config.channel.lstrip('#')} #{issue_number}"
-                result = self.client.search_messages(query=search_query)
+                result = self.user_client.search_messages(query=search_query)
 
                 if result["ok"] and result["messages"]["total"] > 0:
                     for match in result["messages"]["matches"]:
@@ -97,7 +106,7 @@ class SlackClient:
                 analysis_results, issue_url, agent_name
             )
 
-            response = self.client.chat_postMessage(
+            response = self.bot_client.chat_postMessage(
                 channel=self.config.channel,
                 thread_ts=thread_ts,
                 blocks=blocks,
@@ -184,7 +193,7 @@ class SlackClient:
                 issue_url, issue_title, analysis_results, agent_name
             )
 
-            response = self.client.chat_postMessage(
+            response = self.bot_client.chat_postMessage(
                 channel=self.config.channel,
                 blocks=blocks,
                 text=f"GitHub Issue Analysis: {issue_title}",

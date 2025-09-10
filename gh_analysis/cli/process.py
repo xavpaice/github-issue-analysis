@@ -668,8 +668,14 @@ async def _run_troubleshoot(
         slack_config = SlackConfig()
         if not slack_config.is_configured():
             console.print(
-                "[red]❌ SLACK_BOT_TOKEN environment variable is required "
+                "[red]❌ SLACK_BOT_TOKEN and SLACK_USER_TOKEN environment variables are required "
                 "for Slack notifications[/red]"
+            )
+            console.print(
+                "[yellow]SLACK_BOT_TOKEN: For posting messages (bot token with chat:write scope)[/yellow]"
+            )
+            console.print(
+                "[yellow]SLACK_USER_TOKEN: For searching messages (user token with search:read scope)[/yellow]"
             )
             console.print(
                 "[yellow]To disable notifications, remove --slack-notifications flag[/yellow]"
