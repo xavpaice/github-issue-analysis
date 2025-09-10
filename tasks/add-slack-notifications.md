@@ -7,7 +7,7 @@ I want to add a slack notification to the process troubleshoot command, with a C
 Example usage:
 
 ```bash
-uvx python run gh_analysis/cli/main.py process troubleshoot --url <issue_url> --agent <agent_name> --include-images --interactive --slack-notifications
+uvx gh-analysis process troubleshoot --url <issue_url> --agent <agent_name> --include-images --interactive --slack-notifications
 ```
 
 The slack notifications should be sent to the #support-chat channel, as a reply to a message with the Github issue url.
