@@ -120,7 +120,7 @@ class ResolvedAnalysis(BaseModel):
         arbitrary_types_allowed=True,
     )
 
-    status: Literal["resolved"] = "resolved"
+    status: Literal["high_confidence"] = "high_confidence"
     root_cause: str = Field(
         description="The fundamental underlying cause identified through analysis"
     )

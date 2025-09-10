@@ -277,7 +277,7 @@ class TestEndToEnd:
                 from gh_analysis.ai.models import ResolvedAnalysis
 
                 mock_result = ResolvedAnalysis(
-                    status="resolved",
+                    status="high_confidence",
                     root_cause="Test root cause",
                     evidence=["Test finding"],
                     solution="Test remediation",
@@ -299,7 +299,7 @@ class TestEndToEnd:
                     from gh_analysis.ai.models import ResolvedAnalysis
 
                     mock_result = ResolvedAnalysis(
-                        status="resolved",
+                        status="high_confidence",
                         root_cause="Test root cause",
                         evidence=["Test finding"],
                         solution="Test remediation",
@@ -334,6 +334,7 @@ class TestEndToEnd:
                         limit_comments=None,
                         dry_run=False,
                         interactive=False,
+                        slack_notifications=False,
                     )
 
             # Validate the prompt content

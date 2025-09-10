@@ -104,7 +104,7 @@ class TestTroubleshootFunctional:
         """
         # Mock the analysis result - return a resolved analysis
         mock_analyze.return_value = ResolvedAnalysis(
-            status="resolved",
+            status="high_confidence",
             root_cause="Test root cause",
             evidence=["Finding 1", "Finding 2"],
             solution="Test remediation",
@@ -198,7 +198,7 @@ class TestTroubleshootFunctional:
 
         # Test ResolvedAnalysis (part of TechnicalAnalysis union)
         tr = ResolvedAnalysis(
-            status="resolved",
+            status="high_confidence",
             root_cause="Test",
             evidence=["Finding"],
             solution="Fix",
@@ -206,4 +206,4 @@ class TestTroubleshootFunctional:
         )
 
         tr_serialized = tr.model_dump()
-        assert tr_serialized["status"] == "resolved"
+        assert tr_serialized["status"] == "high_confidence"
