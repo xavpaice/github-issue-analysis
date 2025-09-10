@@ -259,7 +259,7 @@ class SlackClient:
         status = results.get("status", "unknown")
         status_emoji = (
             "✅"
-            if status == "high_confidence"
+            if status == "resolved"
             else "📋"
             if status == "needs_data"
             else "❓"
@@ -290,7 +290,7 @@ class SlackClient:
 
         # Root cause (if high confidence)
         root_cause = results.get("root_cause")
-        if root_cause and status == "high_confidence":
+        if root_cause and status == "resolved":
             blocks.append(
                 {
                     "type": "section",
@@ -319,7 +319,7 @@ class SlackClient:
 
         # Solution (if high confidence)
         solution = results.get("recommended_solution")
-        if solution and status == "high_confidence":
+        if solution and status == "resolved":
             blocks.append(
                 {
                     "type": "section",

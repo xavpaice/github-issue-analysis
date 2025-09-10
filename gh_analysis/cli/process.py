@@ -837,7 +837,7 @@ async def _run_troubleshoot(
     # Display results based on discriminated union status
     console.print("\n[bold blue]🔍 Troubleshoot Analysis Results[/bold blue]")
 
-    if result.status == "high_confidence":
+    if result.status == "resolved":
         console.print("\n[bold green]✅ Root Cause Identified[/bold green]")
         console.print("\n[bold]Root Cause:[/bold]")
         console.print(result.root_cause)

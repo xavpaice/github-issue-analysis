@@ -277,7 +277,7 @@ class TestEndToEnd:
                 from gh_analysis.ai.models import ResolvedAnalysis
 
                 mock_result = ResolvedAnalysis(
-                    status="high_confidence",
+                    status="resolved",
                     root_cause="Test root cause",
                     evidence=["Test finding"],
                     solution="Test remediation",
@@ -299,7 +299,7 @@ class TestEndToEnd:
                     from gh_analysis.ai.models import ResolvedAnalysis
 
                     mock_result = ResolvedAnalysis(
-                        status="high_confidence",
+                        status="resolved",
                         root_cause="Test root cause",
                         evidence=["Test finding"],
                         solution="Test remediation",

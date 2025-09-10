@@ -48,7 +48,7 @@ class TestTroubleshootingSchemaValidation:
     def test_resolved_analysis_schema_valid(self):
         """Test that a valid resolved analysis passes schema validation."""
         valid_resolved = {
-            "status": "high_confidence",
+            "status": "resolved",
             "root_cause": "Database connection pool exhaustion",
             "evidence": [
                 "Connection timeout after 30 seconds",
@@ -60,7 +60,7 @@ class TestTroubleshootingSchemaValidation:
 
         # This should not raise an exception
         response = ResolvedAnalysis(**valid_resolved)
-        assert response.status == "high_confidence"
+        assert response.status == "resolved"
         assert len(response.evidence) == 2
         assert "pool exhaustion" in response.root_cause
 
@@ -91,21 +91,21 @@ class TestTroubleshootingSchemaValidation:
         invalid_responses = [
             # Missing root_cause
             {
-                "status": "high_confidence",
+                "status": "resolved",
                 "evidence": ["finding"],
                 "solution": "Test fix",
                 "validation": "Test validation",
             },
             # Missing evidence
             {
-                "status": "high_confidence",
+                "status": "resolved",
                 "root_cause": "Test cause",
                 "solution": "Test fix",
                 "validation": "Test validation",
             },
             # Missing solution
             {
-                "status": "high_confidence",
+                "status": "resolved",
                 "root_cause": "Test cause",
                 "evidence": ["finding"],
                 "validation": "Test validation",
@@ -143,7 +143,7 @@ class TestTroubleshootingSchemaValidation:
         """Test that the discriminated union works correctly."""
         # Valid resolved analysis should work
         resolved_data = {
-            "status": "high_confidence",
+            "status": "resolved",
             "root_cause": "Database connection pool exhaustion",
             "evidence": ["Connection timeout", "Max connections reached"],
             "solution": "Increase connection pool size",
@@ -151,7 +151,7 @@ class TestTroubleshootingSchemaValidation:
         }
 
         resolved = ResolvedAnalysis(**resolved_data)
-        assert resolved.status == "high_confidence"
+        assert resolved.status == "resolved"
 
         # Valid needs_data analysis should work
         needs_data_data = {
@@ -180,7 +180,7 @@ class TestTroubleshootingSchemaValidation:
     def test_resolved_analysis_forbids_extra_fields(self):
         """Test that extra fields are rejected due to extra='forbid'."""
         response_with_extra = {
-            "status": "high_confidence",
+            "status": "resolved",
             "root_cause": "Test cause",
             "evidence": ["finding"],
             "solution": "Test fix",
@@ -223,7 +223,7 @@ class TestTroubleshootingSchemaValidation:
 
             # Mock resolved response
             mock_response = ResolvedAnalysis(
-                status="high_confidence",
+                status="resolved",
                 root_cause="Database issue",
                 evidence=["Connection timeout"],
                 solution="Restart database",
@@ -239,13 +239,13 @@ class TestTroubleshootingSchemaValidation:
                     agent, sample_issue_data, include_images=False
                 )
                 # Verify the result is our mocked response
-                assert result.status == "high_confidence"
+                assert result.status == "resolved"
                 assert result.root_cause == "Database issue"
 
     def test_json_serialization_roundtrip(self):
         """Test that valid responses can be serialized and deserialized."""
         resolved_data = {
-            "status": "high_confidence",
+            "status": "resolved",
             "root_cause": "Network connectivity issue",
             "evidence": [
                 "DNS resolution failing",
@@ -275,7 +275,7 @@ class TestTroubleshootingSchemaValidation:
 
         # Pattern 1: Resolved analysis with detailed explanations
         resolved_response = {
-            "status": "high_confidence",
+            "status": "resolved",
             "root_cause": "The issue is caused by insufficient memory allocation",
             "evidence": [
                 "Pod memory usage at 95%",
