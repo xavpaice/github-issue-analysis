@@ -233,20 +233,37 @@ export SLACK_CHANNEL="#support-chat"  # Default if not specified
 
 **Required (when using `--slack-notifications`):**
 
-- `SLACK_BOT_TOKEN`: Bot User OAuth Token from your Slack app
+- `SLACK_BOT_TOKEN`: Bot User OAuth Token from your Slack app (starts with `xoxb-`)
+- `SLACK_USER_TOKEN`: User OAuth Token from your Slack app (starts with `xoxp-`)
 
 **Optional:**
 
 - `SLACK_CHANNEL`: Target channel (defaults to "#support-chat")
 
-### Slack App Setup
+### Slack App Setup (Hybrid Token Approach)
 
-The implementation requires a Slack app with these Bot Token Scopes:
+The implementation uses a hybrid approach with both Bot and User tokens to overcome Slack API limitations:
 
-- `chat:write` - Post messages
-- `search:read` - Search for existing issues
+**Bot Token Scopes (for posting messages):**
+- `chat:write` - Post messages as the bot
+
+**User Token Scopes (for searching messages):**  
+- `search:read` - Search for existing GitHub issue threads
+
+**Additional Bot Token Scopes (recommended):**
 - `channels:read` - Access channels
 - `groups:read` - Access private channels if needed
+
+**Setup Steps:**
+1. Create Slack app at https://api.slack.com/apps
+2. Navigate to "OAuth & Permissions"
+3. Add **Bot Token Scopes**: `chat:write`, `channels:read`
+4. Add **User Token Scopes**: `search:read` 
+5. Install app to workspace
+6. Copy both tokens:
+   - Bot User OAuth Token (xoxb-) → `SLACK_BOT_TOKEN`
+   - User OAuth Token (xoxp-) → `SLACK_USER_TOKEN`
+7. Add bot to `#support-chat` channel
 
 ### Files Modified/Created
 
@@ -273,24 +290,48 @@ The feature integrates seamlessly with the existing troubleshoot workflow:
 
 ## Recent Updates
 
-### Status Value Change (2025-01-10)
+### Hybrid Token Implementation (2025-01-11)
 
-Changed the analysis status value from `"resolved"` to `"high_confidence"` to better reflect the AI's assessment:
+Implemented hybrid Slack token approach to overcome API limitations where bot tokens cannot search messages:
 
 **What Changed:**
-- Model definition: `ResolvedAnalysis.status` now uses `Literal["high_confidence"]`
-- CLI display logic updated to check for `"high_confidence"` status
-- Slack client formatting updated to use `"high_confidence"` for ✅ emoji
-- All test files updated with new status values
-- Documentation updated throughout
+- `SlackConfig` now requires both `SLACK_BOT_TOKEN` and `SLACK_USER_TOKEN`
+- `SlackClient` uses `user_client` for searching messages and `bot_client` for posting
+- CLI validation updated to check for both tokens with clear error messages
+- Search functionality uses User OAuth Token with `search:read` scope
+- Message posting uses Bot OAuth Token with `chat:write` scope
 
 **Why Changed:**
-- `"resolved"` implied the issue was definitively fixed
-- `"high_confidence"` better reflects that this is an AI assessment with high confidence
-- More accurate semantic meaning while maintaining same functionality
+- Slack deprecated `search:read` scope for bot tokens
+- Bot tokens can no longer use `search.messages` API endpoint
+- User tokens are required for message search functionality
+- Hybrid approach provides best of both worlds: search capability + bot identity
 
 **Impact:**
-- Slack notifications now show "✅ High Confidence" instead of "✅ Resolved"
+- Messages still appear from bot (not individual users)
+- Can successfully search for existing GitHub issue threads
+- Graceful error handling with clear setup instructions
+- Future-proof against Slack API restrictions
+
+### Status Value Change (2025-01-10)
+
+**Note: This change was reverted back to `"resolved"` due to validation issues.**
+
+The status value was temporarily changed from `"resolved"` to `"high_confidence"` but was reverted to maintain compatibility:
+
+**What Was Reverted:**
+- `ResolvedAnalysis.status` back to `Literal["resolved"]`
+- CLI display logic back to checking `"resolved"` status
+- Slack client formatting back to using `"resolved"` for ✅ emoji
+- All test files reverted to use `"resolved"` status
+
+**Why Reverted:**
+- Caused validation errors preventing troubleshoot command from working
+- Schema mismatch between expected and actual model responses
+- Functional compatibility more important than semantic accuracy
+
+**Impact:**
+- Slack notifications show "✅ Resolved" 
+- All functionality preserved and working
 - No breaking changes to API or workflow
-- All existing functionality preserved
 - 
