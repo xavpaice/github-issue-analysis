@@ -24,7 +24,7 @@ class SlackConfig:
             missing_tokens.append("SLACK_BOT_TOKEN")
         if not self.user_token:
             missing_tokens.append("SLACK_USER_TOKEN")
-        
+
         if missing_tokens:
             raise ValueError(
                 f"Environment variables required for Slack notifications: {', '.join(missing_tokens)}"

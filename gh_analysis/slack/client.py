@@ -267,11 +267,7 @@ class SlackClient:
         # Header section
         status = results.get("status", "unknown")
         status_emoji = (
-            "✅"
-            if status == "resolved"
-            else "📋"
-            if status == "needs_data"
-            else "❓"
+            "✅" if status == "resolved" else "📋" if status == "needs_data" else "❓"
         )
 
         blocks.append(
