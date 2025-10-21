@@ -47,7 +47,9 @@ def apply_pydantic_ai_patch() -> None:
     # Based on context-experiments fix for tool call coordination
     original_process_response = OpenAIResponsesModel._process_response
 
-    def patched_process_response(self: Any, response: Any, model_request_parameters: Any = None) -> Any:
+    def patched_process_response(
+        self: Any, response: Any, model_request_parameters: Any = None
+    ) -> Any:
         """Patched version that applies guard_tool_call_id like Chat API."""
         # Call original with all provided arguments
         if model_request_parameters is not None:

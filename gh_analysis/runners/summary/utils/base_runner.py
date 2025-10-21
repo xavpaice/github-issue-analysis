@@ -222,7 +222,9 @@ class BaseAgentRunner(ABC):
             """Patched version that applies guard_tool_call_id like Chat Completions API does."""
             # Call original with all provided arguments
             if model_request_parameters is not None:
-                result = original_process_response(self, response, model_request_parameters)
+                result = original_process_response(
+                    self, response, model_request_parameters
+                )
             else:
                 result = original_process_response(self, response)
 
