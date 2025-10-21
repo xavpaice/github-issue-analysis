@@ -28,7 +28,9 @@ STATE_OPTION = typer.Option(
 LIMIT_OPTION = typer.Option(10, "--limit", help="Maximum number of issues to collect")
 
 OUTPUT_DIR_OPTION = typer.Option(
-    None, "--output-dir", help="Directory to store collected data (default: data/issues)"
+    None,
+    "--output-dir",
+    help="Directory to store collected data (default: data/issues)",
 )
 
 # Behavior options - control command behavior
