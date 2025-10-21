@@ -218,9 +218,13 @@ class BaseAgentRunner(ABC):
 
         original_process_response = OpenAIResponsesModel._process_response
 
-        def patched_process_response(self, response):
+        def patched_process_response(self, response, model_request_parameters=None):
             """Patched version that applies guard_tool_call_id like Chat Completions API does."""
-            result = original_process_response(self, response)
+            # Call original with all provided arguments
+            if model_request_parameters is not None:
+                result = original_process_response(self, response, model_request_parameters)
+            else:
+                result = original_process_response(self, response)
 
             # Apply guard_tool_call_id to all ToolCallPart items for consistency
             for item in result.parts:
