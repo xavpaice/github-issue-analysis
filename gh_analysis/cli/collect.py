@@ -24,6 +24,7 @@ from .options import (
     LIMIT_OPTION,
     MAX_ATTACHMENT_SIZE_OPTION,
     ORG_OPTION,
+    OUTPUT_DIR_OPTION,
     REPO_OPTION,
     STATE_OPTION,
     TOKEN_OPTION,
@@ -49,6 +50,7 @@ def collect(
     token: str | None = TOKEN_OPTION,
     download_attachments: bool = DOWNLOAD_ATTACHMENTS_OPTION,
     max_attachment_size: int = MAX_ATTACHMENT_SIZE_OPTION,
+    output_dir: str | None = OUTPUT_DIR_OPTION,
     # Date filtering options - absolute dates
     created_after: str | None = CREATED_AFTER_OPTION,
     created_before: str | None = CREATED_BEFORE_OPTION,
@@ -148,6 +150,8 @@ def collect(
     params_table.add_row("State", state)
     if collection_mode != "single_issue":
         params_table.add_row("Limit", str(limit))
+    if output_dir:
+        params_table.add_row("Output Directory", output_dir)
     if collection_mode == "organization" and excluded_repositories:
         params_table.add_row("Excluded Repos", ", ".join(excluded_repositories))
 
@@ -273,7 +277,11 @@ def collect(
                     import asyncio
                     from pathlib import Path
 
-                    base_dir = Path("data/attachments")
+                    # Use the same output directory for attachments if provided
+                    if output_dir:
+                        base_dir = Path(output_dir).parent / "attachments"
+                    else:
+                        base_dir = Path("data/attachments")
                     # For org-wide searches, use the repository name from the issue
                     repo_name = repo if repo is not None else issues[i].repository_name
                     if repo_name is None:
@@ -289,8 +297,11 @@ def collect(
                         )
                     )
 
-        # Initialize storage manager
-        storage = StorageManager()
+        # Initialize storage manager with custom output directory if provided
+        if output_dir:
+            storage = StorageManager(base_path=output_dir)
+        else:
+            storage = StorageManager()
 
         # Save issues - for organization-wide search, group by repository
         console.print("💾 Saving issues to storage...")
